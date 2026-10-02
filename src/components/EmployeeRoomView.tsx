@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Person, Room, Trip } from '../types';
+import { Person, Room, Trip, RelationType } from '../types';
 import { EmployeeRelativeClaim } from './EmployeeRelativeClaim';
+import { RoomingProcessGuide } from './RoomingProcessGuide';
 import { RoomModal } from './RoomModal';
 import {
   Bed,
@@ -15,7 +16,9 @@ import {
   Baby,
   Heart,
   Crown,
-  Search
+  Search,
+  UserMinus,
+  Info
 } from 'lucide-react';
 
 interface EmployeeRoomViewProps {
@@ -26,7 +29,8 @@ interface EmployeeRoomViewProps {
   onSaveRoom: (capacity: number, memberIds: string[], editingRoomId?: string) => void;
   onLeaveRoom: (personId: string) => void;
   onDeleteRoom: (roomId: string) => void;
-  onClaimRelative: (relativeId: string) => void;
+  onClaimRelative: (relativeId: string, relation?: RelationType) => void;
+  onUnclaimRelative?: (relativeId: string) => void;
   onOpenAllRooms?: () => void;
 }
 
@@ -39,6 +43,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   onLeaveRoom,
   onDeleteRoom,
   onClaimRelative,
+  onUnclaimRelative,
   onOpenAllRooms
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -97,7 +102,13 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
   return (
     <div style={{ width: '100%', margin: '20px 0' }}>
-      {/* 1. Relative Claim Alert (if any unclaimed in same store) */}
+      {/* 0. Hướng Dẫn Quy Trình Đăng Ký Phòng (3 Bước) */}
+      <RoomingProcessGuide
+        onOpenCreateRoom={handleOpenCreateModal}
+        hasRoom={!!myRoom}
+      />
+
+      {/* 1. Relative Claim Alert (Hỗ trợ người thân cùng siêu thị & tìm ở siêu thị khác) */}
       <EmployeeRelativeClaim
         currentEmployee={currentEmployee}
         allPeople={allPeople}
@@ -126,9 +137,25 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
             <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: 8 }}>
               Bạn Chưa Có Phòng Khách Sạn
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: 480, margin: '0 auto 20px auto' }}>
-              Bạn có thể tự tạo phòng mới (làm trưởng phòng) để chọn người thân hoặc đồng nghiệp ở cùng, hoặc chờ đồng nghiệp chọn bạn vào phòng của họ.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: 520, margin: '0 auto 16px auto', lineHeight: 1.5 }}>
+              Thực hiện theo 3 bước: <strong>1. Chọn người thân</strong> (chọn mối quan hệ) $\to$ <strong>2. Bấm Tạo phòng mới</strong> $\to$ <strong>3. Chọn người ở cùng</strong> (hoặc chờ đồng nghiệp chọn bạn vào phòng của họ).
             </p>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-full)',
+              background: 'rgba(245, 158, 11, 0.1)',
+              color: '#b45309',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              marginBottom: 20
+            }}>
+              <Info size={15} />
+              <span>Ghi chú: Nếu bé &lt; 11 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).</span>
+            </div>
 
             {isLocked ? (
               <div style={{
@@ -424,7 +451,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                     <span>•</span>
                     <span>{rel.slot === 0 ? 'Trẻ em' : '1 suất'}</span>
                   </div>
-                  <div style={{ marginTop: 6 }}>
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {relRoom ? (
                       <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
                         Ở {relRoom.code}
@@ -433,6 +460,33 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
                         Chưa có phòng
                       </span>
+                    )}
+
+                    {!relRoom && onUnclaimRelative && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Bạn có chắc muốn hủy nhận người thân "${rel.name}" không?`)) {
+                            onUnclaimRelative(rel.id);
+                          }
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-danger)',
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                          fontSize: '0.72rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          opacity: 0.8
+                        }}
+                        title="Hủy nhận người thân này"
+                      >
+                        <Trash2 size={12} />
+                        Hủy nhận
+                      </button>
                     )}
                   </div>
                 </div>

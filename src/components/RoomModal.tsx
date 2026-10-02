@@ -14,7 +14,8 @@ import {
   Search,
   Baby,
   User,
-  HeartHandshake
+  HeartHandshake,
+  Info
 } from 'lucide-react';
 
 interface RoomModalProps {
@@ -368,6 +369,24 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                 {validation.bedType === 'TRIPLE' && 'Triple (3 Giường / Giường phụ)'}
                 {validation.bedType === 'FAMILY' && 'Family (Gia đình có trẻ nhỏ)'}
               </strong>
+            </div>
+
+            {/* Ghi chú bé < 11 tuổi */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '0.8rem',
+              color: '#b45309',
+              background: 'rgba(245, 158, 11, 0.12)',
+              padding: '7px 12px',
+              borderRadius: 'var(--radius-sm)',
+              marginTop: 10
+            }}>
+              <Info size={15} style={{ flexShrink: 0 }} />
+              <span>
+                <strong>Ghi chú:</strong> Nếu bé &lt; 11 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).
+              </span>
             </div>
           </div>
 

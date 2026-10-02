@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Person, Room, Trip, AuditLog } from './types';
+import { Person, Room, Trip, AuditLog, RelationType } from './types';
 import {
   initializeStorage,
   getTrips,
@@ -14,6 +14,7 @@ import {
   getLogs,
   addLog,
   claimRelative,
+  unclaimRelative,
   leaveRoom,
   deleteRoom,
   deleteAllRooms,
@@ -303,10 +304,17 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  // Nhận người thân
-  const handleClaimRelative = (relativeId: string) => {
+  // Nhận người thân (chọn mối quan hệ)
+  const handleClaimRelative = (relativeId: string, relation?: RelationType) => {
     if (!currentEmployee) return;
-    claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name);
+    claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name, relation);
+    refreshData();
+  };
+
+  // Hủy nhận người thân
+  const handleUnclaimRelative = (relativeId: string) => {
+    if (!currentEmployee) return;
+    unclaimRelative(currentTrip.id, currentEmployee.code, relativeId);
     refreshData();
   };
 
@@ -530,6 +538,7 @@ export const App: React.FC = () => {
                 onLeaveRoom={handleLeaveRoom}
                 onDeleteRoom={handleDeleteRoom}
                 onClaimRelative={handleClaimRelative}
+                onUnclaimRelative={handleUnclaimRelative}
                 onOpenAllRooms={() => setIsAllRoomsModalOpen(true)}
               />
             )

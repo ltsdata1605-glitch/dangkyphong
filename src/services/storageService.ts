@@ -1,4 +1,4 @@
-import { Person, Room, Trip, AuditLog } from '../types';
+import { Person, Room, Trip, AuditLog, RelationType } from '../types';
 import seedPeople from '../data_sample.json';
 import { db } from './firebase';
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
@@ -386,9 +386,15 @@ export function addLog(tripId: string, log: AuditLog): void {
 }
 
 /**
- * Gán / Nhận người thân vào nhân viên bảo trợ
+ * Gán / Nhận người thân vào nhân viên bảo trợ (cho phép chọn mối quan hệ)
  */
-export function claimRelative(tripId: string, employeeCode: string, relativeId: string, employeeName?: string): boolean {
+export function claimRelative(
+  tripId: string, 
+  employeeCode: string, 
+  relativeId: string, 
+  employeeName?: string,
+  relation?: RelationType
+): boolean {
   const people = getPeople(tripId);
   const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
   const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
@@ -396,7 +402,23 @@ export function claimRelative(tripId: string, employeeCode: string, relativeId: 
   if (!employee || !relative) return false;
 
   relative.ownerId = employee.code;
+  if (relation) {
+    relative.relation = relation;
+    // Quy tắc: Nếu bé < 11 tuổi (CHILD_U5 hoặc CHILD_5_11) -> 0 suất
+    if (relation === 'CHILD_U5' || relation === 'CHILD_5_11') {
+      relative.slot = 0;
+    } else {
+      relative.slot = 1;
+    }
+  }
   savePeople(tripId, people);
+
+  let relLabel = relative.relation || 'Người thân';
+  if (relative.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
+  else if (relative.relation === 'CHILD_U5') relLabel = 'Con < 5 tuổi (0 suất)';
+  else if (relative.relation === 'CHILD_5_11') relLabel = 'Con 5–11 tuổi (0 suất)';
+  else if (relative.relation === 'CHILD_12P') relLabel = 'Con ≥ 12 tuổi (1 suất)';
+  else if (relative.relation === 'PARENT') relLabel = 'Ba / Mẹ (1 suất)';
 
   addLog(tripId, {
     id: `log_${Date.now()}`,
@@ -404,10 +426,32 @@ export function claimRelative(tripId: string, employeeCode: string, relativeId: 
     action: 'ASSIGN_RELATIVE',
     actor: employee.code,
     actorName: employee.name,
-    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relative.relation || 'Người thân'})`,
+    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relLabel})`,
     timestamp: new Date().toISOString()
   });
 
+  return true;
+}
+
+/**
+ * Hủy nhận người thân
+ */
+export function unclaimRelative(tripId: string, employeeCode: string, relativeId: string): boolean {
+  const people = getPeople(tripId);
+  const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE' && p.ownerId === employeeCode);
+  if (!relative) return false;
+
+  relative.ownerId = null;
+  if (relative.roomId) {
+    const rooms = getRooms(tripId);
+    const room = rooms.find(r => r.id === relative.roomId);
+    if (room) {
+      room.memberIds = room.memberIds.filter(id => id !== relativeId);
+      saveRooms(tripId, rooms);
+    }
+    relative.roomId = null;
+  }
+  savePeople(tripId, people);
   return true;
 }
 
