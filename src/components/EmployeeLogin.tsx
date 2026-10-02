@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Person } from '../types';
 import { removeVietnameseTones } from '../utils/textUtils';
-import { Search, UserCheck, ShieldAlert, Sparkles, Building, ArrowRight } from 'lucide-react';
+import { Search, UserCheck, Sparkles, Building, ArrowRight } from 'lucide-react';
 
 interface EmployeeLoginProps {
   people: Person[];
@@ -11,8 +11,6 @@ interface EmployeeLoginProps {
 export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const [confirmCode, setConfirmCode] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
 
   // Lọc chỉ lấy NHÂN VIÊN
   const employees = useMemo(() => {
@@ -33,20 +31,6 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
 
   const handleSelect = (emp: Person) => {
     setSelectedPerson(emp);
-    setConfirmCode('');
-    setErrorMsg('');
-  };
-
-  const handleConfirmLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPerson) return;
-
-    if (confirmCode.trim() !== selectedPerson.code.trim()) {
-      setErrorMsg(`Mã nhân viên xác nhận không chính xác. Vui lòng nhập đúng MSNV của "${selectedPerson.name}".`);
-      return;
-    }
-
-    onLogin(selectedPerson);
   };
 
   return (
@@ -138,7 +122,20 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
                           <Building size={12} /> {emp.store}
                         </div>
                       </div>
-                      <ArrowRight size={16} style={{ color: 'var(--primary-500)', flexShrink: 0 }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onLogin(emp);
+                          }}
+                          style={{ fontWeight: 700, fontSize: '0.8rem', padding: '6px 12px' }}
+                          title="Đăng nhập ngay"
+                        >
+                          Vào ngay <ArrowRight size={14} style={{ marginLeft: 4 }} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -164,57 +161,31 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
             </div>
           </div>
         ) : (
-          /* Step 2: Confirm with MSNV */
-          <form onSubmit={handleConfirmLogin}>
+          /* Step 2: Confirm Employee & Enter (No 2nd auth verification needed) */
+          <div>
             <div style={{
-              padding: '14px',
+              padding: '16px 18px',
               borderRadius: 'var(--radius-md)',
               background: 'rgba(37, 99, 235, 0.08)',
-              border: '1px solid rgba(37, 99, 235, 0.2)',
-              marginBottom: 16
+              border: '1px solid rgba(37, 99, 235, 0.25)',
+              marginBottom: 20
             }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--primary-600)', textTransform: 'uppercase', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--primary-600)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
                 Bạn đã chọn:
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginTop: 2 }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginTop: 4 }}>
                 {selectedPerson.name}
               </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                {selectedPerson.store}
+              <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Building size={14} /> {selectedPerson.store}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <span className="badge badge-primary">MSNV: {selectedPerson.code}</span>
+                <span className={`badge ${selectedPerson.gender === 'M' ? 'badge-primary' : 'badge-warning'}`}>
+                  {selectedPerson.gender === 'M' ? 'Nam' : 'Nữ'}
+                </span>
               </div>
             </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: 6 }}>
-                Xác thực danh tính – Nhập lại MSNV của bạn:
-              </label>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Nhập mã nhân viên để xác thực..."
-                value={confirmCode}
-                onChange={(e) => setConfirmCode(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            {errorMsg && (
-              <div style={{
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                color: 'var(--color-danger)',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}>
-                <ShieldAlert size={16} style={{ flexShrink: 0 }} />
-                <span>{errorMsg}</span>
-              </div>
-            )}
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -226,14 +197,16 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
                 Chọn lại tên
               </button>
               <button
-                type="submit"
+                type="button"
                 className="btn btn-primary"
-                style={{ flex: 1.5 }}
+                style={{ flex: 1.5, fontWeight: 700 }}
+                onClick={() => onLogin(selectedPerson)}
+                autoFocus
               >
                 Vào Đăng Ký Phòng
               </button>
             </div>
-          </form>
+          </div>
         )}
       </div>
     </div>
