@@ -89,8 +89,8 @@ export function validateRoom(
     }
 
     if (!isStrictSingleFamily && !isAdminOverride) {
-      errors.push(
-        'Quy tắc giới tính: Nam ở với Nam, Nữ ở với Nữ. Phòng chỉ được ở chung Nam - Nữ khi toàn bộ thành viên cùng một gia đình.'
+      warnings.push(
+        '✕ Quy tắc giới tính: Nam ở với Nam, Nữ ở với Nữ. Phòng chỉ được ở chung Nam - Nữ khi là Vợ/Chồng hoặc người thân. Bạn sẽ chịu trách nhiệm không trung thực.'
       );
     }
   }
@@ -100,7 +100,7 @@ export function validateRoom(
   const hasSpouse = members.some(m => m.relation === 'SPOUSE');
   const hasChild = childCount > 0;
 
-  if (hasSpouse && adults.length === 2) {
+  if ((hasSpouse || isMixedGender) && adults.length === 2) {
     bedType = 'DOUBLE';
   } else if (hasChild && adults.length <= 2) {
     bedType = 'FAMILY';
@@ -126,14 +126,14 @@ export function validateRoom(
 
 /**
  * Kiểm tra xem người B có thể thêm vào phòng của người A hay không
- * Trả về: { allowed: boolean, reason?: string }
+ * Trả về: { allowed: boolean, reason?: string, warning?: string }
  */
 export function canAddPersonToRoom(
   targetPerson: Person,
   currentMembers: Person[],
   capacity: number,
   currentRoomId: string | null
-): { allowed: boolean; reason?: string } {
+): { allowed: boolean; reason?: string; warning?: string } {
   // R4: Đã ở phòng khác
   if (targetPerson.roomId && targetPerson.roomId !== currentRoomId) {
     return { allowed: false, reason: 'Đã được đăng ký ở phòng khác' };
@@ -150,6 +150,10 @@ export function canAddPersonToRoom(
 
   if (!validation.valid) {
     return { allowed: false, reason: validation.errors[0] };
+  }
+
+  if (validation.warnings.length > 0) {
+    return { allowed: true, warning: validation.warnings[0] };
   }
 
   return { allowed: true };

@@ -605,10 +605,10 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                         justifyContent: 'space-between',
                         gap: 10,
                         opacity: canAdd ? 1 : 0.55,
-                        background: canAdd ? 'transparent' : 'rgba(0,0,0,0.02)'
+                        background: canAdd ? (checkAdd.warning ? 'rgba(249, 115, 22, 0.04)' : 'transparent') : 'rgba(0,0,0,0.02)'
                       }}
                     >
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>{person.name}</span>
                           <span className={`badge ${person.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.65rem' }}>
@@ -626,19 +626,31 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                             ✕ {checkAdd.reason}
                           </div>
                         )}
+                        {canAdd && checkAdd.warning && (
+                          <div style={{ fontSize: '0.73rem', color: '#c2410c', fontWeight: 600, marginTop: 3, lineHeight: 1.35 }}>
+                            {checkAdd.warning}
+                          </div>
+                        )}
                       </div>
 
                       {canAdd ? (
                         <button
                           type="button"
                           onClick={() => handleAddMember(person)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+                          className={checkAdd.warning ? "btn btn-outline btn-sm" : "btn btn-secondary btn-sm"}
+                          style={{
+                            padding: '5px 12px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            borderColor: checkAdd.warning ? '#ea580c' : undefined,
+                            color: checkAdd.warning ? '#ea580c' : undefined,
+                            flexShrink: 0
+                          }}
                         >
                           <Plus size={14} /> Thêm
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', flexShrink: 0 }}>
                           Không thể thêm
                         </span>
                       )}
