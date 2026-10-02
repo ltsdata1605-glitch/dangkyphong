@@ -1,0 +1,528 @@
+import React, { useState } from 'react';
+import { Person, Room, Trip } from '../types';
+import { EmployeeRelativeClaim } from './EmployeeRelativeClaim';
+import { RoomModal } from './RoomModal';
+import {
+  Bed,
+  Users,
+  LogOut,
+  Edit,
+  Trash2,
+  PlusCircle,
+  AlertCircle,
+  CheckCircle,
+  Building,
+  Baby,
+  Heart,
+  Crown
+} from 'lucide-react';
+
+interface EmployeeRoomViewProps {
+  currentEmployee: Person;
+  currentTrip: Trip;
+  allPeople: Person[];
+  allRooms: Room[];
+  onSaveRoom: (capacity: number, memberIds: string[], editingRoomId?: string) => void;
+  onLeaveRoom: (personId: string) => void;
+  onDeleteRoom: (roomId: string) => void;
+  onClaimRelative: (relativeId: string) => void;
+}
+
+export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
+  currentEmployee,
+  currentTrip,
+  allPeople,
+  allRooms,
+  onSaveRoom,
+  onLeaveRoom,
+  onDeleteRoom,
+  onClaimRelative
+}) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Tìm phòng hiện tại của nhân viên
+  const myRoom = allRooms.find(r => r.id === currentEmployee.roomId);
+  const isLeader = myRoom && myRoom.leaderId === currentEmployee.id;
+
+  // Thành viên trong phòng hiện tại
+  const roomMembers = myRoom
+    ? myRoom.memberIds.map(id => allPeople.find(p => p.id === id)!).filter(Boolean)
+    : [];
+
+  const leaderPerson = myRoom
+    ? allPeople.find(p => p.id === myRoom.leaderId)
+    : null;
+
+  // Người thân thuộc quyền bảo trợ của nhân viên này
+  const myRelatives = allPeople.filter(p => p.type === 'RELATIVE' && p.ownerId === currentEmployee.code);
+
+  const isLocked = currentTrip.isLocked;
+
+  const handleOpenCreateModal = () => {
+    setIsEditing(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = () => {
+    setIsEditing(true);
+    setIsModalOpen(true);
+  };
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  const handleConfirmLeave = () => {
+    setShowLeaveModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteModal(true);
+  };
+
+  const executeDelete = () => {
+    if (myRoom) {
+      onDeleteRoom(myRoom.id);
+    }
+    setShowDeleteModal(false);
+  };
+
+  const executeLeave = () => {
+    onLeaveRoom(currentEmployee.id);
+    setShowLeaveModal(false);
+  };
+
+  return (
+    <div style={{ maxWidth: 960, margin: '20px auto', padding: '0 16px' }}>
+      {/* 1. Relative Claim Alert (if any unclaimed in same store) */}
+      <EmployeeRelativeClaim
+        currentEmployee={currentEmployee}
+        allPeople={allPeople}
+        onClaimRelative={onClaimRelative}
+      />
+
+      {/* 2. Room Status Section */}
+      <div className="glass-card" style={{ padding: '24px', marginBottom: 24, boxShadow: 'var(--shadow-lg)' }}>
+        {!myRoom ? (
+          /* Case A: Not in any room */
+          <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'rgba(37, 99, 235, 0.1)',
+              color: 'var(--primary-500)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Bed size={32} />
+            </div>
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: 8 }}>
+              Bạn Chưa Có Phòng Khách Sạn
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: 480, margin: '0 auto 20px auto' }}>
+              Bạn có thể tự tạo phòng mới (làm trưởng phòng) để chọn người thân hoặc đồng nghiệp ở cùng, hoặc chờ đồng nghiệp chọn bạn vào phòng của họ.
+            </p>
+
+            {isLocked ? (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 18px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: 'var(--color-danger)',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}>
+                <AlertCircle size={18} /> Hệ thống đã khóa đăng ký, vui lòng liên hệ Admin BTC để được hỗ trợ xếp phòng.
+              </div>
+            ) : (
+              <button
+                onClick={handleOpenCreateModal}
+                className="btn btn-primary btn-lg"
+                style={{ boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)' }}
+              >
+                <PlusCircle size={20} />
+                Tạo Phòng Mới Ngay
+              </button>
+            )}
+          </div>
+        ) : (
+          /* Case B & C: In a Room */
+          <div>
+            {/* Banner: Đã được người khác thêm vào phòng (Lựa chọn Giữ nguyên hoặc Rời phòng) */}
+            {!isLeader && (
+              <div style={{
+                padding: '16px 20px',
+                borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 182, 212, 0.08))',
+                border: '1.5px solid var(--primary-500)',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 14
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 260, flex: 1 }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: 'var(--primary-gradient)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                  }}>
+                    <Users size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '1.02rem', color: 'var(--text-main)', marginBottom: 2 }}>
+                      Bạn đã được thêm vào phòng {myRoom.code} ({myRoom.capacity} Người)
+                    </div>
+                    <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
+                      Trưởng phòng <strong>{leaderPerson?.name || 'Đồng nghiệp'}</strong> ({leaderPerson?.code}) đã chọn bạn vào phòng này. Bạn có thể chọn giữ nguyên hoặc rời phòng để tự lập phòng riêng.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert(`Đã xác nhận: Bạn giữ nguyên vị trí trong phòng ${myRoom.code}. Chúc bạn và đồng nghiệp có chuyến đi vui vẻ!`);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      borderColor: 'var(--color-success)',
+                      color: 'var(--color-success)',
+                      fontWeight: 700,
+                      background: 'rgba(34, 197, 94, 0.08)'
+                    }}
+                  >
+                    <CheckCircle size={16} /> Giữ Nguyên Phòng
+                  </button>
+
+                  {!isLocked && (
+                    <button
+                      type="button"
+                      onClick={handleConfirmLeave}
+                      className="btn btn-danger btn-sm"
+                      style={{ fontWeight: 700 }}
+                    >
+                      <LogOut size={16} /> Rời Khỏi Phòng
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Header of Room */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+              paddingBottom: 16,
+              borderBottom: '1px solid var(--border-subtle)',
+              marginBottom: 20
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>
+                    {myRoom.code}
+                  </h3>
+                  <span className={`badge ${myRoom.status === 'FULL' ? 'badge-success' : 'badge-warning'}`}>
+                    {myRoom.status === 'FULL' ? 'Đã đủ chỗ' : `Thiếu ${myRoom.capacity - myRoom.usedSlots} chỗ`}
+                  </span>
+                  <span className="badge badge-primary">
+                    Phòng {myRoom.capacity} Người
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>Trưởng phòng: <strong>{leaderPerson ? leaderPerson.name : 'Chưa rõ'}</strong></span>
+                  <span>•</span>
+                  <span>Kiểu giường gợi ý: <strong>{myRoom.bedType}</strong></span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isLeader ? (
+                  <>
+                    {!isLocked && (
+                      <button
+                        onClick={handleOpenEditModal}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        <Edit size={16} /> Sửa Phòng
+                      </button>
+                    )}
+                    <button
+                      onClick={handleConfirmDelete}
+                      className="btn btn-danger btn-sm"
+                    >
+                      <Trash2 size={16} /> Hủy Phòng
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleConfirmLeave}
+                    className="btn btn-danger btn-sm"
+                  >
+                    <LogOut size={16} /> Rời Khỏi Phòng
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Room Members List */}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Thành viên trong phòng ({roomMembers.length}/{myRoom.capacity} suất người lớn):</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  {myRoom.childCount > 0 && `(Kèm ${myRoom.childCount} trẻ em ở ghép)`}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                {roomMembers.map(m => {
+                  const isRoomLeader = m.id === myRoom.leaderId;
+                  const isSelf = m.id === currentEmployee.id;
+
+                  let relLabel = m.type === 'EMPLOYEE' ? 'Đồng nghiệp' : (m.relation || 'Người thân');
+                  if (m.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
+                  else if (m.relation === 'PARENT') relLabel = 'Ba / Mẹ';
+                  else if (m.relation === 'CHILD_U5') relLabel = 'Con (<5 tuổi)';
+                  else if (m.relation === 'CHILD_5_11') relLabel = 'Con (5-11 tuổi)';
+                  else if (m.relation === 'CHILD_12P') relLabel = 'Con (>=12 tuổi)';
+                  else if (m.type === 'PG') relLabel = 'PG Độc Lập';
+
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        padding: '14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: isSelf ? 'rgba(37, 99, 235, 0.06)' : 'var(--bg-card-solid)',
+                        border: isSelf ? '1.5px solid var(--primary-500)' : '1px solid var(--border-subtle)',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{m.name}</span>
+                          {isSelf && (
+                            <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>Bạn</span>
+                          )}
+                          {isRoomLeader && (
+                            <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>
+                              <Crown size={10} /> Trưởng phòng
+                            </span>
+                          )}
+                        </div>
+
+                        <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.7rem' }}>
+                          {m.gender === 'M' ? 'Nam' : 'Nữ'}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>{relLabel}</span>
+                        <span>•</span>
+                        <span>{m.slot === 0 ? '0 suất (ở ghép)' : '1 suất'}</span>
+                        <span>•</span>
+                        <span>{m.code}</span>
+                      </div>
+
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Building size={11} /> {m.store}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. My Family Relatives Section */}
+      <div className="glass-card" style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Heart size={20} style={{ color: 'var(--color-danger)' }} />
+          <h4 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+            Người Thân Của Tôi ({myRelatives.length})
+          </h4>
+        </div>
+
+        {myRelatives.length === 0 ? (
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0 }}>
+            Bạn chưa đăng ký người thân nào đi cùng chuyến du lịch này.
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+            {myRelatives.map(rel => {
+              const relRoom = allRooms.find(r => r.id === rel.roomId);
+
+              return (
+                <div
+                  key={rel.id}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-muted)',
+                    border: '1px solid var(--border-subtle)'
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                    {rel.name}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>{rel.relation || 'Người thân'}</span>
+                    <span>•</span>
+                    <span>{rel.gender === 'M' ? 'Nam' : 'Nữ'}</span>
+                    <span>•</span>
+                    <span>{rel.slot === 0 ? 'Trẻ em' : '1 suất'}</span>
+                  </div>
+                  <div style={{ marginTop: 6 }}>
+                    {relRoom ? (
+                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                        Ở {relRoom.code}
+                      </span>
+                    ) : (
+                      <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
+                        Chưa có phòng
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Room Modal */}
+      {isModalOpen && (
+        <RoomModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSaveRoom={(cap, memberIds) => onSaveRoom(cap, memberIds, isEditing && myRoom ? myRoom.id : undefined)}
+          currentEmployee={currentEmployee}
+          allPeople={allPeople}
+          editingRoom={isEditing ? myRoom : null}
+          maxChildrenPerRoom={currentTrip.maxChildrenPerRoom}
+          currentTrip={currentTrip}
+          allRooms={allRooms}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && myRoom && (
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Trash2 size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Xác Nhận Hủy Phòng {myRoom.code}?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Bạn có chắc chắn muốn giải tán phòng <strong>{myRoom.code}</strong> không? Tất cả các thành viên trong phòng sẽ trở về trạng thái <strong>Chưa có phòng</strong> để có thể đăng ký lại.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.3 }}
+                onClick={executeDelete}
+              >
+                Xác Nhận Hủy Phòng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Confirmation Modal */}
+      {showLeaveModal && myRoom && (
+        <div className="modal-overlay" onClick={() => setShowLeaveModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(245, 158, 11, 0.1)',
+              color: 'var(--color-warning)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <LogOut size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Xác Nhận Rời Phòng {myRoom.code}?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Bạn sẽ rời khỏi phòng này và trở về trạng thái <strong>Chưa có phòng</strong>. Bạn có thể tự tạo phòng mới hoặc ghép với đồng nghiệp khác.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setShowLeaveModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-warning"
+                style={{ flex: 1.3 }}
+                onClick={executeLeave}
+              >
+                Xác Nhận Rời Phòng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

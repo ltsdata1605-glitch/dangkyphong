@@ -1,0 +1,414 @@
+import React, { useState, useMemo } from 'react';
+import { Person, Room } from '../types';
+import { removeVietnameseTones } from '../utils/textUtils';
+import { validateRoom } from '../services/roomingEngine';
+import {
+  Search,
+  Filter,
+  Plus,
+  Trash2,
+  Edit,
+  UserPlus,
+  AlertTriangle,
+  CheckCircle,
+  Building,
+  Bed,
+  ShieldCheck,
+  Crown,
+  Baby
+} from 'lucide-react';
+
+interface AdminRoomManagerProps {
+  rooms: Room[];
+  people: Person[];
+  onDeleteRoom: (roomId: string) => void;
+  onRemoveMember: (roomId: string, personId: string) => void;
+  onAddMember: (roomId: string, personId: string) => void;
+  onSaveOverride: (roomId: string, note: string) => void;
+}
+
+export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
+  rooms,
+  people,
+  onDeleteRoom,
+  onRemoveMember,
+  onAddMember,
+  onSaveOverride
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'FULL' | 'UNDER' | 'OVERRIDE'>('ALL');
+  const [capacityFilter, setCapacityFilter] = useState<number | 'ALL'>('ALL');
+
+  // Modal thêm người vào phòng
+  const [addingToRoom, setAddingToRoom] = useState<Room | null>(null);
+  const [personSearch, setPersonSearch] = useState('');
+
+  // Modal Admin Override ghi chú
+  const [overrideModalRoom, setOverrideModalRoom] = useState<Room | null>(null);
+  const [overrideNote, setOverrideNote] = useState('');
+
+  const peopleMap = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
+
+  // Lọc danh sách phòng
+  const filteredRooms = useMemo(() => {
+    return rooms.filter(room => {
+      // Filter status
+      if (statusFilter === 'FULL' && room.status !== 'FULL') return false;
+      if (statusFilter === 'UNDER' && room.status !== 'UNDER') return false;
+      if (statusFilter === 'OVERRIDE' && !room.adminOverride) return false;
+
+      // Filter capacity
+      if (capacityFilter !== 'ALL' && room.capacity !== capacityFilter) return false;
+
+      // Filter search
+      if (searchTerm.trim()) {
+        const clean = removeVietnameseTones(searchTerm);
+        const matchCode = room.code.toLowerCase().includes(clean);
+        const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+        const matchMember = members.some(m => removeVietnameseTones(m.name).includes(clean) || m.code.includes(clean));
+        return matchCode || matchMember;
+      }
+
+      return true;
+    });
+  }, [rooms, statusFilter, capacityFilter, searchTerm, peopleMap]);
+
+  // Những người chưa có phòng để thêm
+  const unassignedPeople = useMemo(() => {
+    const pool = people.filter(p => !p.roomId);
+    if (!personSearch.trim()) return pool.slice(0, 15);
+    const clean = removeVietnameseTones(personSearch);
+    return pool.filter(p =>
+      removeVietnameseTones(p.name).includes(clean) ||
+      p.code.toLowerCase().includes(clean) ||
+      removeVietnameseTones(p.store).includes(clean)
+    ).slice(0, 20);
+  }, [people, personSearch]);
+
+  const handleOpenOverride = (room: Room) => {
+    setOverrideModalRoom(room);
+    setOverrideNote(room.adminNote || '');
+  };
+
+  const handleConfirmOverride = () => {
+    if (!overrideModalRoom) return;
+    onSaveOverride(overrideModalRoom.id, overrideNote);
+    setOverrideModalRoom(null);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Search and Filters Bar */}
+      <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, flex: '1 1 300px' }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', minWidth: 240, flex: 1 }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: 13, color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Tìm mã phòng, tên thành viên, MSNV..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ paddingLeft: 38, paddingRight: 12, height: 40 }}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as any)}
+            className="input-field"
+            style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer' }}
+          >
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="FULL">Đủ chỗ</option>
+            <option value="UNDER">Thiếu người</option>
+            <option value="OVERRIDE">Đã duyệt đặc cách</option>
+          </select>
+
+          {/* Capacity Filter */}
+          <select
+            value={capacityFilter}
+            onChange={e => setCapacityFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+            className="input-field"
+            style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer' }}
+          >
+            <option value="ALL">Tất cả loại phòng</option>
+            <option value={2}>Phòng 2 người</option>
+            <option value={3}>Phòng 3 người</option>
+            <option value={4}>Phòng 4 người</option>
+            <option value={5}>Phòng 5 người</option>
+            <option value={6}>Phòng 6 người</option>
+          </select>
+        </div>
+
+        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+          Hiển thị: <strong>{filteredRooms.length}</strong> / {rooms.length} phòng
+        </div>
+      </div>
+
+      {/* Rooms Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+        {filteredRooms.length === 0 ? (
+          <div className="glass-card" style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            Không tìm thấy phòng nào phù hợp với bộ lọc.
+          </div>
+        ) : (
+          filteredRooms.map(room => {
+            const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+            const leader = peopleMap.get(room.leaderId);
+
+            return (
+              <div
+                key={room.id}
+                className="glass-card"
+                style={{
+                  padding: '18px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  borderTop: room.status === 'FULL' ? '4px solid var(--color-success)' : '4px solid var(--color-warning)'
+                }}
+              >
+                <div>
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h4 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+                          {room.code}
+                        </h4>
+                        <span className={`badge ${room.status === 'FULL' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem' }}>
+                          {room.status === 'FULL' ? 'Đủ' : `Thiếu ${room.capacity - room.usedSlots}`}
+                        </span>
+                        {room.adminOverride && (
+                          <span className="badge badge-primary" style={{ fontSize: '0.68rem' }} title={room.adminNote}>
+                            <ShieldCheck size={11} /> Đặc cách
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Phòng {room.capacity} người • {room.bedType}
+                      </div>
+                    </div>
+
+                    {/* Room Actions */}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={() => handleOpenOverride(room)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '6px 8px' }}
+                        title="Duyệt đặc cách / Ghi chú lý do ngoại lệ"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Bạn có chắc chắn muốn xóa phòng ${room.code}?`)) {
+                            onDeleteRoom(room.id);
+                          }
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '6px 8px', color: 'var(--color-danger)' }}
+                        title="Xóa phòng này"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Admin Note if present */}
+                  {room.adminNote && (
+                    <div style={{
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(37, 99, 235, 0.08)',
+                      border: '1px solid rgba(37, 99, 235, 0.2)',
+                      fontSize: '0.78rem',
+                      color: 'var(--primary-600)',
+                      marginBottom: 10
+                    }}>
+                      <strong>Ghi chú Admin:</strong> {room.adminNote}
+                    </div>
+                  )}
+
+                  {/* Members List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0' }}>
+                    {members.map(m => {
+                      const isRoomLeader = m.id === room.leaderId;
+
+                      return (
+                        <div
+                          key={m.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--bg-muted)',
+                            fontSize: '0.84rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                            <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                              {m.slot === 0 ? <Baby size={11} /> : (m.gender === 'M' ? 'Nam' : 'Nữ')}
+                            </span>
+                            <span style={{ fontWeight: 600, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {m.name}
+                            </span>
+                            {isRoomLeader && (
+                              <Crown size={12} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              {m.type === 'EMPLOYEE' ? m.code : (m.relation || 'Người thân')}
+                            </span>
+                            <button
+                              onClick={() => onRemoveMember(room.id, m.id)}
+                              style={{ border: 'none', background: 'transparent', color: 'var(--color-danger)', cursor: 'pointer', padding: 2 }}
+                              title="Bỏ ra khỏi phòng"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bottom Add Member Button */}
+                <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {room.usedSlots}/{room.capacity} suất {room.childCount > 0 && `(+${room.childCount} trẻ)`}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setAddingToRoom(room);
+                      setPersonSearch('');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.78rem', padding: '4px 8px' }}
+                  >
+                    <UserPlus size={13} /> Thêm người
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Modal Thêm người vào phòng */}
+      {addingToRoom && (
+        <div className="modal-overlay" onClick={() => setAddingToRoom(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                Thêm Thành Viên Vào {addingToRoom.code}
+              </h3>
+              <button onClick={() => setAddingToRoom(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ padding: '16px 20px' }}>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Tìm người chưa có phòng..."
+                value={personSearch}
+                onChange={e => setPersonSearch(e.target.value)}
+                style={{ marginBottom: 12 }}
+                autoFocus
+              />
+
+              <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {unassignedPeople.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    Không có nhân sự chưa xếp phòng nào phù hợp.
+                  </div>
+                ) : (
+                  unassignedPeople.map(p => (
+                    <div
+                      key={p.id}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>
+                          {p.name}
+                          <span className={`badge ${p.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ marginLeft: 6, fontSize: '0.65rem' }}>
+                            {p.gender === 'M' ? 'Nam' : 'Nữ'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {p.store} • {p.code}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          onAddMember(addingToRoom.id, p.id);
+                          setAddingToRoom(null);
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.78rem', padding: '5px 10px' }}
+                      >
+                        Chọn vào phòng
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Duyệt Đặc Cách (Admin Override) */}
+      {overrideModalRoom && (
+        <div className="modal-overlay" onClick={() => setOverrideModalRoom(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                Duyệt Đặc Cách / Ghi Chú Phòng {overrideModalRoom.code}
+              </h3>
+              <button onClick={() => setOverrideModalRoom(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ padding: '16px 20px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+                Admin có quyền bỏ qua quy tắc ghép phòng (ví dụ: nam nữ là đồng nghiệp đặc biệt hoặc gia đình nhiều thành viên), nhưng <strong>bắt buộc nhập lý do</strong> để lưu vào Rooming List:
+              </p>
+
+              <textarea
+                className="input-field"
+                rows={3}
+                placeholder="Nhập lý do duyệt đặc cách (ví dụ: Vợ chồng cùng làm tại 2 siêu thị khác nhau; Ban lãnh đạo duyệt ghép chung...)"
+                value={overrideNote}
+                onChange={e => setOverrideNote(e.target.value)}
+                style={{ resize: 'none', marginBottom: 16 }}
+                autoFocus
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button className="btn btn-secondary" onClick={() => setOverrideModalRoom(null)}>Hủy</button>
+                <button className="btn btn-primary" onClick={handleConfirmOverride}>
+                  Lưu Duyệt Đặc Cách
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
