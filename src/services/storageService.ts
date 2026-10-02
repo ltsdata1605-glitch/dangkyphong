@@ -1,5 +1,7 @@
 import { Person, Room, Trip, AuditLog } from '../types';
 import seedPeople from '../data_sample.json';
+import { db } from './firebase';
+import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   TRIPS: 'rooming_trips_v1',
@@ -30,8 +32,161 @@ const DEFAULT_TRIP: Trip = {
   createdAt: new Date().toISOString()
 };
 
+// Firestore Unsubscribe references
+let tripsListUnsub: Unsubscribe | null = null;
+let peopleUnsub: Unsubscribe | null = null;
+let roomsUnsub: Unsubscribe | null = null;
+let logsUnsub: Unsubscribe | null = null;
+
 /**
- * Khởi tạo dữ liệu mặc định nếu chưa có
+ * Lắng nghe và đồng bộ dữ liệu Real-time từ Firebase Firestore
+ */
+export function setupFirestoreListeners(tripId: string): void {
+  // Hủy các listener cũ của chuyến đi trước (nếu đổi chuyến đi)
+  if (peopleUnsub) { peopleUnsub(); peopleUnsub = null; }
+  if (roomsUnsub) { roomsUnsub(); roomsUnsub = null; }
+  if (logsUnsub) { logsUnsub(); logsUnsub = null; }
+
+  // 1. Lắng nghe danh sách tất cả các chuyến đi
+  if (!tripsListUnsub) {
+    try {
+      tripsListUnsub = onSnapshot(doc(db, 'system', 'trips'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data && Array.isArray(data.trips) && data.trips.length > 0) {
+            localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(data.trips));
+            notifyStateChange();
+          }
+        } else {
+          syncTripsToFirebase();
+        }
+      }, (err) => {
+        console.warn('[Firebase Firestore] trips sync warning (offline or permissions):', err);
+      });
+    } catch (err) {
+      console.warn('[Firebase] Init trips listener error:', err);
+    }
+  }
+
+  // 2. Lắng nghe danh sách nhân sự của chuyến đi hiện tại
+  try {
+    peopleUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'people'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.people)) {
+          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(data.people));
+          notifyStateChange();
+        }
+      } else {
+        const currentPeople = getPeople(tripId);
+        if (currentPeople.length > 0) {
+          syncPeopleToFirebase(tripId, currentPeople);
+        }
+      }
+    }, (err) => {
+      console.warn('[Firebase Firestore] people sync warning:', err);
+    });
+  } catch (err) {
+    console.warn('[Firebase] Init people listener error:', err);
+  }
+
+  // 3. Lắng nghe danh sách phòng của chuyến đi hiện tại
+  try {
+    roomsUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'rooms'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.rooms)) {
+          localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(data.rooms));
+          notifyStateChange();
+        }
+      } else {
+        syncRoomsToFirebase(tripId, getRooms(tripId));
+      }
+    }, (err) => {
+      console.warn('[Firebase Firestore] rooms sync warning:', err);
+    });
+  } catch (err) {
+    console.warn('[Firebase] Init rooms listener error:', err);
+  }
+
+  // 4. Lắng nghe audit logs
+  try {
+    logsUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'logs'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.logs)) {
+          localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(data.logs));
+          notifyStateChange();
+        }
+      } else {
+        syncLogsToFirebase(tripId);
+      }
+    }, (err) => {
+      console.warn('[Firebase Firestore] logs sync warning:', err);
+    });
+  } catch (err) {
+    console.warn('[Firebase] Init logs listener error:', err);
+  }
+}
+
+/**
+ * Đẩy dữ liệu nhân sự lên Firebase
+ */
+export async function syncPeopleToFirebase(tripId: string, people: Person[]): Promise<void> {
+  try {
+    await setDoc(doc(db, 'trips', tripId, 'data', 'people'), {
+      people,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Firebase] Ghi dữ liệu nhân sự lỗi:', err);
+  }
+}
+
+/**
+ * Đẩy dữ liệu phòng lên Firebase
+ */
+export async function syncRoomsToFirebase(tripId: string, rooms: Room[]): Promise<void> {
+  try {
+    await setDoc(doc(db, 'trips', tripId, 'data', 'rooms'), {
+      rooms,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Firebase] Ghi dữ liệu phòng lỗi:', err);
+  }
+}
+
+/**
+ * Đẩy danh sách chuyến đi lên Firebase
+ */
+export async function syncTripsToFirebase(): Promise<void> {
+  try {
+    await setDoc(doc(db, 'system', 'trips'), {
+      trips: getTrips(),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Firebase] Ghi danh sách chuyến đi lỗi:', err);
+  }
+}
+
+/**
+ * Đẩy nhật ký hệ thống lên Firebase
+ */
+export async function syncLogsToFirebase(tripId: string): Promise<void> {
+  try {
+    await setDoc(doc(db, 'trips', tripId, 'data', 'logs'), {
+      logs: getLogs(tripId),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Firebase] Ghi nhật ký lỗi:', err);
+  }
+}
+
+/**
+ * Khởi tạo dữ liệu mặc định và kích hoạt Firebase Realtime Sync
  */
 export function initializeStorage(): void {
   // 1. Kiểm tra danh sách chuyến đi
@@ -68,6 +223,9 @@ export function initializeStorage(): void {
       timestamp: new Date().toISOString()
     });
   }
+
+  // 4. Kích hoạt Firebase Realtime Listener
+  setupFirestoreListeners(activeTripId);
 }
 
 export function getTrips(): Trip[] {
@@ -92,6 +250,7 @@ export function saveTrip(trip: Trip): void {
     trips.unshift(trip);
   }
   localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
+  syncTripsToFirebase();
   notifyStateChange();
 }
 
@@ -103,6 +262,8 @@ export function deleteTrip(tripId: string): void {
   localStorage.removeItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`);
   localStorage.removeItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`);
   localStorage.removeItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`);
+
+  syncTripsToFirebase();
 
   if (getActiveTripId() === tripId) {
     if (trips.length > 0) {
@@ -120,6 +281,7 @@ export function getActiveTripId(): string {
 
 export function setActiveTripId(tripId: string): void {
   localStorage.setItem(STORAGE_KEYS.ACTIVE_TRIP, tripId);
+  setupFirestoreListeners(tripId);
   notifyStateChange();
 }
 
@@ -140,6 +302,7 @@ export function getPeople(tripId: string): Person[] {
 
 export function savePeople(tripId: string, people: Person[]): void {
   localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(people));
+  syncPeopleToFirebase(tripId, people);
   notifyStateChange();
 }
 
@@ -154,6 +317,7 @@ export function getRooms(tripId: string): Room[] {
 
 export function saveRooms(tripId: string, rooms: Room[]): void {
   localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(rooms));
+  syncRoomsToFirebase(tripId, rooms);
   notifyStateChange();
 }
 
@@ -169,24 +333,57 @@ export function getLogs(tripId: string): AuditLog[] {
 export function addLog(tripId: string, log: AuditLog): void {
   const logs = getLogs(tripId);
   logs.unshift(log);
-  if (logs.length > 500) logs.pop();
-  localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(logs));
+  localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(logs.slice(0, 100)));
+  syncLogsToFirebase(tripId);
   notifyStateChange();
 }
 
 /**
- * Nhân viên nhận người thân cùng siêu thị (Claim Relative)
+ * Gán / Nhận người thân vào nhân viên bảo trợ
  */
-export function claimRelative(tripId: string, employeeCode: string, relativeId: string, employeeName: string): boolean {
+export function claimRelative(tripId: string, employeeCode: string, relativeId: string, employeeName?: string): boolean {
   const people = getPeople(tripId);
-  const employee = people.find(p => p.code === employeeCode);
-  const relative = people.find(p => p.id === relativeId);
+  const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
+  const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
 
   if (!employee || !relative) return false;
 
   relative.ownerId = employee.code;
-  if (!relative.code.includes(employee.code)) {
-    relative.code = `${employee.code}-NT`;
+  savePeople(tripId, people);
+
+  addLog(tripId, {
+    id: `log_${Date.now()}`,
+    tripId,
+    action: 'ASSIGN_RELATIVE',
+    actor: employee.code,
+    actorName: employee.name,
+    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relative.relation || 'Người thân'})`,
+    timestamp: new Date().toISOString()
+  });
+
+  return true;
+}
+
+/**
+ * Admin gán người thân cho nhân viên
+ */
+export function assignRelativeAdmin(tripId: string, employeeCode: string, relativeId: string): boolean {
+  const people = getPeople(tripId);
+  const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
+  const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
+
+  if (!employee || !relative) return false;
+
+  relative.ownerId = employee.code;
+
+  if (employee.roomId) {
+    const rooms = getRooms(tripId);
+    const room = rooms.find(r => r.id === employee.roomId);
+    if (room && !room.memberIds.includes(relative.id)) {
+      room.memberIds.push(relative.id);
+      relative.roomId = room.id;
+      saveRooms(tripId, rooms);
+    }
   }
 
   savePeople(tripId, people);
@@ -227,7 +424,6 @@ export function leaveRoom(tripId: string, personId: string, actorId: string, act
 
   // Nếu người rời phòng là TRƯỞNG PHÒNG
   if (room.leaderId === person.id) {
-    // Nếu phòng chỉ còn 1 người (chính người đó) -> Giải tán phòng
     if (room.memberIds.length <= 1) {
       rooms.splice(roomIndex, 1);
       person.roomId = null;
@@ -247,30 +443,39 @@ export function leaveRoom(tripId: string, personId: string, actorId: string, act
       return { success: true, message: 'Đã giải tán phòng.' };
     }
 
-    // Nếu còn người khác: Chuyển quyền trưởng phòng cho thành viên nhân viên tiếp theo
-    const otherMembers = room.memberIds.filter(id => id !== person.id);
-    const nextEmployee = otherMembers.map(id => people.find(p => p.id === id)!).find(p => p && p.type === 'EMPLOYEE');
+    const remainingMembers = room.memberIds
+      .filter(id => id !== person.id)
+      .map(id => people.find(p => p.id === id)!)
+      .filter(Boolean);
 
-    if (nextEmployee) {
-      room.leaderId = nextEmployee.id;
-    } else {
-      room.leaderId = otherMembers[0];
+    const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE');
+    if (!nextEmployee) {
+      rooms.splice(roomIndex, 1);
+      room.memberIds.forEach(mId => {
+        const p = people.find(item => item.id === mId);
+        if (p) p.roomId = null;
+      });
+      saveRooms(tripId, rooms);
+      savePeople(tripId, people);
+      return { success: true, message: 'Đã giải tán phòng do không còn nhân viên nào trong phòng.' };
     }
+
+    room.leaderId = nextEmployee.id;
   }
 
-  // Xóa khỏi danh sách thành viên
   room.memberIds = room.memberIds.filter(id => id !== person.id);
   person.roomId = null;
 
-  // Tính lại suất
-  const remainingMembers = room.memberIds.map(id => people.find(p => p.id === id)!).filter(Boolean);
-  room.usedSlots = remainingMembers.filter(m => m.slot > 0).length;
+  const remainingMembers = room.memberIds
+    .map(id => people.find(p => p.id === id)!)
+    .filter(Boolean);
+
+  room.usedSlots = remainingMembers.reduce((sum, m) => sum + (m.slot || 0), 0);
   room.childCount = remainingMembers.filter(m => m.slot === 0).length;
   room.status = room.usedSlots === room.capacity ? 'FULL' : 'UNDER';
   room.updatedAt = new Date().toISOString();
   room.updatedBy = actorName;
 
-  // Nếu người rời phòng là nhân viên và có con < 12 tuổi đi kèm trong phòng -> Bỏ con ra theo quy tắc R5
   const childrenOfThisPerson = remainingMembers.filter(m => m.slot === 0 && m.ownerId === person.code);
   for (const child of childrenOfThisPerson) {
     room.memberIds = room.memberIds.filter(id => id !== child.id);
@@ -303,7 +508,6 @@ export function deleteRoom(tripId: string, roomId: string, actorId: string, acto
 
   if (!room) return false;
 
-  // Đưa tất cả thành viên về trạng thái không có phòng
   people.forEach(p => {
     if (p.roomId === roomId || (room.memberIds && room.memberIds.includes(p.id))) {
       p.roomId = null;

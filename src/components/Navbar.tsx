@@ -76,6 +76,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ĐĂNG KÝ PHÒNG
               </span>
               <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>v1.0</span>
+              <span className="badge badge-success" style={{ fontSize: '0.62rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }} title="Dữ liệu đồng bộ thời gian thực qua Firebase Firestore">
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
+                Firebase Live
+              </span>
             </div>
 
             {/* Trip Dropdown Selector */}
