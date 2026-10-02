@@ -89,9 +89,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={onExportExcel}
             className="btn btn-success"
             style={{ fontWeight: 700 }}
-            title="Xuất file Rooming List đầy đủ 4 Sheet gửi khách sạn"
+            title="Xuất danh sách đã sắp phòng (Excel)"
           >
-            <Download size={18} /> Xuất Excel Rooming List
+            <Download size={18} /> Xuất danh sách
           </button>
 
           <button
