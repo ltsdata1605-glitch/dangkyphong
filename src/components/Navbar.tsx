@@ -73,7 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
-                ROOMING LIST
+                ĐĂNG KÝ PHÒNG
               </span>
               <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>v1.0</span>
             </div>
