@@ -249,11 +249,23 @@ export function autoMatchRooms(
     // Ưu tiên gom cùng siêu thị
     pool.sort((a, b) => a.store.localeCompare(b.store));
 
+    const getNextRoomCode = () => {
+      const allCurrentRooms = Array.from(roomsMap.values()).concat(newRooms);
+      const existingNums = allCurrentRooms
+        .map(r => {
+          const match = r.code.match(/^P\.(\d+)$/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter(n => n > 0);
+      const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+      return `P.${nextNum}`;
+    };
+
     while (pool.length >= 2) {
       const p1 = pool.shift()!;
       const p2 = pool.shift()!;
       const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const roomCode = `P.${roomsMap.size + newRooms.length + 101}`;
+      const roomCode = getNextRoomCode();
 
       const newRoom: Room = {
         id: roomId,
@@ -282,7 +294,7 @@ export function autoMatchRooms(
     if (pool.length === 1) {
       const p = pool.shift()!;
       const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const roomCode = `P.${roomsMap.size + newRooms.length + 101}`;
+      const roomCode = getNextRoomCode();
 
       const newRoom: Room = {
         id: roomId,

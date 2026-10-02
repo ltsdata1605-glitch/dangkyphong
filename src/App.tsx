@@ -196,7 +196,15 @@ export const App: React.FC = () => {
       }
     } else {
       roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      roomCode = `P.${currentRooms.length + 101}`;
+      // Số phòng bắt đầu từ 1: Tìm số phòng lớn nhất hiện tại
+      const existingNums = currentRooms
+        .map(r => {
+          const match = r.code.match(/^P\.(\d+)$/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter(n => n > 0);
+      const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+      roomCode = `P.${nextNum}`;
     }
 
     const room: Room = {

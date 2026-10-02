@@ -78,7 +78,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
       }
 
       return true;
-    });
+    }).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
   }, [rooms, statusFilter, capacityFilter, searchTerm, peopleMap]);
 
   // Những người chưa có phòng để thêm

@@ -96,7 +96,11 @@ export function setupFirestoreListeners(tripId: string): void {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.rooms)) {
-          localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(data.rooms));
+          const { rooms: normalized, migrated } = migrateRoomCodes(data.rooms);
+          localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(normalized));
+          if (migrated) {
+            syncRoomsToFirebase(tripId, normalized);
+          }
           notifyStateChange();
         }
       } else {
@@ -226,6 +230,11 @@ export function initializeStorage(): void {
 
   // 4. Kích hoạt Firebase Realtime Listener
   setupFirestoreListeners(activeTripId);
+
+  // 5. Chuẩn hóa số phòng bắt đầu từ 1 cho tất cả các chuyến đi
+  trips.forEach(t => {
+    getRooms(t.id);
+  });
 }
 
 export function getTrips(): Trip[] {
@@ -306,10 +315,48 @@ export function savePeople(tripId: string, people: Person[]): void {
   notifyStateChange();
 }
 
+/**
+ * Chuẩn hóa số phòng bắt đầu từ 1:
+ * Chuyển các phòng dạng cũ như P.101, P.102, P.103... thành P.1, P.2, P.3...
+ */
+export function migrateRoomCodes(rooms: Room[]): { rooms: Room[], migrated: boolean } {
+  if (!rooms || rooms.length === 0) return { rooms, migrated: false };
+
+  // Kiểm tra nếu có phòng dạng P.101 hoặc P.10x và chưa có phòng P.1
+  const hasLegacy101 = rooms.some(r => r.code === 'P.101' || /^P\.10\d+$/.test(r.code));
+  const hasP1 = rooms.some(r => r.code === 'P.1');
+
+  if (hasLegacy101 && !hasP1) {
+    const updated = rooms.map(r => {
+      const match = r.code.match(/^P\.(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num >= 101) {
+          return {
+            ...r,
+            code: `P.${num - 100}`,
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
+      return r;
+    });
+    return { rooms: updated, migrated: true };
+  }
+
+  return { rooms, migrated: false };
+}
+
 export function getRooms(tripId: string): Room[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`);
-    return raw ? JSON.parse(raw) : [];
+    const rooms: Room[] = raw ? JSON.parse(raw) : [];
+    const { rooms: normalized, migrated } = migrateRoomCodes(rooms);
+    if (migrated) {
+      localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(normalized));
+      syncRoomsToFirebase(tripId, normalized);
+    }
+    return normalized;
   } catch {
     return [];
   }

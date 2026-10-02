@@ -35,7 +35,7 @@ export type RoomStatus = 'FULL' | 'UNDER' | 'WARNING';
 export interface Room {
   id: string;
   tripId: string;
-  code: string;            // e.g. "P.101" hoặc "R001"
+  code: string;            // e.g. "P.1" hoặc "R001"
   capacity: number;        // 2, 3, 4, 5, 6 (suất người lớn)
   leaderId: string;        // ID của trưởng phòng
   memberIds: string[];     // Danh sách ID thành viên trong phòng

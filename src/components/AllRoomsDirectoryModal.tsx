@@ -104,7 +104,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
       }
 
       return true;
-    });
+    }).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
   }, [rooms, peopleMap, searchTerm, statusFilter, capacityFilter, storeFilter, genderFilter]);
 
   return (
@@ -182,7 +182,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
             <input
               type="text"
               className="input-field"
-              placeholder="🔍 Tra cứu nhanh theo số phòng (P.101), MSNV (21707), họ tên, siêu thị..."
+              placeholder="🔍 Tra cứu nhanh theo số phòng (P.1), MSNV (21707), họ tên, siêu thị..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{ paddingLeft: 42, fontSize: '0.92rem', background: 'var(--bg-card-solid)' }}

@@ -54,7 +54,7 @@ export function exportRoomingListExcel(
     // 3. Cột GIỚI TÍNH
     const genderVal = p.gender === 'M' ? 'Nam' : 'Nữ';
 
-    // 4. Cột SỐ PHÒNG (Mã số phòng, ví dụ: P.101, P.102...)
+    // 4. Cột SỐ PHÒNG (Mã số phòng, ví dụ: P.1, P.2...)
     const roomCodeVal = room ? room.code : '';
 
     // 5. Cột LOẠI PHÒNG (Ví dụ: Phòng 2 người - TWIN, Phòng 2 người - DOUBLE, Phòng 4 người - FAMILY...)
@@ -115,8 +115,8 @@ export function exportRoomingListExcel(
   let currentRowIndex = 6; // Dòng bắt đầu dữ liệu (0-indexed)
   let roomIndex = 1;
 
-  // Sắp xếp phòng theo mã
-  const sortedRooms = [...rooms].sort((a, b) => a.code.localeCompare(b.code));
+  // Sắp xếp phòng theo mã số tự nhiên (P.1, P.2... P.10)
+  const sortedRooms = [...rooms].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
 
   for (const room of sortedRooms) {
     const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
