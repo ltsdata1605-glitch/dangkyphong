@@ -87,10 +87,13 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
     setIsCreating(false);
   };
 
+  const [tripToDelete, setTripToDelete] = useState<Trip | null>(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Top Header */}
-      <div className="glass-card" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div className="glass-card" style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
             Quản Lý Các Chuyến Đi & Khách Sạn (Multi-trip)
@@ -100,135 +103,177 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
           </p>
         </div>
 
-        <button onClick={handleStartCreate} className="btn btn-primary">
+        <button onClick={handleStartCreate} className="btn btn-primary" style={{ fontWeight: 700 }}>
           <Plus size={16} /> Thêm Chuyến Đi Mới
         </button>
       </div>
 
-      {/* Trips Cards List */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-        {trips.map(trip => {
-          const isActive = trip.id === currentTrip.id;
+      {/* Trips Row List (Dạng dòng thay cho dạng thẻ) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {trips.length === 0 ? (
+          <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            Chưa có chuyến đi nào được tạo. Vui lòng bấm "Thêm Chuyến Đi Mới".
+          </div>
+        ) : (
+          trips.map(trip => {
+            const isActive = trip.id === currentTrip.id;
 
-          return (
-            <div
-              key={trip.id}
-              className="glass-card"
-              style={{
-                padding: '20px',
-                border: isActive ? '2px solid var(--primary-500)' : '1px solid var(--border-subtle)',
-                position: 'relative'
-              }}
-            >
-              {isActive && (
-                <div style={{ position: 'absolute', top: 12, right: 12 }}>
-                  <span className="badge badge-primary">Đang quản lý</span>
-                </div>
-              )}
-
-              <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 8, paddingRight: 60 }}>
-                {trip.name}
-              </h4>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Building size={14} style={{ color: 'var(--primary-500)' }} />
-                  <span>{trip.hotelName || 'Chưa cập nhật khách sạn'}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MapPin size={14} style={{ color: 'var(--color-danger)' }} />
-                  <span>{trip.location || 'Chưa cập nhật địa điểm'}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={14} style={{ color: 'var(--color-warning)' }} />
-                  <span>{trip.startDate} - {trip.endDate}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Clock size={14} style={{ color: 'var(--color-info)' }} />
-                  <span>Hạn chót: {new Date(trip.deadline).toLocaleString('vi-VN')}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Baby size={14} style={{ color: 'var(--color-success)' }} />
-                  <span>Tối đa {trip.maxChildrenPerRoom || 2} trẻ em/phòng</span>
-                </div>
-
-                {/* Định mức số lượng phòng theo loại */}
+            return (
+              <div
+                key={trip.id}
+                className="glass-card"
+                style={{
+                  padding: '20px 24px',
+                  border: isActive ? '2px solid var(--primary-500)' : '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-lg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  boxShadow: isActive ? '0 4px 20px -2px rgba(37, 99, 235, 0.15)' : undefined
+                }}
+              >
+                {/* 1. Header Dòng: Tên chuyến đi, Badges & Các nút hành động */}
                 <div style={{
                   display: 'flex',
-                  flexWrap: 'wrap',
                   alignItems: 'center',
-                  gap: 6,
-                  marginTop: 6,
-                  padding: '8px 10px',
-                  background: 'var(--bg-muted)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.78rem'
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  borderBottom: '1px solid var(--border-subtle)',
+                  paddingBottom: 14
                 }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                      {trip.name}
+                    </h4>
+
+                    {isActive && (
+                      <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem' }}>
+                        <CheckCircle size={13} /> Đang quản lý
+                      </span>
+                    )}
+
+                    {trip.isLocked ? (
+                      <span className="badge badge-danger" style={{ fontSize: '0.78rem' }}>
+                        Đã khóa đăng ký
+                      </span>
+                    ) : (
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem' }}>
+                        Đang mở đăng ký
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    {!isActive && (
+                      <button
+                        onClick={() => onSelectTrip(trip.id)}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontWeight: 700 }}
+                      >
+                        Chọn làm việc
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleStartEdit(trip)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <Edit size={14} /> Sửa
+                    </button>
+
+                    <button
+                      onClick={() => setTripToDelete(trip)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: 'var(--color-danger)' }}
+                      title="Xóa chuyến đi này"
+                    >
+                      <Trash2 size={14} /> Xóa
+                    </button>
+
+                    {isActive && (
+                      <button
+                        onClick={() => setIsResetModalOpen(true)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: 'var(--color-warning)' }}
+                        title="Đặt lại toàn bộ dữ liệu chuyến đi về ban đầu"
+                      >
+                        <RotateCcw size={14} /> Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Thông tin chi tiết chuyến đi (Dạng dòng ngang rộng rãi, không bị tràn) */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 16,
+                  rowGap: 10,
+                  fontSize: '0.86rem',
+                  color: 'var(--text-muted)',
+                  padding: '10px 14px',
+                  background: 'var(--bg-muted)',
+                  borderRadius: 'var(--radius-md)'
+                }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Building size={15} style={{ color: 'var(--primary-500)', flexShrink: 0 }} />
+                    <span><strong>Khách sạn:</strong> {trip.hotelName || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <MapPin size={15} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+                    <span><strong>Địa điểm:</strong> {trip.location || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={15} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
+                    <span><strong>Thời gian:</strong> {trip.startDate} - {trip.endDate}</span>
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Clock size={15} style={{ color: 'var(--color-info)', flexShrink: 0 }} />
+                    <span><strong>Hạn chót:</strong> {new Date(trip.deadline).toLocaleString('vi-VN')}</span>
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Baby size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                    <span><strong>Tối đa trẻ em:</strong> {trip.maxChildrenPerRoom || 2} trẻ/phòng</span>
+                  </div>
+                </div>
+
+                {/* 3. Định mức số lượng phòng theo loại */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  fontSize: '0.82rem'
+                }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức phòng:</span>
                   {[2, 3, 4, 5, 6].map(cap => (
                     <span
                       key={cap}
                       style={{
                         background: 'var(--bg-card-solid)',
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                        border: '1px solid var(--border-subtle)'
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6
                       }}
                     >
-                      P.{cap}: <strong>{trip.roomLimits?.[cap] ?? '—'}p</strong>
+                      Phòng {cap} người: <strong style={{ color: 'var(--primary-600)' }}>{trip.roomLimits?.[cap] ?? '—'} phòng</strong>
                     </span>
                   ))}
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
-                {!isActive && (
-                  <button
-                    onClick={() => onSelectTrip(trip.id)}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Chọn làm việc
-                  </button>
-                )}
-
-                <button
-                  onClick={() => handleStartEdit(trip)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  <Edit size={14} /> Sửa
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (window.confirm(`Bạn có chắc chắn muốn xóa chuyến đi "${trip.name}"? Dữ liệu nhân sự và phòng của chuyến này sẽ bị xóa.`)) {
-                      onDeleteTrip(trip.id);
-                    }
-                  }}
-                  className="btn btn-secondary btn-sm"
-                  style={{ color: 'var(--color-danger)' }}
-                >
-                  <Trash2 size={14} /> Xóa
-                </button>
-
-                {isActive && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Đặt lại toàn bộ dữ liệu phòng của chuyến này về ban đầu (550 người)?')) {
-                        onResetData(trip.id);
-                      }
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: 'var(--color-warning)', marginLeft: 'auto' }}
-                    title="Đặt lại dữ liệu phòng về ban đầu"
-                  >
-                    <RotateCcw size={14} /> Reset
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Modal Thêm / Sửa Chuyến Đi */}
@@ -393,6 +438,108 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác Nhận Xóa Chuyến Đi */}
+      {tripToDelete && (
+        <div className="modal-overlay" onClick={() => setTripToDelete(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Trash2 size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8, color: 'var(--color-danger)' }}>
+              Xóa Chuyến Đi?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Bạn có chắc chắn muốn xóa chuyến đi <strong>"{tripToDelete.name}"</strong>? Toàn bộ danh sách nhân sự và cấu hình phòng của chuyến đi này sẽ bị xóa.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setTripToDelete(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.3, fontWeight: 700 }}
+                onClick={() => {
+                  onDeleteTrip(tripToDelete.id);
+                  setTripToDelete(null);
+                }}
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác Nhận Reset Dữ Liệu Chuyến Đi */}
+      {isResetModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsResetModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 450, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(234, 179, 8, 0.1)',
+              color: 'var(--color-warning)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <RotateCcw size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Đặt Lại Dữ Liệu Ban Đầu?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Thao tác này sẽ giải tán toàn bộ phòng hiện có và khôi phục danh sách 550 nhân sự của chuyến đi <strong>"{currentTrip.name}"</strong> về trạng thái mặc định chưa ghép phòng.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setIsResetModalOpen(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-warning"
+                style={{ flex: 1.4, fontWeight: 700, color: '#fff', background: 'var(--color-warning)' }}
+                onClick={() => {
+                  onResetData(currentTrip.id);
+                  setIsResetModalOpen(false);
+                }}
+              >
+                Xác Nhận Reset
+              </button>
+            </div>
           </div>
         </div>
       )}
