@@ -67,7 +67,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   return (
-    <div style={{ maxWidth: 1200, margin: '20px auto', padding: '0 16px' }}>
+    <div style={{ width: '100%', margin: '20px 0' }}>
       {/* Admin Tabs Bar */}
       <div className="glass-card" style={{
         padding: '8px 12px',

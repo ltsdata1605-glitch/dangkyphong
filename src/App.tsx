@@ -488,55 +488,58 @@ export const App: React.FC = () => {
         onLogoutEmployee={handleEmployeeLogout}
       />
 
-      {/* 2. Countdown Banner & Trip Overview */}
-      <CountdownBanner trip={currentTrip} />
+      {/* Page Content Container - Perfectly aligns CountdownBanner with Admin and Employee views */}
+      <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '0 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {/* 2. Countdown Banner & Trip Overview */}
+        <CountdownBanner trip={currentTrip} />
 
-      {/* 3. Main Views */}
-      <main style={{ flex: 1, paddingBottom: 60 }}>
-        {activeRole === 'EMPLOYEE' ? (
-          !currentEmployee ? (
-            <EmployeeLogin
-              people={people}
-              onLogin={handleEmployeeLogin}
-            />
+        {/* 3. Main Views */}
+        <main style={{ flex: 1, paddingBottom: 60, width: '100%' }}>
+          {activeRole === 'EMPLOYEE' ? (
+            !currentEmployee ? (
+              <EmployeeLogin
+                people={people}
+                onLogin={handleEmployeeLogin}
+              />
+            ) : (
+              <EmployeeRoomView
+                currentEmployee={currentEmployee}
+                currentTrip={currentTrip}
+                allPeople={people}
+                allRooms={rooms}
+                onSaveRoom={handleSaveRoom}
+                onLeaveRoom={handleLeaveRoom}
+                onDeleteRoom={handleDeleteRoom}
+                onClaimRelative={handleClaimRelative}
+              />
+            )
           ) : (
-            <EmployeeRoomView
-              currentEmployee={currentEmployee}
+            <AdminView
               currentTrip={currentTrip}
-              allPeople={people}
-              allRooms={rooms}
-              onSaveRoom={handleSaveRoom}
-              onLeaveRoom={handleLeaveRoom}
+              trips={trips}
+              people={people}
+              rooms={rooms}
+              logs={logs}
+              onSelectTrip={handleSelectTrip}
+              onSaveTrip={handleSaveTrip}
+              onDeleteTrip={handleDeleteTrip}
+              onResetData={handleResetData}
+              onExportExcel={handleExportExcel}
+              onAutoMatch={handleAutoMatch}
+              onToggleLock={handleToggleLock}
+              onConfirmImport={handleConfirmImport}
               onDeleteRoom={handleDeleteRoom}
-              onClaimRelative={handleClaimRelative}
+              onDeleteAllRooms={handleDeleteAllRooms}
+              onRemoveMember={handleAdminRemoveMember}
+              onAddMember={handleAdminAddMember}
+              onSaveOverride={handleAdminSaveOverride}
+              onToggleGender={handleToggleGender}
+              onAssignRelative={handleAdminAssignRelative}
+              onLogoutAdmin={handleAdminLogout}
             />
-          )
-        ) : (
-          <AdminView
-            currentTrip={currentTrip}
-            trips={trips}
-            people={people}
-            rooms={rooms}
-            logs={logs}
-            onSelectTrip={handleSelectTrip}
-            onSaveTrip={handleSaveTrip}
-            onDeleteTrip={handleDeleteTrip}
-            onResetData={handleResetData}
-            onExportExcel={handleExportExcel}
-            onAutoMatch={handleAutoMatch}
-            onToggleLock={handleToggleLock}
-            onConfirmImport={handleConfirmImport}
-            onDeleteRoom={handleDeleteRoom}
-            onDeleteAllRooms={handleDeleteAllRooms}
-            onRemoveMember={handleAdminRemoveMember}
-            onAddMember={handleAdminAddMember}
-            onSaveOverride={handleAdminSaveOverride}
-            onToggleGender={handleToggleGender}
-            onAssignRelative={handleAdminAssignRelative}
-            onLogoutAdmin={handleAdminLogout}
-          />
-        )}
-      </main>
+          )}
+        </main>
+      </div>
 
       {/* Admin Login Modal */}
       <AdminLoginModal

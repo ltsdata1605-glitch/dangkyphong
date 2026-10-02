@@ -22,9 +22,8 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ trip }) => {
 
   return (
     <div style={{
-      maxWidth: 1200,
-      margin: '16px auto',
-      padding: '0 16px'
+      width: '100%',
+      margin: '16px 0'
     }}>
       <div className="glass-card" style={{
         padding: '16px 20px',

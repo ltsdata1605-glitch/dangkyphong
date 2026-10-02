@@ -93,7 +93,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: '20px auto', padding: '0 16px' }}>
+    <div style={{ width: '100%', margin: '20px 0' }}>
       {/* 1. Relative Claim Alert (if any unclaimed in same store) */}
       <EmployeeRelativeClaim
         currentEmployee={currentEmployee}
