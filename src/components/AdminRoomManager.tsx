@@ -22,6 +22,7 @@ interface AdminRoomManagerProps {
   rooms: Room[];
   people: Person[];
   onDeleteRoom: (roomId: string) => void;
+  onDeleteAllRooms: () => void;
   onRemoveMember: (roomId: string, personId: string) => void;
   onAddMember: (roomId: string, personId: string) => void;
   onSaveOverride: (roomId: string, note: string) => void;
@@ -31,6 +32,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
   rooms,
   people,
   onDeleteRoom,
+  onDeleteAllRooms,
   onRemoveMember,
   onAddMember,
   onSaveOverride
@@ -46,6 +48,12 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
   // Modal Admin Override ghi chú
   const [overrideModalRoom, setOverrideModalRoom] = useState<Room | null>(null);
   const [overrideNote, setOverrideNote] = useState('');
+
+  // Modal xác nhận xóa 1 phòng
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+
+  // Modal xác nhận xóa TẤT CẢ phòng
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
 
   const peopleMap = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
 
@@ -143,8 +151,21 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
           </select>
         </div>
 
-        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-          Hiển thị: <strong>{filteredRooms.length}</strong> / {rooms.length} phòng
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+            Hiển thị: <strong>{filteredRooms.length}</strong> / {rooms.length} phòng
+          </div>
+
+          {rooms.length > 0 && (
+            <button
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              className="btn btn-danger btn-sm"
+              style={{ fontWeight: 700 }}
+              title="Xóa giải tán toàn bộ danh sách phòng"
+            >
+              <Trash2 size={14} /> Xóa Tất Cả ({rooms.length} phòng)
+            </button>
+          )}
         </div>
       </div>
 
@@ -204,11 +225,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                         <Edit size={14} />
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Bạn có chắc chắn muốn xóa phòng ${room.code}?`)) {
-                            onDeleteRoom(room.id);
-                          }
-                        }}
+                        onClick={() => setRoomToDelete(room)}
                         className="btn btn-secondary btn-sm"
                         style={{ padding: '6px 8px', color: 'var(--color-danger)' }}
                         title="Xóa phòng này"
@@ -405,6 +422,108 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                   Lưu Duyệt Đặc Cách
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác Nhận Xóa 1 Phòng */}
+      {roomToDelete && (
+        <div className="modal-overlay" onClick={() => setRoomToDelete(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Trash2 size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Xác Nhận Xóa Phòng {roomToDelete.code}?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Phòng <strong>{roomToDelete.code}</strong> sẽ bị giải tán. Tất cả thành viên trong phòng này sẽ trở về trạng thái <strong>Chưa có phòng</strong>.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setRoomToDelete(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.3 }}
+                onClick={() => {
+                  onDeleteRoom(roomToDelete.id);
+                  setRoomToDelete(null);
+                }}
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác Nhận Xóa TẤT CẢ Phòng */}
+      {isDeleteAllModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsDeleteAllModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <AlertTriangle size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 8, color: 'var(--color-danger)' }}>
+              Xóa Toàn Bộ {rooms.length} Phòng?
+            </h3>
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              <strong>Lưu ý:</strong> Toàn bộ <strong>{rooms.length} phòng</strong> đã tạo sẽ bị xóa hoàn toàn. Tất cả 550 nhân sự trong chuyến đi sẽ được giải phóng về trạng thái <strong>Chưa có phòng</strong> để xếp lại từ đầu.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setIsDeleteAllModalOpen(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.5, fontWeight: 700 }}
+                onClick={() => {
+                  onDeleteAllRooms();
+                  setIsDeleteAllModalOpen(false);
+                }}
+              >
+                Xác Nhận Xóa Hết
+              </button>
             </div>
           </div>
         </div>

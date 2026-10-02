@@ -31,6 +31,7 @@ interface AdminViewProps {
   onToggleLock: () => void;
   onConfirmImport: (newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => void;
   onDeleteRoom: (roomId: string) => void;
+  onDeleteAllRooms: () => void;
   onRemoveMember: (roomId: string, personId: string) => void;
   onAddMember: (roomId: string, personId: string) => void;
   onSaveOverride: (roomId: string, note: string) => void;
@@ -54,6 +55,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onToggleLock,
   onConfirmImport,
   onDeleteRoom,
+  onDeleteAllRooms,
   onRemoveMember,
   onAddMember,
   onSaveOverride,
@@ -142,6 +144,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           rooms={rooms}
           people={people}
           onDeleteRoom={onDeleteRoom}
+          onDeleteAllRooms={onDeleteAllRooms}
           onRemoveMember={onRemoveMember}
           onAddMember={onAddMember}
           onSaveOverride={onSaveOverride}

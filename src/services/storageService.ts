@@ -328,6 +328,31 @@ export function deleteRoom(tripId: string, roomId: string, actorId: string, acto
 }
 
 /**
+ * Xóa toàn bộ phòng đã tạo trong chuyến đi (Admin)
+ */
+export function deleteAllRooms(tripId: string, actorId: string, actorName: string): boolean {
+  const people = getPeople(tripId);
+  people.forEach(p => {
+    p.roomId = null;
+  });
+
+  saveRooms(tripId, []);
+  savePeople(tripId, people);
+
+  addLog(tripId, {
+    id: `log_${Date.now()}`,
+    tripId,
+    action: 'DELETE_ROOM',
+    actor: actorId,
+    actorName,
+    details: `${actorName} đã xóa toàn bộ danh sách phòng`,
+    timestamp: new Date().toISOString()
+  });
+
+  return true;
+}
+
+/**
  * Khôi phục dữ liệu ban đầu
  */
 export function resetDefaultData(tripId: string): void {

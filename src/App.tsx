@@ -16,6 +16,7 @@ import {
   claimRelative,
   leaveRoom,
   deleteRoom,
+  deleteAllRooms,
   resetDefaultData,
   subscribeToStateChanges
 } from './services/storageService';
@@ -272,6 +273,22 @@ export const App: React.FC = () => {
     refreshData();
   };
 
+  // Xóa toàn bộ phòng
+  const handleDeleteAllRooms = () => {
+    const actorId = currentEmployee ? currentEmployee.code : 'admin';
+    const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
+    deleteAllRooms(currentTrip.id, actorId, actorName);
+    setCurrentEmployee(prev => {
+      if (prev && prev.roomId) {
+        const updated = { ...prev, roomId: null };
+        localStorage.setItem('rooming_current_employee', JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
+    refreshData();
+  };
+
   // Nhận người thân
   const handleClaimRelative = (relativeId: string) => {
     if (!currentEmployee) return;
@@ -510,6 +527,7 @@ export const App: React.FC = () => {
             onToggleLock={handleToggleLock}
             onConfirmImport={handleConfirmImport}
             onDeleteRoom={handleDeleteRoom}
+            onDeleteAllRooms={handleDeleteAllRooms}
             onRemoveMember={handleAdminRemoveMember}
             onAddMember={handleAdminAddMember}
             onSaveOverride={handleAdminSaveOverride}
