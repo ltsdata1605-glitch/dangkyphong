@@ -9,7 +9,6 @@ import {
   Sparkles,
   Lock,
   Unlock,
-  Upload,
   CheckCircle,
   Clock,
   Baby
@@ -22,7 +21,7 @@ interface AdminDashboardProps {
   onExportExcel: () => void;
   onAutoMatch: () => void;
   onToggleLock: () => void;
-  onOpenImportModal: () => void;
+  onOpenImportModal?: () => void;
   onNavigateTab: (tab: 'rooms' | 'people' | 'trips' | 'logs') => void;
 }
 
@@ -117,14 +116,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Unlock size={16} /> Đang Mở (Khóa Ngay)
               </>
             )}
-          </button>
-
-          <button
-            onClick={onOpenImportModal}
-            className="btn btn-secondary"
-            title="Tải lên file Excel danh sách mới"
-          >
-            <Upload size={16} /> Import Excel
           </button>
         </div>
       </div>

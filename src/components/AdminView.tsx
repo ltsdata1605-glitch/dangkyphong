@@ -23,13 +23,14 @@ interface AdminViewProps {
   rooms: Room[];
   logs: AuditLog[];
   onSelectTrip: (tripId: string) => void;
-  onSaveTrip: (trip: Trip) => void;
+  onSaveTrip: (trip: Trip, initialPeople?: Person[]) => void;
   onDeleteTrip: (tripId: string) => void;
   onResetData: (tripId: string) => void;
   onExportExcel: () => void;
   onAutoMatch: () => void;
   onToggleLock: () => void;
   onConfirmImport: (newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => void;
+  onImportPeopleForTrip?: (tripId: string, newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => void;
   onDeleteRoom: (roomId: string) => void;
   onDeleteAllRooms: () => void;
   onRemoveMember: (roomId: string, personId: string) => void;
@@ -54,6 +55,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onAutoMatch,
   onToggleLock,
   onConfirmImport,
+  onImportPeopleForTrip,
   onDeleteRoom,
   onDeleteAllRooms,
   onRemoveMember,
@@ -134,7 +136,6 @@ export const AdminView: React.FC<AdminViewProps> = ({
           onExportExcel={onExportExcel}
           onAutoMatch={onAutoMatch}
           onToggleLock={onToggleLock}
-          onOpenImportModal={() => setIsImportModalOpen(true)}
           onNavigateTab={setActiveTab}
         />
       )}
@@ -168,6 +169,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           onSaveTrip={onSaveTrip}
           onDeleteTrip={onDeleteTrip}
           onResetData={onResetData}
+          onImportPeopleForTrip={onImportPeopleForTrip}
         />
       )}
 

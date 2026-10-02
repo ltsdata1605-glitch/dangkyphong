@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { Person } from '../types';
-import { parseUploadedExcel } from '../services/excelService';
-import { Upload, AlertTriangle, CheckCircle2, FileSpreadsheet, X } from 'lucide-react';
+import { parseUploadedExcel, exportTemplatePersonnelExcel } from '../services/excelService';
+import { Upload, AlertTriangle, CheckCircle2, FileSpreadsheet, X, Download } from 'lucide-react';
 
 interface ExcelImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirmImport: (newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => void;
+  tripTitle?: string;
 }
 
 export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   isOpen,
   onClose,
-  onConfirmImport
+  onConfirmImport,
+  tripTitle
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -57,9 +59,14 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileSpreadsheet size={20} style={{ color: 'var(--color-success)' }} />
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-              Tải Lên File Excel Danh Sách Đoàn
-            </h3>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
+                {tripTitle ? `Nhập Excel Danh Sách: ${tripTitle}` : 'Tải Lên File Excel Danh Sách Đoàn'}
+              </h3>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Dữ liệu nhân sự sẽ được áp dụng riêng cho chuyến đi này
+              </p>
+            </div>
           </div>
           <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
             <X size={20} />
@@ -67,13 +74,40 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         </div>
 
         <div style={{ padding: '20px 24px' }}>
+          {/* File Template Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 14,
+            padding: '10px 14px',
+            background: 'var(--bg-muted)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
+            flexWrap: 'wrap',
+            gap: 10
+          }}>
+            <div style={{ fontSize: '0.84rem', color: 'var(--text-main)', fontWeight: 600 }}>
+              Chưa có file mẫu chuẩn hoặc muốn cập nhật dễ hơn?
+            </div>
+            <button
+              type="button"
+              onClick={exportTemplatePersonnelExcel}
+              className="btn btn-outline btn-sm"
+              style={{ fontSize: '0.8rem', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+              title="Tải file Excel mẫu gồm 5 cột chuẩn và hướng dẫn quy ước"
+            >
+              <Download size={14} /> Xuất danh sách mẫu
+            </button>
+          </div>
+
           {/* File Picker */}
           <div style={{
             border: '2px dashed var(--border-subtle)',
             borderRadius: 'var(--radius-lg)',
-            padding: '28px 20px',
+            padding: '24px 20px',
             textAlign: 'center',
-            background: 'var(--bg-muted)',
+            background: 'var(--bg-card-solid)',
             cursor: 'pointer',
             marginBottom: 16
           }}
@@ -84,7 +118,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               {file ? file.name : 'Bấm để chọn file Excel (.xlsx, .xls)'}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-              Hỗ trợ mẫu chuẩn hoặc định dạng DANH SÁCH NHÂN VIÊN.xlsx hiện tại
+              Hỗ trợ file theo mẫu chuẩn (5 cột: USER, HỌ TÊN THAM GIA, MST - TÊN SIÊU THỊ, NHÂN VIÊN / NGƯỜI THÂN, GIỚI TÍNH)
             </div>
             <input
               id="excelFileInput"

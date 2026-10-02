@@ -491,3 +491,56 @@ export async function parseUploadedExcel(file: File): Promise<{
     reader.readAsBinaryString(file);
   });
 }
+
+/**
+ * Xuất file Excel mẫu danh sách nhân sự (Template) chuẩn để Admin dễ dàng nhập liệu cho chuyến đi
+ */
+export function exportTemplatePersonnelExcel(): void {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: MẪU DANH SÁCH NHẬP LIỆU
+  const templateHeaders = [
+    ['USER', 'HỌ TÊN THAM GIA', 'MST - TÊN SIÊU THỊ', 'NHÂN VIÊN / NGƯỜI THÂN', 'GIỚI TÍNH'],
+    ['21707', 'Nguyễn Văn An', '910 - ĐML_STR_STR - 99 Hùng Vương', 'NHÂN VIÊN', 'Nam'],
+    ['Vợ/Chồng', 'Trần Thị Bích', '910 - ĐML_STR_STR - 99 Hùng Vương', 'NGƯỜI THÂN', 'Nữ'],
+    ['Con dưới 5 Tuổi', 'Nguyễn Gia Bảo', '910 - ĐML_STR_STR - 99 Hùng Vương', 'NGƯỜI THÂN', 'Nam'],
+    ['Con 5-11 Tuổi', 'Nguyễn Thảo My', '910 - ĐML_STR_STR - 99 Hùng Vương', 'NGƯỜI THÂN', 'Nữ'],
+    ['Con từ 12 Tuổi', 'Nguyễn Hữu Tài', '910 - ĐML_STR_STR - 99 Hùng Vương', 'NGƯỜI THÂN', 'Nam'],
+    ['21708', 'Lê Thị Cúc', '8871 - DMS3_STR_LPH - Thừa 674 Tân Thạnh', 'NHÂN VIÊN', 'Nữ'],
+    ['Ba/Mẹ', 'Nguyễn Văn Hùng', '8871 - DMS3_STR_LPH - Thừa 674 Tân Thạnh', 'NGƯỜI THÂN', 'Nam'],
+    ['PG', 'Phạm Hoàng Yến', '8871 - DMS3_STR_LPH - Thừa 674 Tân Thạnh', 'PG', 'Nữ']
+  ];
+
+  const ws1 = XLSX.utils.aoa_to_sheet(templateHeaders);
+  ws1['!cols'] = [
+    { wch: 18 }, // USER
+    { wch: 28 }, // HỌ TÊN THAM GIA
+    { wch: 42 }, // MST - TÊN SIÊU THỊ
+    { wch: 26 }, // NHÂN VIÊN / NGƯỜI THÂN
+    { wch: 14 }  // GIỚI TÍNH
+  ];
+  XLSX.utils.book_append_sheet(wb, ws1, 'DANH SÁCH MẪU');
+
+  // Sheet 2: HƯỚNG DẪN QUY ƯỚC
+  const guideData = [
+    ['HƯỚNG DẪN ĐIỀN DỮ LIỆU FILE EXCEL DANH SÁCH ĐOÀN DU LỊCH'],
+    [''],
+    ['CỘT', 'TÊN CỘT', 'QUY ƯỚC VÀ GIÁ TRỊ MẪU', 'MÔ TẢ'],
+    ['A', 'USER', 'Mã nhân viên (vd: 21707) HOẶC loại quan hệ người thân: Vợ/Chồng, Con dưới 5 Tuổi, Con 5-11 Tuổi, Con từ 12 Tuổi, Ba/Mẹ, PG', 'Dùng để định danh nhân viên hoặc xác định suất của người thân.'],
+    ['B', 'HỌ TÊN THAM GIA', 'Họ và tên đầy đủ (vd: Nguyễn Văn An)', 'Tên hiển thị để tìm kiếm và xếp phòng.'],
+    ['C', 'MST - TÊN SIÊU THỊ', 'Tên hoặc mã siêu thị/phòng ban (vd: 910 - ĐML_STR_STR - 99 Hùng Vương)', 'Người cùng siêu thị sẽ được ưu tiên xếp chung phòng.'],
+    ['D', 'NHÂN VIÊN / NGƯỜI THÂN', 'Điền 1 trong 3 giá trị: NHÂN VIÊN, NGƯỜI THÂN, PG', 'Xác định tư cách tham gia của thành viên.'],
+    ['E', 'GIỚI TÍNH', 'Điền "Nam" hoặc "Nữ"', 'Dùng để kiểm soát quy tắc cùng giới và xếp giường.']
+  ];
+
+  const ws2 = XLSX.utils.aoa_to_sheet(guideData);
+  ws2['!cols'] = [
+    { wch: 8 },
+    { wch: 24 },
+    { wch: 45 },
+    { wch: 45 }
+  ];
+  XLSX.utils.book_append_sheet(wb, ws2, 'HƯỚNG DẪN');
+
+  XLSX.writeFile(wb, 'Mau_Danh_Sach_Nhan_Su_Chuyen_Di.xlsx');
+}

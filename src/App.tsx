@@ -145,8 +145,12 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  const handleSaveTrip = (trip: Trip) => {
+  const handleSaveTrip = (trip: Trip, initialPeople?: Person[]) => {
     saveTrip(trip);
+    if (initialPeople && initialPeople.length > 0) {
+      savePeople(trip.id, initialPeople);
+      saveRooms(trip.id, []);
+    }
     refreshData();
   };
 
@@ -375,25 +379,26 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  // Admin nạp file Excel
-  const handleConfirmImport = (newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => {
+  // Admin nạp file Excel cho một chuyến đi cụ thể
+  const handleConfirmImport = (targetTripId: string, newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => {
+    const tripId = targetTripId || currentTrip.id;
     if (mode === 'OVERWRITE') {
-      savePeople(currentTrip.id, newPeople);
-      saveRooms(currentTrip.id, []);
+      savePeople(tripId, newPeople);
+      saveRooms(tripId, []);
     } else {
-      const existing = getPeople(currentTrip.id);
+      const existing = getPeople(tripId);
       const merged = [...existing];
       newPeople.forEach(np => {
         if (!merged.some(p => p.code === np.code && p.name === np.name)) {
           merged.push(np);
         }
       });
-      savePeople(currentTrip.id, merged);
+      savePeople(tripId, merged);
     }
 
-    addLog(currentTrip.id, {
+    addLog(tripId, {
       id: `log_${Date.now()}`,
-      tripId: currentTrip.id,
+      tripId: tripId,
       action: 'IMPORT_EXCEL',
       actor: 'admin',
       actorName: 'Ban Tổ Chức',
@@ -527,7 +532,8 @@ export const App: React.FC = () => {
               onExportExcel={handleExportExcel}
               onAutoMatch={handleAutoMatch}
               onToggleLock={handleToggleLock}
-              onConfirmImport={handleConfirmImport}
+              onConfirmImport={(newPeople, mode) => handleConfirmImport(currentTrip.id, newPeople, mode)}
+              onImportPeopleForTrip={handleConfirmImport}
               onDeleteRoom={handleDeleteRoom}
               onDeleteAllRooms={handleDeleteAllRooms}
               onRemoveMember={handleAdminRemoveMember}

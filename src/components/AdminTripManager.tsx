@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Trip } from '../types';
+import React, { useState, useRef } from 'react';
+import { Trip, Person } from '../types';
 import {
   Calendar,
   Building,
@@ -11,16 +11,23 @@ import {
   RotateCcw,
   Baby,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Download,
+  Users
 } from 'lucide-react';
+import { exportTemplatePersonnelExcel, parseUploadedExcel } from '../services/excelService';
+import { getPeople, savePeople } from '../services/storageService';
+import { ExcelImportModal } from './ExcelImportModal';
 
 interface AdminTripManagerProps {
   currentTrip: Trip;
   trips: Trip[];
   onSelectTrip: (tripId: string) => void;
-  onSaveTrip: (trip: Trip) => void;
+  onSaveTrip: (trip: Trip, initialPeople?: Person[]) => void;
   onDeleteTrip: (tripId: string) => void;
   onResetData: (tripId: string) => void;
+  onImportPeopleForTrip?: (tripId: string, people: Person[], mode: 'OVERWRITE' | 'APPEND') => void;
 }
 
 export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
@@ -29,16 +36,26 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
   onSelectTrip,
   onSaveTrip,
   onDeleteTrip,
-  onResetData
+  onResetData,
+  onImportPeopleForTrip
 }) => {
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [importingTrip, setImportingTrip] = useState<Trip | null>(null);
+  const [attachedPeople, setAttachedPeople] = useState<Person[]>([]);
+  const [attachedFileName, setAttachedFileName] = useState<string>('');
+  const [formImportError, setFormImportError] = useState<string>('');
+  const [isProcessingFormFile, setIsProcessingFormFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState<Partial<Trip>>({});
 
   const handleStartCreate = () => {
     setIsCreating(true);
     setEditingTrip(null);
+    setAttachedPeople([]);
+    setAttachedFileName('');
+    setFormImportError('');
     setFormData({
       id: `trip_${Date.now()}`,
       name: '',
@@ -63,11 +80,29 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
   const handleStartEdit = (t: Trip) => {
     setEditingTrip(t);
     setIsCreating(false);
+    setAttachedPeople([]);
+    setAttachedFileName('');
+    setFormImportError('');
     setFormData({
       ...t,
       deadline: t.deadline.slice(0, 16),
       roomLimits: t.roomLimits || { 2: 152, 3: 11, 4: 20, 5: 6, 6: 6 }
     });
+  };
+
+  const handleModalFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingFormFile(true);
+    setFormImportError('');
+    const result = await parseUploadedExcel(file);
+    setIsProcessingFormFile(false);
+    if (result.success && result.people.length > 0) {
+      setAttachedPeople(result.people);
+      setAttachedFileName(file.name);
+    } else {
+      setFormImportError(result.errors.join('; ') || 'Không tìm thấy dữ liệu nhân sự hợp lệ');
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -82,7 +117,10 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
       deadline: new Date(formData.deadline || '').toISOString()
     };
 
-    onSaveTrip(tripToSave);
+    onSaveTrip(tripToSave, attachedPeople.length > 0 ? attachedPeople : undefined);
+    if (attachedPeople.length > 0 && formData.id) {
+      savePeople(formData.id, attachedPeople);
+    }
     setEditingTrip(null);
     setIsCreating(false);
   };
@@ -177,6 +215,15 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                     )}
 
                     <button
+                      onClick={() => setImportingTrip(trip)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      title="Nhập danh sách nhân sự từ file Excel cho chuyến đi này"
+                    >
+                      <Upload size={14} /> Nhập Excel
+                    </button>
+
+                    <button
                       onClick={() => handleStartEdit(trip)}
                       className="btn btn-secondary btn-sm"
                     >
@@ -236,6 +283,11 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <Clock size={15} style={{ color: 'var(--color-info)', flexShrink: 0 }} />
                     <span><strong>Hạn chót:</strong> {new Date(trip.deadline).toLocaleString('vi-VN')}</span>
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Users size={15} style={{ color: 'var(--primary-600)', flexShrink: 0 }} />
+                    <span><strong>Nhân sự:</strong> {getPeople(trip.id).length} người</span>
                   </div>
 
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -425,17 +477,78 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => { setIsCreating(false); setEditingTrip(null); }}
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Lưu Chuyến Đi
-                </button>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+                marginTop: 16,
+                paddingTop: 16,
+                borderTop: '1px solid var(--border-subtle)'
+              }}>
+                {/* Nút Xuất danh sách mẫu và Nhập Excel danh sách (Góc dưới bên trái như Hình 2) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={exportTemplatePersonnelExcel}
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+                    title="Tải file Excel mẫu gồm 5 cột chuẩn để điền danh sách"
+                  >
+                    <Download size={14} /> Xuất danh sách mẫu
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+                    title="Tải lên file Excel danh sách nhân sự cho chuyến đi này"
+                  >
+                    <Upload size={14} /> Nhập Excel danh sách
+                  </button>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".xlsx, .xls"
+                    style={{ display: 'none' }}
+                    onChange={handleModalFileImport}
+                  />
+
+                  {isProcessingFormFile && (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--primary-500)' }}>
+                      Đang xử lý file...
+                    </span>
+                  )}
+
+                  {attachedPeople.length > 0 && (
+                    <span className="badge badge-success" style={{ fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <CheckCircle size={12} /> {attachedPeople.length} người ({attachedFileName})
+                    </span>
+                  )}
+
+                  {formImportError && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}>
+                      {formImportError}
+                    </span>
+                  )}
+                </div>
+
+                {/* Các nút Hủy và Lưu */}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => { setIsCreating(false); setEditingTrip(null); }}
+                  >
+                    Hủy
+                  </button>
+                  <button type="submit" className="btn btn-primary" style={{ fontWeight: 700 }}>
+                    Lưu Chuyến Đi
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -542,6 +655,22 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Modal Nhập Excel cho Chuyến Đi */}
+      {importingTrip && (
+        <ExcelImportModal
+          isOpen={!!importingTrip}
+          tripTitle={importingTrip.name}
+          onClose={() => setImportingTrip(null)}
+          onConfirmImport={(people, mode) => {
+            if (onImportPeopleForTrip) {
+              onImportPeopleForTrip(importingTrip.id, people, mode);
+            } else {
+              savePeople(importingTrip.id, people);
+            }
+            setImportingTrip(null);
+          }}
+        />
       )}
     </div>
   );
