@@ -12,9 +12,82 @@ export function exportRoomingListExcel(
 ): void {
   const wb = XLSX.utils.book_new();
   const peopleMap = new Map<string, Person>(people.map(p => [p.id, p]));
+  const roomsMap = new Map<string, Room>(rooms.map(r => [r.id, r]));
 
   // ==========================================
-  // SHEET 1: ROOMING LIST (Gửi Khách Sạn)
+  // SHEET 1: DANH SÁCH ĐÃ SẮP PHÒNG (GIỐNG FILE ĐÃ NHẬP + 2 CỘT SỐ PHÒNG, LOẠI PHÒNG)
+  // ==========================================
+  const sheetImportStyleData: (string | number)[][] = [
+    [
+      'USER',
+      'HỌ TÊN THAM GIA',
+      'MST - TÊN SIÊU THỊ',
+      'NHÂN VIÊN / NGƯỜI THÂN',
+      'GIỚI TÍNH',
+      'SỐ PHÒNG',
+      'LOẠI PHÒNG'
+    ]
+  ];
+
+  people.forEach(p => {
+    const room = p.roomId ? roomsMap.get(p.roomId) : null;
+
+    // 1. Cột USER (MSNV với nhân viên, hoặc Tên quan hệ/Mã người thân)
+    let userVal = p.code;
+    if (p.type === 'EMPLOYEE') {
+      userVal = p.code;
+    } else if (p.type === 'PG') {
+      userVal = 'PG';
+    } else if (p.type === 'RELATIVE') {
+      if (p.relation === 'SPOUSE') userVal = 'Vợ/Chồng';
+      else if (p.relation === 'PARENT') userVal = 'Ba/Mẹ';
+      else if (p.relation === 'CHILD_U5') userVal = 'Con dưới 5 Tuổi';
+      else if (p.relation === 'CHILD_5_11') userVal = 'Con 5-11 Tuổi';
+      else if (p.relation === 'CHILD_12P') userVal = 'Con từ 12 Tuổi';
+      else if (p.code && !p.code.includes('-NT') && !p.code.startsWith('NT')) userVal = p.code;
+      else userVal = 'Người thân';
+    }
+
+    // 2. Cột NHÂN VIÊN / NGƯỜI THÂN
+    const typeVal = p.type === 'EMPLOYEE' ? 'NHÂN VIÊN' : (p.type === 'PG' ? 'PG' : 'NGƯỜI THÂN');
+
+    // 3. Cột GIỚI TÍNH
+    const genderVal = p.gender === 'M' ? 'Nam' : 'Nữ';
+
+    // 4. Cột SỐ PHÒNG (Mã số phòng, ví dụ: P.101, P.102...)
+    const roomCodeVal = room ? room.code : '';
+
+    // 5. Cột LOẠI PHÒNG (Ví dụ: Phòng 2 người - TWIN, Phòng 2 người - DOUBLE, Phòng 4 người - FAMILY...)
+    let roomTypeVal = '';
+    if (room) {
+      roomTypeVal = `Phòng ${room.capacity} người - ${room.bedType}`;
+    }
+
+    sheetImportStyleData.push([
+      userVal,
+      p.name,
+      p.store,
+      typeVal,
+      genderVal,
+      roomCodeVal,
+      roomTypeVal
+    ]);
+  });
+
+  const wsImportStyle = XLSX.utils.aoa_to_sheet(sheetImportStyleData);
+  wsImportStyle['!cols'] = [
+    { wch: 18 }, // USER
+    { wch: 28 }, // HỌ TÊN THAM GIA
+    { wch: 42 }, // MST - TÊN SIÊU THỊ
+    { wch: 26 }, // NHÂN VIÊN / NGƯỜI THÂN
+    { wch: 12 }, // GIỚI TÍNH
+    { wch: 16 }, // SỐ PHÒNG
+    { wch: 28 }  // LOẠI PHÒNG
+  ];
+  XLSX.utils.book_append_sheet(wb, wsImportStyle, 'DANH SÁCH ĐÃ SẮP PHÒNG');
+
+  // ==========================================
+  // SHEET 2: ROOMING LIST (Gửi Khách Sạn)
   // ==========================================
   const sheet1Data: (string | number)[][] = [
     ['BẢNG XẾP PHÒNG KHÁCH SẠN (ROOMING LIST)'],
@@ -248,7 +321,7 @@ export function exportRoomingListExcel(
 
   // Xuất file
   const dateStr = new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').slice(0, 19);
-  const fileName = `ROOMING_LIST_${trip.name.replace(/[^a-zA-Z0-9_\u00C0-\u1EF9]/g, '_')}_${dateStr}.xlsx`;
+  const fileName = `DANH_SACH_SAP_PHONG_${trip.name.replace(/[^a-zA-Z0-9_\u00C0-\u1EF9]/g, '_')}_${dateStr}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 
