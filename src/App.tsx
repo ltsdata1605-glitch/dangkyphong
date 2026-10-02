@@ -29,6 +29,7 @@ import { EmployeeLogin } from './components/EmployeeLogin';
 import { EmployeeRoomView } from './components/EmployeeRoomView';
 import { AdminView } from './components/AdminView';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { AllRoomsDirectoryModal } from './components/AllRoomsDirectoryModal';
 import confetti from 'canvas-confetti';
 
 export const App: React.FC = () => {
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
     return sessionStorage.getItem('rooming_admin_auth') === 'true';
   });
   const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
+  const [isAllRoomsModalOpen, setIsAllRoomsModalOpen] = useState(false);
 
   // Employee Authentication state
   const [currentEmployee, setCurrentEmployee] = useState<Person | null>(() => {
@@ -496,7 +498,11 @@ export const App: React.FC = () => {
       {/* Page Content Container - Perfectly aligns CountdownBanner with Admin and Employee views */}
       <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '0 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* 2. Countdown Banner & Trip Overview */}
-        <CountdownBanner trip={currentTrip} />
+        <CountdownBanner
+          trip={currentTrip}
+          totalRoomsCount={rooms.length}
+          onOpenAllRooms={() => setIsAllRoomsModalOpen(true)}
+        />
 
         {/* 3. Main Views */}
         <main style={{ flex: 1, paddingBottom: 60, width: '100%' }}>
@@ -516,6 +522,7 @@ export const App: React.FC = () => {
                 onLeaveRoom={handleLeaveRoom}
                 onDeleteRoom={handleDeleteRoom}
                 onClaimRelative={handleClaimRelative}
+                onOpenAllRooms={() => setIsAllRoomsModalOpen(true)}
               />
             )
           ) : (
@@ -552,6 +559,16 @@ export const App: React.FC = () => {
         isOpen={isAdminLoginModalOpen}
         onClose={() => setIsAdminLoginModalOpen(false)}
         onLoginSuccess={handleAdminLoginSuccess}
+      />
+
+      {/* Tra Cứu Tất Cả Các Phòng Đã Sắp Xếp */}
+      <AllRoomsDirectoryModal
+        isOpen={isAllRoomsModalOpen}
+        onClose={() => setIsAllRoomsModalOpen(false)}
+        trip={currentTrip}
+        rooms={rooms}
+        people={people}
+        currentEmployee={currentEmployee}
       />
     </div>
   );

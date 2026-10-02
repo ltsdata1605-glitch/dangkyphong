@@ -14,7 +14,8 @@ import {
   Building,
   Baby,
   Heart,
-  Crown
+  Crown,
+  Search
 } from 'lucide-react';
 
 interface EmployeeRoomViewProps {
@@ -26,6 +27,7 @@ interface EmployeeRoomViewProps {
   onLeaveRoom: (personId: string) => void;
   onDeleteRoom: (roomId: string) => void;
   onClaimRelative: (relativeId: string) => void;
+  onOpenAllRooms?: () => void;
 }
 
 export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
@@ -36,7 +38,8 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   onSaveRoom,
   onLeaveRoom,
   onDeleteRoom,
-  onClaimRelative
+  onClaimRelative,
+  onOpenAllRooms
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -142,14 +145,29 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 <AlertCircle size={18} /> Hệ thống đã khóa đăng ký, vui lòng liên hệ Admin BTC để được hỗ trợ xếp phòng.
               </div>
             ) : (
-              <button
-                onClick={handleOpenCreateModal}
-                className="btn btn-primary btn-lg"
-                style={{ boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)' }}
-              >
-                <PlusCircle size={20} />
-                Tạo Phòng Mới Ngay
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="btn btn-primary btn-lg"
+                  style={{ boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)' }}
+                >
+                  <PlusCircle size={20} />
+                  Tạo Phòng Mới Ngay
+                </button>
+
+                {onOpenAllRooms && (
+                  <button
+                    type="button"
+                    onClick={onOpenAllRooms}
+                    className="btn btn-secondary btn-lg"
+                    style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                    title="Xem tất cả các phòng đã xếp và tra cứu thành viên"
+                  >
+                    <Search size={19} />
+                    Tra Cứu Phòng ({allRooms.length})
+                  </button>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -257,7 +275,18 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {onOpenAllRooms && (
+                  <button
+                    type="button"
+                    onClick={onOpenAllRooms}
+                    className="btn btn-outline btn-sm"
+                    style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    title="Tra cứu danh sách tất cả các phòng khác trong đoàn"
+                  >
+                    <Search size={14} /> Tra cứu các phòng ({allRooms.length})
+                  </button>
+                )}
                 {isLeader ? (
                   <>
                     {!isLocked && (

@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Trip } from '../types';
 import { formatRemainingTime } from '../utils/textUtils';
-import { Clock, Lock, CheckCircle2, MapPin, Building2, CalendarDays } from 'lucide-react';
+import { Clock, Lock, CheckCircle2, MapPin, Building2, CalendarDays, Bed } from 'lucide-react';
 
 interface CountdownBannerProps {
   trip: Trip;
+  totalRoomsCount?: number;
+  onOpenAllRooms?: () => void;
 }
 
-export const CountdownBanner: React.FC<CountdownBannerProps> = ({ trip }) => {
+export const CountdownBanner: React.FC<CountdownBannerProps> = ({
+  trip,
+  totalRoomsCount,
+  onOpenAllRooms
+}) => {
   const [timeLeft, setTimeLeft] = useState(formatRemainingTime(trip.deadline));
 
   useEffect(() => {
@@ -79,6 +85,29 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ trip }) => {
             )}
           </div>
         </div>
+
+        {/* Nút Xem Danh Sách Phòng (Vị trí theo hộp đỏ yêu cầu) */}
+        {onOpenAllRooms && (
+          <button
+            type="button"
+            onClick={onOpenAllRooms}
+            className="btn btn-primary"
+            style={{
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              padding: '9px 18px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+              borderRadius: 'var(--radius-md)',
+              whiteSpace: 'nowrap'
+            }}
+            title="Xem danh sách tất cả các phòng đã được sắp xếp và tra cứu nhanh"
+          >
+            <Bed size={17} /> Danh Sách Phòng {totalRoomsCount !== undefined ? `(${totalRoomsCount})` : ''}
+          </button>
+        )}
 
         {/* Countdown Box */}
         <div style={{
