@@ -579,14 +579,16 @@ export const App: React.FC = () => {
       />
 
       {/* Tra Cứu Tất Cả Các Phòng Đã Sắp Xếp */}
-      <AllRoomsDirectoryModal
-        isOpen={isAllRoomsModalOpen}
-        onClose={() => setIsAllRoomsModalOpen(false)}
-        trip={currentTrip}
-        rooms={rooms}
-        people={people}
-        currentEmployee={currentEmployee}
-      />
+      {isAllRoomsModalOpen && (
+        <AllRoomsDirectoryModal
+          isOpen={isAllRoomsModalOpen}
+          onClose={() => setIsAllRoomsModalOpen(false)}
+          trip={currentTrip}
+          rooms={rooms}
+          people={people}
+          currentEmployee={currentEmployee}
+        />
+      )}
     </div>
   );
 };

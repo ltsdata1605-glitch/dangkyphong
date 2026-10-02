@@ -86,26 +86,45 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
           </div>
         </div>
 
-        {/* Nút Xem Danh Sách Phòng (Vị trí theo hộp đỏ yêu cầu) */}
+        {/* Nút XEM PHÒNG ĐÃ ĐĂNG KÝ (Màu đỏ pastel tươi mát nổi bật) */}
         {onOpenAllRooms && (
           <button
             type="button"
             onClick={onOpenAllRooms}
-            className="btn btn-primary"
             style={{
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: '0.88rem',
-              padding: '9px 18px',
+              padding: '10px 20px',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+              background: 'linear-gradient(135deg, #f87171 0%, #fb7185 50%, #f43f5e 100%)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
               borderRadius: 'var(--radius-md)',
-              whiteSpace: 'nowrap'
+              boxShadow: '0 4px 18px rgba(244, 63, 94, 0.42)',
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              letterSpacing: '0.3px',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
+            className="hover-lift"
             title="Xem danh sách tất cả các phòng đã được sắp xếp và tra cứu nhanh"
           >
-            <Bed size={17} /> Danh Sách Phòng {totalRoomsCount !== undefined ? `(${totalRoomsCount})` : ''}
+            <Bed size={18} style={{ color: '#ffffff' }} />
+            <span>XEM PHÒNG ĐÃ ĐĂNG KÝ</span>
+            {totalRoomsCount !== undefined && (
+              <span style={{
+                background: 'rgba(255, 255, 255, 0.28)',
+                color: '#ffffff',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: 800
+              }}>
+                {totalRoomsCount}
+              </span>
+            )}
           </button>
         )}
 

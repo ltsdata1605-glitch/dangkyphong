@@ -73,8 +73,6 @@ export const RoomModal: React.FC<RoomModalProps> = ({
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!isOpen) return null;
-
   // Lấy các đối tượng Person hiện đang được chọn
   const currentMembers = useMemo(() => {
     return selectedMemberIds
@@ -180,6 +178,8 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     onSaveRoom(capacity, selectedMemberIds);
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>

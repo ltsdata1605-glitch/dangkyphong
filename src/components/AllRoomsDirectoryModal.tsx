@@ -37,8 +37,6 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
   const [storeFilter, setStoreFilter] = useState<string>('ALL');
   const [genderFilter, setGenderFilter] = useState<'ALL' | 'M' | 'F' | 'FAMILY'>('ALL');
 
-  if (!isOpen) return null;
-
   const peopleMap = useMemo(() => {
     return new Map<string, Person>(people.map(p => [p.id, p]));
   }, [people]);
@@ -107,6 +105,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
     }).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
   }, [rooms, peopleMap, searchTerm, statusFilter, capacityFilter, storeFilter, genderFilter]);
 
+  if (!isOpen) return null;
+
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
       <div
@@ -148,8 +148,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
               <Bed size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
-                Danh Sách Tất Cả Phòng Đã Sắp Xếp
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                XEM PHÒNG ĐÃ ĐĂNG KÝ
               </h3>
               <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 {trip.name} · <strong>{rooms.length}</strong> phòng đã tạo ({totalAssignedPeople} người đã có phòng)
