@@ -66,54 +66,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Top Banner Actions */}
       <div className="glass-card" style={{
-        padding: '14px 20px',
+        padding: '12px 18px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 12
+        gap: 16
       }}>
-        <div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
+        <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+          <h2 style={{ fontSize: '1.22rem', fontWeight: 800, margin: 0 }}>
             Bảng Điều Khiển Ban Tổ Chức (Admin)
           </h2>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
             Quản lý sắp xếp phòng, kiểm soát quy tắc và xuất file Rooming List gửi khách sạn
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        {/* Action Buttons: thu nhỏ gọn và cùng dòng với tiêu đề */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <button
             onClick={onExportExcel}
-            className="btn btn-success"
-            style={{ fontWeight: 700 }}
+            className="btn btn-success btn-sm"
+            style={{ fontWeight: 700, padding: '6px 11px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
             title="Xuất danh sách đã sắp phòng (Excel)"
           >
-            <Download size={18} /> Xuất danh sách
+            <Download size={14} /> Xuất danh sách
           </button>
 
           <button
             onClick={onAutoMatch}
-            className="btn btn-primary"
-            style={{ fontWeight: 700 }}
+            className="btn btn-primary btn-sm"
+            style={{ fontWeight: 700, padding: '6px 11px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
             title="Hệ thống tự động gom người cùng giới/siêu thị vào các phòng trống"
           >
-            <Sparkles size={18} /> Ghép Phòng Tự Động
+            <Sparkles size={14} /> Ghép Phòng Tự Động
           </button>
 
           <button
             onClick={onToggleLock}
-            className={`btn ${currentTrip.isLocked ? 'btn-danger' : 'btn-secondary'}`}
-            style={{ fontWeight: 700 }}
+            className={`btn ${currentTrip.isLocked ? 'btn-danger' : 'btn-secondary'} btn-sm`}
+            style={{ fontWeight: 700, padding: '6px 11px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
+            title={currentTrip.isLocked ? 'Mở lại đăng ký phòng' : 'Khóa đăng ký phòng ngay'}
           >
             {currentTrip.isLocked ? (
               <>
-                <Lock size={16} /> Đang Khóa (Mở Lại)
+                <Lock size={13} /> Đang Khóa (Mở Lại)
               </>
             ) : (
               <>
-                <Unlock size={16} /> Đang Mở (Khóa Ngay)
+                <Unlock size={13} /> Đang Mở (Khóa Ngay)
               </>
             )}
           </button>
