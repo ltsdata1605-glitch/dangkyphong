@@ -748,11 +748,11 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
           isOpen={!!importingTrip}
           tripTitle={importingTrip.name}
           onClose={() => setImportingTrip(null)}
-          onConfirmImport={(people, mode) => {
+          onConfirmImport={async (people, mode) => {
             if (onImportPeopleForTrip) {
-              onImportPeopleForTrip(importingTrip.id, people, mode);
+              await onImportPeopleForTrip(importingTrip.id, people, mode);
             } else {
-              savePeople(importingTrip.id, people);
+              await savePeople(importingTrip.id, people);
             }
             alert(`✓ Đã nạp thành công ${people.length} nhân sự vào chuyến đi "${importingTrip.name}"!`);
             setImportingTrip(null);

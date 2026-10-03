@@ -37,6 +37,7 @@ let tripsListUnsub: Unsubscribe | null = null;
 let peopleUnsub: Unsubscribe | null = null;
 let roomsUnsub: Unsubscribe | null = null;
 let logsUnsub: Unsubscribe | null = null;
+let currentListeningTripId: string | null = null;
 
 /**
  * Lắng nghe và đồng bộ dữ liệu Real-time từ Firebase Firestore
@@ -46,6 +47,7 @@ export function setupFirestoreListeners(tripId: string): void {
   if (peopleUnsub) { peopleUnsub(); peopleUnsub = null; }
   if (roomsUnsub) { roomsUnsub(); roomsUnsub = null; }
   if (logsUnsub) { logsUnsub(); logsUnsub = null; }
+  currentListeningTripId = tripId;
 
   // 1. Lắng nghe danh sách tất cả các chuyến đi
   if (!tripsListUnsub) {
@@ -56,6 +58,16 @@ export function setupFirestoreListeners(tripId: string): void {
           const data = snapshot.data();
           if (data && Array.isArray(data.trips)) {
             localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(data.trips));
+            // Đảm bảo active trip được kích hoạt listener chính xác
+            let activeId = getActiveTripId();
+            if (!activeId || !data.trips.some((t: Trip) => t.id === activeId)) {
+              if (data.trips.length > 0) {
+                activeId = data.trips[0].id;
+                setActiveTripId(activeId);
+              }
+            } else if (currentListeningTripId !== activeId) {
+              setupFirestoreListeners(activeId);
+            }
             notifyStateChange();
           }
         }
