@@ -478,7 +478,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                           ✓ Đủ {room.usedSlots}/{room.capacity}
                         </span>
                       ) : (
-                        <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                        <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.68rem', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <span className="dot-blinking-urgent" />
                           ⏳ Còn {room.capacity - room.usedSlots}
                         </span>
                       )}
@@ -647,7 +648,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                             ✓ Đủ {room.usedSlots}/{room.capacity}
                           </span>
                         ) : (
-                          <span className="badge badge-warning" style={{ fontSize: '0.74rem' }}>
+                          <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <span className="dot-blinking-urgent" />
                             ⏳ Còn {room.capacity - room.usedSlots} chỗ
                           </span>
                         )}

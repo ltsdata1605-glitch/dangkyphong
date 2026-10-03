@@ -262,8 +262,13 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                   <span style={{ fontSize: '1.05rem', fontWeight: 800, minWidth: 42, color: 'var(--text-main)' }}>
                     {room.code}
                   </span>
-                  <span className={`badge ${room.status === 'FULL' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                    {room.status === 'FULL' ? 'Đủ' : `Thiếu ${room.capacity - room.usedSlots}`}
+                  <span className={`badge ${room.status === 'FULL' ? 'badge-success' : 'badge-warning badge-blinking-urgent'}`} style={{ fontSize: '0.68rem', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {room.status === 'FULL' ? 'Đủ' : (
+                      <>
+                        <span className="dot-blinking-urgent" />
+                        Thiếu {room.capacity - room.usedSlots}
+                      </>
+                    )}
                   </span>
                   <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
                     {room.capacity}ng
@@ -414,8 +419,13 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                         <h4 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
                           {room.code}
                         </h4>
-                        <span className={`badge ${room.status === 'FULL' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem' }}>
-                          {room.status === 'FULL' ? 'Đủ' : `Thiếu ${room.capacity - room.usedSlots}`}
+                        <span className={`badge ${room.status === 'FULL' ? 'badge-success' : 'badge-warning badge-blinking-urgent'}`} style={{ fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {room.status === 'FULL' ? 'Đủ' : (
+                            <>
+                              <span className="dot-blinking-urgent" />
+                              Thiếu {room.capacity - room.usedSlots}
+                            </>
+                          )}
                         </span>
                         {room.adminOverride && (
                           <span className="badge badge-primary" style={{ fontSize: '0.68rem' }} title={room.adminNote}>

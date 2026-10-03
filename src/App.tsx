@@ -24,7 +24,7 @@ import {
   subscribeToStateChanges,
   fetchTripDataFromFirebase
 } from './services/storageService';
-import { validateRoom, autoMatchRooms } from './services/roomingEngine';
+import { validateRoom, autoMatchRooms, canAddPersonToRoom } from './services/roomingEngine';
 import { exportRoomingListExcel } from './services/excelService';
 
 import { Navbar } from './components/Navbar';
@@ -302,6 +302,69 @@ export const App: React.FC = () => {
     });
 
     refreshData();
+  };
+
+  // Người dùng đăng ký ghép vào một phòng chưa đủ người
+  const handleJoinExistingRoom = async (roomId: string, personId: string): Promise<boolean> => {
+    if (!currentTrip) return false;
+    const currentPeople = getPeople(currentTrip.id);
+    const currentRooms = getRooms(currentTrip.id);
+    const room = currentRooms.find(r => r.id === roomId);
+    const person = currentPeople.find(p => p.id === personId);
+
+    if (!room || !person) return false;
+
+    if (room.memberIds.length >= 6) {
+      alert('Phòng đã đạt giới hạn tối đa 6 người/phòng. Không thể thêm tiếp!');
+      return false;
+    }
+
+    const currentMembers = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
+    const check = canAddPersonToRoom(person, currentMembers, room.capacity, room.id);
+    if (!check.allowed) {
+      alert(`⚠️ Không thể vào phòng ${room.code}: ${check.reason || 'Quy tắc ghép phòng không hợp lệ'}`);
+      return false;
+    }
+
+    if (!room.memberIds.includes(person.id)) {
+      room.memberIds.push(person.id);
+    }
+    person.roomId = room.id;
+
+    const updatedMembers = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
+    const validation = validateRoom(updatedMembers, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride);
+
+    room.usedSlots = validation.usedSlots;
+    room.childCount = validation.childCount;
+    room.status = validation.usedSlots >= room.capacity ? 'FULL' : 'UNDER';
+    room.bedType = validation.bedType;
+    room.updatedAt = new Date().toISOString();
+    room.updatedBy = person.name;
+
+    await saveRooms(currentTrip.id, currentRooms);
+    await savePeople(currentTrip.id, currentPeople);
+
+    addLog(currentTrip.id, {
+      id: `log_${Date.now()}`,
+      tripId: currentTrip.id,
+      action: 'UPDATE_ROOM',
+      actor: person.code,
+      actorName: person.name,
+      details: `${person.name} (${person.code}) đã đăng ký ghép vào phòng ${room.code} (${room.capacity} người - hiện có ${room.memberIds.length} người)`,
+      timestamp: new Date().toISOString()
+    });
+
+    const updatedEmp = { ...person, roomId: room.id };
+    localStorage.setItem('rooming_current_employee', JSON.stringify(updatedEmp));
+    setCurrentEmployee(updatedEmp);
+
+    try {
+      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+    } catch {}
+
+    alert(`🎉 Chúc mừng! Bạn đã đăng ký ghép thành công vào phòng ${room.code}.`);
+    refreshData();
+    return true;
   };
 
   // Rời phòng
@@ -906,6 +969,7 @@ export const App: React.FC = () => {
                       onClaimRelative={handleClaimRelative}
                       onUnclaimRelative={handleUnclaimRelative}
                       onOpenAllRooms={() => setEmployeeTab('all_rooms')}
+                      onJoinRoom={handleJoinExistingRoom}
                     />
                   ) : (
                     <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>

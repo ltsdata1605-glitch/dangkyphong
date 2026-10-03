@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Person, Room, Trip, RelationType } from '../types';
 import { EmployeeRelativeClaim } from './EmployeeRelativeClaim';
 import { RoomingProcessGuide } from './RoomingProcessGuide';
 import { RoomModal } from './RoomModal';
+import { canAddPersonToRoom } from '../services/roomingEngine';
 import {
   Bed,
   Users,
@@ -32,6 +33,7 @@ interface EmployeeRoomViewProps {
   onClaimRelative: (relativeId: string, relation?: RelationType) => void;
   onUnclaimRelative?: (relativeId: string) => void;
   onOpenAllRooms?: () => void;
+  onJoinRoom?: (roomId: string, personId: string) => Promise<boolean> | void;
 }
 
 export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
@@ -44,7 +46,8 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   onDeleteRoom,
   onClaimRelative,
   onUnclaimRelative,
-  onOpenAllRooms
+  onOpenAllRooms,
+  onJoinRoom
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -83,6 +86,33 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   const myRelatives = allPeople.filter(p => p.ownerId === currentEmployee.code && p.id !== currentEmployee.id);
 
   const isLocked = currentTrip.isLocked;
+
+  // Tìm các phòng chưa đủ người (status UNDER hoặc usedSlots < capacity) phù hợp với người dùng
+  const underCapacityRooms = useMemo(() => {
+    if (myRoom) return []; // Đã có phòng thì không gợi ý ở mục Chưa có phòng
+    return allRooms
+      .filter(r => {
+        if (r.tripId !== currentTrip.id) return false;
+        if (!r.memberIds || r.memberIds.length === 0) return false;
+        const isUnder = r.status === 'UNDER' || r.usedSlots < r.capacity || r.memberIds.length < r.capacity;
+        if (!isUnder) return false;
+        if (r.memberIds.length >= 6) return false;
+
+        const members = r.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
+        const check = canAddPersonToRoom(currentEmployee, members, r.capacity, r.id);
+        return check.allowed;
+      })
+      .sort((a, b) => {
+        const membersA = a.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
+        const membersB = b.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
+        const sameStoreA = membersA.some(m => m.store === currentEmployee.store) ? 1 : 0;
+        const sameStoreB = membersB.some(m => m.store === currentEmployee.store) ? 1 : 0;
+        if (sameStoreB !== sameStoreA) return sameStoreB - sameStoreA;
+        const diffA = a.capacity - a.usedSlots;
+        const diffB = b.capacity - b.usedSlots;
+        return diffA - diffB;
+      });
+  }, [allRooms, currentTrip.id, myRoom, allPeople, currentEmployee]);
 
   const handleOpenCreateModal = () => {
     setIsEditing(false);
@@ -137,6 +167,117 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
         allPeople={allPeople}
         onClaimRelative={onClaimRelative}
       />
+
+      {/* 1.5. Gợi Ý Các Phòng Đang Thiếu Người (Hiệu ứng nhấp nháy thu hút) */}
+      {!myRoom && underCapacityRooms.length > 0 && !isLocked && (
+        <div className="room-under-suggestion-container" style={{ padding: '16px 14px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.74rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <span className="dot-blinking-urgent" />
+                ⚡ ĐANG CẦN GHÉP NGƯỜI
+              </span>
+              <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                Gợi Ý {underCapacityRooms.length} Phòng Chưa Đủ Người Phù Hợp Với Bạn
+              </h4>
+            </div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Bấm <strong>Đăng ký vào phòng</strong> để được xếp phòng ngay mà không sợ hết định mức!
+            </span>
+          </div>
+
+          {/* Danh sách thẻ phòng gợi ý */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 10 }}>
+            {underCapacityRooms.slice(0, 6).map(room => {
+              const members = room.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
+              const missingCount = Math.max(1, room.capacity - room.usedSlots);
+              const hasSameStore = members.some(m => m.store === currentEmployee.store);
+              const leader = members.find(m => m.id === room.leaderId || m.code === room.leaderId) || members[0];
+
+              return (
+                <div key={room.id} className="suggested-room-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                        {room.code}
+                      </span>
+                      <span className="badge badge-gray" style={{ fontSize: '0.68rem' }}>
+                        Phòng {room.capacity}ng ({room.bedType})
+                      </span>
+                      {hasSameStore && (
+                        <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
+                          Cùng siêu thị
+                        </span>
+                      )}
+                    </div>
+                    <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.68rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="dot-blinking-urgent" />
+                      Thiếu {missingCount} người
+                    </span>
+                  </div>
+
+                  {/* Thành viên hiện tại trong phòng */}
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+                    <div style={{ marginBottom: 4, fontWeight: 600 }}>Thành viên hiện tại ({members.length}/{room.capacity}):</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {members.map(m => (
+                        <span
+                          key={m.id}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '2px 6px',
+                            background: 'var(--bg-muted)',
+                            borderRadius: 4,
+                            fontSize: '0.72rem',
+                            border: '1px solid var(--border-subtle)'
+                          }}
+                        >
+                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.6rem', padding: '0 4px' }}>
+                            {m.gender === 'M' ? 'Nam' : 'Nữ'}
+                          </span>
+                          <strong>{m.name}</strong>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>({m.store})</span>
+                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={11} style={{ color: '#d97706' }} />}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Nút Đăng Ký Vào Phòng Này */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Bạn có chắc muốn đăng ký ghép vào phòng ${room.code} (${room.capacity} người) cùng đồng nghiệp ${leader?.name || ''}?`)) {
+                        if (onJoinRoom) {
+                          onJoinRoom(room.id, currentEmployee.id);
+                        } else {
+                          onSaveRoom(room.capacity, [...room.memberIds, currentEmployee.id], room.id);
+                        }
+                      }
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      width: '100%',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
+                    }}
+                  >
+                    <Users size={14} />
+                    Đăng Ký Vào Phòng Này Ngay
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 2. Room Status Section */}
       <div className="glass-card emp-no-room-card" style={{ padding: '16px 14px', marginBottom: 16 }}>
@@ -316,13 +457,36 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                   <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>
                     {myRoom.code}
                   </h3>
-                  <span className={`badge ${myRoom.status === 'FULL' ? 'badge-success' : 'badge-warning'}`}>
-                    {myRoom.status === 'FULL' ? 'Đã đủ chỗ' : `Thiếu ${myRoom.capacity - myRoom.usedSlots} chỗ`}
+                  <span className={`badge ${myRoom.status === 'FULL' ? 'badge-success' : 'badge-warning badge-blinking-urgent'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {myRoom.status === 'FULL' ? 'Đã đủ chỗ' : (
+                      <>
+                        <span className="dot-blinking-urgent" />
+                        Thiếu {myRoom.capacity - myRoom.usedSlots} chỗ
+                      </>
+                    )}
                   </span>
                   <span className="badge badge-primary">
                     Phòng {myRoom.capacity} Người
                   </span>
                 </div>
+
+                {myRoom.status !== 'FULL' && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: 'var(--color-danger)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    marginBottom: 4
+                  }}>
+                    <span className="dot-blinking-urgent" />
+                    Phòng chưa đủ người theo định mức ({myRoom.usedSlots}/{myRoom.capacity} chỗ) - Đồng nghiệp khác có thể chọn vào ghép!
+                  </div>
+                )}
 
                 <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>Trưởng phòng: <strong>{leaderPerson ? leaderPerson.name : 'Chưa rõ'}</strong></span>
@@ -616,6 +780,12 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
           maxChildrenPerRoom={currentTrip.maxChildrenPerRoom}
           currentTrip={currentTrip}
           allRooms={allRooms}
+          onJoinRoom={(roomId, personId) => {
+            setIsModalOpen(false);
+            if (onJoinRoom) {
+              onJoinRoom(roomId, personId);
+            }
+          }}
         />
       )}
 
