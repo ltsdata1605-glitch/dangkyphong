@@ -63,15 +63,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalChildren = people.filter(p => p.slot === 0).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Top Banner Actions */}
       <div className="glass-card" style={{
-        padding: '20px 24px',
+        padding: '14px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 16
+        gap: 12
       }}>
         <div>
           <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
@@ -121,26 +121,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 12 }}>
         {/* Card 1: Tổng người */}
         <div
           className="glass-card glass-card-hover"
           onClick={() => onNavigateTab('people')}
-          style={{ padding: '18px 20px', cursor: 'pointer' }}
+          style={{ padding: '10px 14px', cursor: 'pointer' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               Tổng Người Tham Gia
             </span>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={18} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={15} />
             </div>
           </div>
-          <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-main)' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
             {totalPeople}
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            {employees.length} NV • {relatives.length} Người thân • {pgs.length} PG
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {employees.length} NV • {relatives.length} Thân • {pgs.length} PG
           </div>
         </div>
 
@@ -148,20 +148,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div
           className="glass-card glass-card-hover"
           onClick={() => onNavigateTab('people')}
-          style={{ padding: '18px 20px', cursor: 'pointer' }}
+          style={{ padding: '10px 14px', cursor: 'pointer' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               Tiến Độ Xếp Phòng
             </span>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle size={18} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle size={15} />
             </div>
           </div>
-          <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--color-success)' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-success)', lineHeight: 1.2 }}>
             {percentAssigned}%
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 2 }}>
             Đã có phòng: <strong>{assignedPeople.length}</strong> / {totalPeople}
           </div>
         </div>
@@ -170,21 +170,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div
           className="glass-card glass-card-hover"
           onClick={() => onNavigateTab('people')}
-          style={{ padding: '18px 20px', cursor: 'pointer' }}
+          style={{ padding: '10px 14px', cursor: 'pointer' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               Chưa Có Phòng
             </span>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertTriangle size={18} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle size={15} />
             </div>
           </div>
-          <div style={{ fontSize: '1.9rem', fontWeight: 800, color: unassignedPeople.length > 0 ? 'var(--color-danger)' : 'var(--text-main)' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: unassignedPeople.length > 0 ? 'var(--color-danger)' : 'var(--text-main)', lineHeight: 1.2 }}>
             {unassignedPeople.length}
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            Cần ghép thêm vào các phòng còn thiếu
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 2 }}>
+            Cần ghép thêm vào các phòng
           </div>
         </div>
 
@@ -192,70 +192,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div
           className="glass-card glass-card-hover"
           onClick={() => onNavigateTab('rooms')}
-          style={{ padding: '18px 20px', cursor: 'pointer' }}
+          style={{ padding: '10px 14px', cursor: 'pointer' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               Tổng Số Phòng Đã Tạo
             </span>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bed size={18} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Bed size={15} />
             </div>
           </div>
-          <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-main)' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
             {rooms.length}
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            {fullRoomsCount} Đủ người • {underRoomsCount} Thiếu người
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 2 }}>
+            {fullRoomsCount} Đủ • {underRoomsCount} Thiếu
           </div>
         </div>
       </div>
 
       {/* Hotel Rooming Breakdown Table (Con số đặt phòng gửi khách sạn) */}
-      <div className="glass-card" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="glass-card" style={{ padding: '14px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+            <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
               Cơ Cấu Phòng Khách Sạn Cần Đặt (Booking Breakdown)
             </h3>
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '1px 0 0 0' }}>
               Con số thực tế theo từng loại phòng để gửi bộ phận Sales khách sạn
             </p>
           </div>
           <button
             onClick={() => onNavigateTab('rooms')}
             className="btn btn-secondary btn-sm"
+            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
           >
             Xem Chi Tiết Từng Phòng →
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
           {[2, 3, 4, 5, 6].map(cap => (
             <div
               key={cap}
               style={{
-                padding: '16px',
+                padding: '8px 10px',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-muted)',
                 border: '1px solid var(--border-subtle)',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-muted)' }}>
                 Phòng {cap} Người
               </div>
-              <div style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: '1.8rem',
-                fontWeight: 800,
-                color: 'var(--primary-500)',
-                margin: '4px 0'
-              }}>
-                {capacityCounts[cap]}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                phòng
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, margin: '2px 0' }}>
+                <span style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '1.35rem',
+                  fontWeight: 800,
+                  color: 'var(--primary-500)',
+                  lineHeight: 1.1
+                }}>
+                  {capacityCounts[cap]}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                  phòng
+                </span>
               </div>
             </div>
           ))}
@@ -263,25 +266,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Children Info */}
         <div style={{
-          marginTop: 18,
-          padding: '12px 16px',
-          borderRadius: 'var(--radius-md)',
+          marginTop: 10,
+          padding: '7px 12px',
+          borderRadius: 'var(--radius-sm)',
           background: 'rgba(16, 185, 129, 0.08)',
           border: '1px solid rgba(16, 185, 129, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 12
+          gap: 8
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Baby size={18} style={{ color: 'var(--color-success)' }} />
-            <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Baby size={16} style={{ color: 'var(--color-success)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
               Tổng số trẻ em đi kèm đoàn: <strong>{totalChildren} trẻ</strong> (ngủ chung giường bố mẹ).
             </span>
           </div>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Giới hạn tối đa cấu hình: {currentTrip.maxChildrenPerRoom} trẻ/phòng
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Giới hạn tối đa: {currentTrip.maxChildrenPerRoom} trẻ/phòng
           </span>
         </div>
       </div>
