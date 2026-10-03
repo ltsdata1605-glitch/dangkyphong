@@ -841,6 +841,55 @@ h1, h2, h3, h4, h5, h6 {
     padding: 12px 10px !important;
     margin-bottom: 12px !important;
   }
+
+  /* AllRooms Directory Mobile Optimization */
+  .allrooms-modal-header {
+    padding: 8px 12px !important;
+  }
+  .allrooms-modal-icon {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .allrooms-modal-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  .allrooms-modal-title {
+    font-size: 0.95rem !important;
+  }
+  .allrooms-modal-sub {
+    font-size: 0.68rem !important;
+  }
+  .allrooms-filter-container {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+  .allrooms-search-input {
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 0.74rem !important;
+    padding-left: 28px !important;
+  }
+  .allrooms-chip-btn {
+    font-size: 0.7rem !important;
+    padding: 2px 7px !important;
+    height: 25px !important;
+    min-height: 25px !important;
+  }
+  .allrooms-select {
+    font-size: 0.7rem !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 2px 4px !important;
+  }
+}
+
+.allrooms-chips-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.allrooms-chips-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* Grid 3 Cột hiển thị danh sách người thân theo yêu cầu */

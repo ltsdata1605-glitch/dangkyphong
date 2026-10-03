@@ -136,8 +136,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
       }}
     >
       {/* Header */}
-      <div style={{
-        padding: '16px 22px',
+      <div className="allrooms-modal-header" style={{
+        padding: '12px 18px',
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         alignItems: 'center',
@@ -147,206 +147,222 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
         top: 0,
         zIndex: 10
       }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 42,
-              height: 42,
-              borderRadius: 'var(--radius-md)',
-              background: 'rgba(37, 99, 235, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--primary-500)'
-            }}>
-              <Bed size={22} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                XEM PHÒNG ĐÃ ĐĂNG KÝ
-              </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                {trip.name} · <strong>{rooms.length}</strong> phòng đã tạo ({totalAssignedPeople} người đã có phòng)
-              </p>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <div className="allrooms-modal-icon" style={{
+            width: 34,
+            height: 34,
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(37, 99, 235, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--primary-500)',
+            flexShrink: 0
+          }}>
+            <Bed size={18} />
           </div>
-
-          <button
-            onClick={onClose}
-            className="btn btn-secondary btn-sm"
-            style={{ padding: '6px 10px', borderRadius: '50%' }}
-            title="Đóng cửa sổ"
-          >
-            <X size={18} />
-          </button>
+          <div style={{ minWidth: 0 }}>
+            <h3 className="allrooms-modal-title" style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+              XEM PHÒNG ĐÃ ĐĂNG KÝ
+            </h3>
+            <p className="allrooms-modal-sub" style={{ margin: '1px 0 0 0', fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {trip.name} · <strong>{rooms.length}</strong> phòng ({totalAssignedPeople} người)
+            </p>
+          </div>
         </div>
 
-        {/* Filter & Search Bar */}
-        <div style={{
-          padding: '14px 24px',
-          background: 'var(--bg-muted)',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12
-        }}>
-          {/* Search Input */}
-          <div style={{ position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', left: 14, top: 12, color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="input-field"
-              placeholder="🔍 Tra cứu nhanh theo số phòng (P.1), MSNV (21707), họ tên, siêu thị..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: 42, fontSize: '0.92rem', background: 'var(--bg-card-solid)' }}
-              autoFocus
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: 10,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)'
-                }}
-              >
-                ✕
-              </button>
-            )}
+        <button
+          onClick={onClose}
+          className="btn btn-secondary btn-sm"
+          style={{ padding: '4px 8px', borderRadius: '50%', flexShrink: 0 }}
+          title="Đóng cửa sổ"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="allrooms-filter-container" style={{
+        padding: '10px 16px',
+        background: 'var(--bg-muted)',
+        borderBottom: '1px solid var(--border-subtle)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
+      }}>
+        {/* Search Input */}
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            className="input-field allrooms-search-input"
+            placeholder="Tra cứu theo số phòng (P.1), MSNV, họ tên, siêu thị..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{
+              paddingLeft: 30,
+              paddingRight: searchTerm ? 26 : 10,
+              fontSize: '0.8rem',
+              height: 30,
+              minHeight: 30,
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-card-solid)',
+              border: '1px solid var(--border-subtle)',
+              width: '100%'
+            }}
+            autoFocus
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                padding: 2
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Quick Filter Controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Filter Chips - Trượt ngang mượt mà trên mobile */}
+          <div className="allrooms-chips-scroll" style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', whiteSpace: 'nowrap', maxWidth: '100%', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              className={`btn btn-sm ${statusFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'} allrooms-chip-btn`}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+            >
+              Tất cả ({rooms.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('FULL')}
+              className={`btn btn-sm ${statusFilter === 'FULL' ? 'btn-primary' : 'btn-secondary'} allrooms-chip-btn`}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+            >
+              ✓ Đủ ({rooms.filter(r => r.status === 'FULL').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('UNDER')}
+              className={`btn btn-sm ${statusFilter === 'UNDER' ? 'btn-primary' : 'btn-secondary'} allrooms-chip-btn`}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+            >
+              ⏳ Còn chỗ ({rooms.filter(r => r.status === 'UNDER').length})
+            </button>
+
+            <span style={{ color: 'var(--border-subtle)', margin: '0 2px' }}>|</span>
+
+            <button
+              type="button"
+              onClick={() => setGenderFilter(genderFilter === 'M' ? 'ALL' : 'M')}
+              className={`btn btn-sm ${genderFilter === 'M' ? 'btn-primary' : 'btn-secondary'} allrooms-chip-btn`}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+            >
+              Nam
+            </button>
+            <button
+              type="button"
+              onClick={() => setGenderFilter(genderFilter === 'F' ? 'ALL' : 'F')}
+              className={`btn btn-sm ${genderFilter === 'F' ? 'btn-primary' : 'btn-secondary'} allrooms-chip-btn`}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+            >
+              Nữ
+            </button>
+            <button
+              type="button"
+              onClick={() => setGenderFilter(genderFilter === 'FAMILY' ? 'ALL' : 'FAMILY')}
+              className={`btn btn-sm ${genderFilter === 'FAMILY' ? 'btn-primary' : 'btn-secondary'} allrooms-chip-btn`}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+            >
+              Gia đình / Vợ chồng
+            </button>
           </div>
 
-          {/* Quick Filter Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            {/* Left Filter Chips */}
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-              {/* Status Filter */}
+          {/* Controls: View toggle & Dropdowns */}
+          <div className="allrooms-dropdowns-row" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            {/* View Mode Toggle */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'var(--bg-muted)',
+              padding: 2,
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-subtle)'
+            }}>
               <button
                 type="button"
-                onClick={() => setStatusFilter('ALL')}
-                className={`btn btn-sm ${statusFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+                onClick={() => setViewMode('LIST')}
+                style={{
+                  padding: '3px 6px',
+                  fontSize: '0.72rem',
+                  background: viewMode === 'LIST' ? 'var(--bg-card-solid)' : 'transparent',
+                  color: viewMode === 'LIST' ? 'var(--primary-600)' : 'var(--text-muted)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  boxShadow: viewMode === 'LIST' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  fontWeight: viewMode === 'LIST' ? 700 : 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+                title="Danh sách gọn"
               >
-                Tất cả ({rooms.length})
+                <LayoutList size={12} />
+                Gọn
               </button>
               <button
                 type="button"
-                onClick={() => setStatusFilter('FULL')}
-                className={`btn btn-sm ${statusFilter === 'FULL' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+                onClick={() => setViewMode('GRID')}
+                style={{
+                  padding: '3px 6px',
+                  fontSize: '0.72rem',
+                  background: viewMode === 'GRID' ? 'var(--bg-card-solid)' : 'transparent',
+                  color: viewMode === 'GRID' ? 'var(--primary-600)' : 'var(--text-muted)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  boxShadow: viewMode === 'GRID' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  fontWeight: viewMode === 'GRID' ? 700 : 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+                title="Dạng thẻ"
               >
-                ✓ Đủ người ({rooms.filter(r => r.status === 'FULL').length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('UNDER')}
-                className={`btn btn-sm ${statusFilter === 'UNDER' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              >
-                ⏳ Còn chỗ ({rooms.filter(r => r.status === 'UNDER').length})
-              </button>
-
-              {/* Gender Filter */}
-              <span style={{ color: 'var(--border-subtle)', margin: '0 2px' }}>|</span>
-              <button
-                type="button"
-                onClick={() => setGenderFilter(genderFilter === 'M' ? 'ALL' : 'M')}
-                className={`btn btn-sm ${genderFilter === 'M' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              >
-                Nam
-              </button>
-              <button
-                type="button"
-                onClick={() => setGenderFilter(genderFilter === 'F' ? 'ALL' : 'F')}
-                className={`btn btn-sm ${genderFilter === 'F' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              >
-                Nữ
-              </button>
-              <button
-                type="button"
-                onClick={() => setGenderFilter(genderFilter === 'FAMILY' ? 'ALL' : 'FAMILY')}
-                className={`btn btn-sm ${genderFilter === 'FAMILY' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              >
-                Gia đình / Vợ chồng
+                <LayoutGrid size={12} />
+                Thẻ
               </button>
             </div>
 
-            {/* Right Dropdown Filters & View Mode Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* View Mode Toggle */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: 'var(--bg-muted)',
-                padding: 2,
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-subtle)'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('LIST')}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '0.75rem',
-                    background: viewMode === 'LIST' ? 'var(--bg-card-solid)' : 'transparent',
-                    color: viewMode === 'LIST' ? 'var(--primary-600)' : 'var(--text-muted)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: viewMode === 'LIST' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    fontWeight: viewMode === 'LIST' ? 700 : 500,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                  title="Xem dạng danh sách gọn"
-                >
-                  <LayoutList size={14} />
-                  Danh sách gọn
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('GRID')}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '0.75rem',
-                    background: viewMode === 'GRID' ? 'var(--bg-card-solid)' : 'transparent',
-                    color: viewMode === 'GRID' ? 'var(--primary-600)' : 'var(--text-muted)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: viewMode === 'GRID' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    fontWeight: viewMode === 'GRID' ? 700 : 500,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                  title="Xem dạng thẻ chi tiết"
-                >
-                  <LayoutGrid size={14} />
-                  Dạng thẻ
-                </button>
-              </div>
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end', minWidth: 200 }}>
               {/* Capacity Filter */}
               <select
                 value={capacityFilter}
                 onChange={e => setCapacityFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                className="allrooms-select"
                 style={{
-                  padding: '5px 10px',
+                  padding: '3px 6px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-subtle)',
                   background: 'var(--bg-card-solid)',
                   color: 'var(--text-main)',
-                  fontSize: '0.8rem',
+                  fontSize: '0.74rem',
                   fontWeight: 600,
-                  outline: 'none'
+                  outline: 'none',
+                  height: 28,
+                  minHeight: 28
                 }}
               >
                 <option value="ALL">Tất cả loại phòng</option>
@@ -361,16 +377,19 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
               <select
                 value={storeFilter}
                 onChange={e => setStoreFilter(e.target.value)}
+                className="allrooms-select"
                 style={{
-                  padding: '5px 10px',
+                  padding: '3px 6px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-subtle)',
                   background: 'var(--bg-card-solid)',
                   color: 'var(--text-main)',
-                  fontSize: '0.8rem',
+                  fontSize: '0.74rem',
                   fontWeight: 600,
-                  maxWidth: 200,
-                  outline: 'none'
+                  maxWidth: 160,
+                  outline: 'none',
+                  height: 28,
+                  minHeight: 28
                 }}
               >
                 <option value="ALL">🏢 Tất cả siêu thị</option>
@@ -383,6 +402,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
             </div>
           </div>
         </div>
+      </div>
 
         {/* Rooms List Body */}
         <div style={{
