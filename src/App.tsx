@@ -32,6 +32,7 @@ import { EmployeeRoomView } from './components/EmployeeRoomView';
 import { AdminView } from './components/AdminView';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AllRoomsDirectoryModal } from './components/AllRoomsDirectoryModal';
+import { Bed, Search } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const App: React.FC = () => {
@@ -46,7 +47,8 @@ export const App: React.FC = () => {
     return sessionStorage.getItem('rooming_admin_auth') === 'true';
   });
   const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
-  const [isAllRoomsModalOpen, setIsAllRoomsModalOpen] = useState(false);
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'rooms' | 'people' | 'trips' | 'logs'>('dashboard');
+  const [employeeTab, setEmployeeTab] = useState<'my_room' | 'all_rooms'>('my_room');
 
   // Employee Authentication state
   const [currentEmployee, setCurrentEmployee] = useState<Person | null>(() => {
@@ -561,7 +563,13 @@ export const App: React.FC = () => {
         <CountdownBanner
           trip={currentTrip}
           totalRoomsCount={rooms.length}
-          onOpenAllRooms={() => setIsAllRoomsModalOpen(true)}
+          onOpenAllRooms={() => {
+            if (activeRole === 'ADMIN') {
+              setAdminTab('rooms');
+            } else {
+              setEmployeeTab('all_rooms');
+            }
+          }}
         />
 
         {/* 3. Main Views */}
@@ -573,18 +581,59 @@ export const App: React.FC = () => {
                 onLogin={handleEmployeeLogin}
               />
             ) : (
-              <EmployeeRoomView
-                currentEmployee={currentEmployee}
-                currentTrip={currentTrip}
-                allPeople={people}
-                allRooms={rooms}
-                onSaveRoom={handleSaveRoom}
-                onLeaveRoom={handleLeaveRoom}
-                onDeleteRoom={handleDeleteRoom}
-                onClaimRelative={handleClaimRelative}
-                onUnclaimRelative={handleUnclaimRelative}
-                onOpenAllRooms={() => setIsAllRoomsModalOpen(true)}
-              />
+              <div>
+                {/* Employee Navigation Tabs Bar */}
+                <div className="glass-card" style={{
+                  padding: '6px 12px',
+                  marginBottom: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setEmployeeTab('my_room')}
+                      className={`btn btn-sm ${employeeTab === 'my_room' ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      <Bed size={15} /> Phòng Của Tôi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmployeeTab('all_rooms')}
+                      className={`btn btn-sm ${employeeTab === 'all_rooms' ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      <Search size={15} /> Xem Phòng Đã Đăng Ký ({rooms.length})
+                    </button>
+                  </div>
+                </div>
+
+                {employeeTab === 'all_rooms' ? (
+                  <AllRoomsDirectoryModal
+                    isInline={true}
+                    trip={currentTrip}
+                    rooms={rooms}
+                    people={people}
+                    currentEmployee={currentEmployee}
+                    onClose={() => setEmployeeTab('my_room')}
+                  />
+                ) : (
+                  <EmployeeRoomView
+                    currentEmployee={currentEmployee}
+                    currentTrip={currentTrip}
+                    allPeople={people}
+                    allRooms={rooms}
+                    onSaveRoom={handleSaveRoom}
+                    onLeaveRoom={handleLeaveRoom}
+                    onDeleteRoom={handleDeleteRoom}
+                    onClaimRelative={handleClaimRelative}
+                    onUnclaimRelative={handleUnclaimRelative}
+                    onOpenAllRooms={() => setEmployeeTab('all_rooms')}
+                  />
+                )}
+              </div>
             )
           ) : (
             <AdminView
@@ -593,6 +642,8 @@ export const App: React.FC = () => {
               people={people}
               rooms={rooms}
               logs={logs}
+              activeTab={adminTab}
+              onTabChange={setAdminTab}
               onSelectTrip={handleSelectTrip}
               onSaveTrip={handleSaveTrip}
               onDeleteTrip={handleDeleteTrip}
@@ -621,18 +672,6 @@ export const App: React.FC = () => {
         onClose={() => setIsAdminLoginModalOpen(false)}
         onLoginSuccess={handleAdminLoginSuccess}
       />
-
-      {/* Tra Cứu Tất Cả Các Phòng Đã Sắp Xếp */}
-      {isAllRoomsModalOpen && (
-        <AllRoomsDirectoryModal
-          isOpen={isAllRoomsModalOpen}
-          onClose={() => setIsAllRoomsModalOpen(false)}
-          trip={currentTrip}
-          rooms={rooms}
-          people={people}
-          currentEmployee={currentEmployee}
-        />
-      )}
     </div>
   );
 };

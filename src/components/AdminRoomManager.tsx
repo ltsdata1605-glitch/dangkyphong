@@ -15,7 +15,9 @@ import {
   Bed,
   ShieldCheck,
   Crown,
-  Baby
+  Baby,
+  LayoutList,
+  LayoutGrid
 } from 'lucide-react';
 
 interface AdminRoomManagerProps {
@@ -40,6 +42,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'FULL' | 'UNDER' | 'OVERRIDE'>('ALL');
   const [capacityFilter, setCapacityFilter] = useState<number | 'ALL'>('ALL');
+  const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
 
   // Modal thêm người vào phòng
   const [addingToRoom, setAddingToRoom] = useState<Room | null>(null);
@@ -151,7 +154,62 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
           </select>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* View Mode Toggle */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--bg-muted)',
+            padding: 2,
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-subtle)'
+          }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('LIST')}
+              style={{
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                background: viewMode === 'LIST' ? 'var(--bg-card-solid)' : 'transparent',
+                color: viewMode === 'LIST' ? 'var(--primary-600)' : 'var(--text-muted)',
+                border: 'none',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: viewMode === 'LIST' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                fontWeight: viewMode === 'LIST' ? 700 : 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+              title="Xem dạng danh sách gọn"
+            >
+              <LayoutList size={14} />
+              Danh sách gọn
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('GRID')}
+              style={{
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                background: viewMode === 'GRID' ? 'var(--bg-card-solid)' : 'transparent',
+                color: viewMode === 'GRID' ? 'var(--primary-600)' : 'var(--text-muted)',
+                border: 'none',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: viewMode === 'GRID' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                fontWeight: viewMode === 'GRID' ? 700 : 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+              title="Xem dạng thẻ chi tiết"
+            >
+              <LayoutGrid size={14} />
+              Dạng thẻ
+            </button>
+          </div>
+
           <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-muted)' }}>
             Hiển thị: <strong>{filteredRooms.length}</strong> / {rooms.length} phòng
           </div>
@@ -169,14 +227,147 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
         </div>
       </div>
 
-      {/* Rooms Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-        {filteredRooms.length === 0 ? (
-          <div className="glass-card" style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            Không tìm thấy phòng nào phù hợp với bộ lọc.
-          </div>
-        ) : (
-          filteredRooms.map(room => {
+      {/* Rooms Content */}
+      {filteredRooms.length === 0 ? (
+        <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Không tìm thấy phòng nào phù hợp với bộ lọc.
+        </div>
+      ) : viewMode === 'LIST' ? (
+        /* Dạng Danh Sách Gọn Cho Admin (Tiết kiệm không gian) */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {filteredRooms.map(room => {
+            const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+
+            return (
+              <div
+                key={room.id}
+                className="glass-card"
+                style={{
+                  padding: '8px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                  borderLeft: room.status === 'FULL' ? '4px solid var(--color-success)' : '4px solid var(--color-warning)'
+                }}
+              >
+                {/* Left: Thông tin phòng */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, minWidth: 42, color: 'var(--text-main)' }}>
+                    {room.code}
+                  </span>
+                  <span className={`badge ${room.status === 'FULL' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                    {room.status === 'FULL' ? 'Đủ' : `Thiếu ${room.capacity - room.usedSlots}`}
+                  </span>
+                  <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
+                    {room.capacity}ng
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    {room.bedType}
+                  </span>
+                  {room.adminOverride && (
+                    <span className="badge badge-primary" style={{ fontSize: '0.65rem' }} title={room.adminNote}>
+                      <ShieldCheck size={10} /> Đặc cách
+                    </span>
+                  )}
+                </div>
+
+                {/* Middle: Thành viên trong phòng */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 260 }}>
+                  {members.map(m => {
+                    const isLeader = m.id === room.leaderId;
+                    return (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-muted)',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '0.78rem'
+                        }}
+                      >
+                        <span style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: m.gender === 'M' ? '#2563eb' : '#db2777',
+                          color: '#fff',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.55rem',
+                          fontWeight: 800
+                        }}>
+                          {m.gender === 'M' ? 'N' : 'F'}
+                        </span>
+                        <strong style={{ fontSize: '0.8rem' }}>{m.name}</strong>
+                        {isLeader && <Crown size={11} style={{ color: '#f59e0b' }} />}
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          {m.code}
+                        </span>
+                        <button
+                          onClick={() => onRemoveMember(room.id, m.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--color-danger)',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            padding: '0 2px',
+                            lineHeight: 1
+                          }}
+                          title={`Xóa ${m.name} khỏi phòng`}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Right: Thao tác Admin */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <button
+                    onClick={() => {
+                      setAddingToRoom(room);
+                      setPersonSearch('');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.74rem', padding: '3px 8px' }}
+                    title="Thêm thành viên vào phòng"
+                  >
+                    <UserPlus size={12} /> Thêm
+                  </button>
+                  <button
+                    onClick={() => handleOpenOverride(room)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.74rem', padding: '3px 8px', color: room.adminOverride ? 'var(--primary-600)' : 'inherit' }}
+                    title="Duyệt đặc cách phòng"
+                  >
+                    <ShieldCheck size={12} />
+                  </button>
+                  <button
+                    onClick={() => setRoomToDelete(room)}
+                    className="btn btn-danger btn-sm"
+                    style={{ fontSize: '0.74rem', padding: '3px 8px' }}
+                    title="Xóa giải tán phòng này"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Rooms Grid (Dạng Thẻ) */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+          {filteredRooms.map(room => {
             const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
             const leader = peopleMap.get(room.leaderId);
 
@@ -316,9 +507,9 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Modal Thêm người vào phòng */}
       {addingToRoom && (

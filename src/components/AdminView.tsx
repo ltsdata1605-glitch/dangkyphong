@@ -22,6 +22,8 @@ interface AdminViewProps {
   people: Person[];
   rooms: Room[];
   logs: AuditLog[];
+  activeTab?: 'dashboard' | 'rooms' | 'people' | 'trips' | 'logs';
+  onTabChange?: (tab: 'dashboard' | 'rooms' | 'people' | 'trips' | 'logs') => void;
   onSelectTrip: (tripId: string) => void;
   onSaveTrip: (trip: Trip, initialPeople?: Person[]) => void;
   onDeleteTrip: (tripId: string) => void;
@@ -47,6 +49,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
   people,
   rooms,
   logs,
+  activeTab: externalActiveTab,
+  onTabChange,
   onSelectTrip,
   onSaveTrip,
   onDeleteTrip,
@@ -65,7 +69,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onAssignRelative,
   onLogoutAdmin
 }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rooms' | 'people' | 'trips' | 'logs'>('dashboard');
+  const [internalTab, setInternalTab] = useState<'dashboard' | 'rooms' | 'people' | 'trips' | 'logs'>('dashboard');
+  const activeTab = externalActiveTab ?? internalTab;
+  const setActiveTab = (tab: 'dashboard' | 'rooms' | 'people' | 'trips' | 'logs') => {
+    if (onTabChange) onTabChange(tab);
+    setInternalTab(tab);
+  };
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   return (

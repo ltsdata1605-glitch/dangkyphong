@@ -17,21 +17,23 @@ import {
 } from 'lucide-react';
 
 interface AllRoomsDirectoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   trip: Trip;
   rooms: Room[];
   people: Person[];
   currentEmployee?: Person | null;
+  isInline?: boolean;
 }
 
 export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
-  isOpen,
+  isOpen = true,
   onClose,
   trip,
   rooms,
   people,
-  currentEmployee
+  currentEmployee,
+  isInline = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'FULL' | 'UNDER'>('ALL');
@@ -108,35 +110,41 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
     }).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
   }, [rooms, peopleMap, searchTerm, statusFilter, capacityFilter, storeFilter, genderFilter]);
 
-  if (!isOpen) return null;
+  if (!isInline && !isOpen) return null;
 
-  return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div
-        className="modal-content"
-        onClick={e => e.stopPropagation()}
-        style={{
-          maxWidth: 960,
-          width: '95%',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          overflow: 'hidden'
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          padding: '18px 24px',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'var(--bg-card-solid)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
+  const modalBody = (
+    <div
+      className={isInline ? "glass-card" : "modal-content"}
+      onClick={e => e.stopPropagation()}
+      style={isInline ? {
+        width: '100%',
+        margin: '16px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 0,
+        overflow: 'hidden'
+      } : {
+        maxWidth: 960,
+        width: '95%',
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 0,
+        overflow: 'hidden'
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '16px 22px',
+        borderBottom: '1px solid var(--border-subtle)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: 'var(--bg-card-solid)',
+        position: isInline ? 'relative' : 'sticky',
+        top: 0,
+        zIndex: 10
+      }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 42,
@@ -795,16 +803,27 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
           <div>
             Hiển thị <strong>{filteredRooms.length}</strong> / {rooms.length} phòng
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary btn-sm"
-            style={{ fontWeight: 600, padding: '6px 16px' }}
-          >
-            Đóng
-          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary btn-sm"
+              style={{ fontWeight: 600, padding: '6px 16px' }}
+            >
+              {isInline ? '← Quay lại phòng của bạn' : 'Đóng'}
+            </button>
+          )}
         </div>
       </div>
+  );
+
+  if (isInline) {
+    return modalBody;
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
+      {modalBody}
     </div>
   );
 };
