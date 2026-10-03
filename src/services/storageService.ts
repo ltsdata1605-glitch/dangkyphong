@@ -358,65 +358,73 @@ export function migrateRoomCodes(rooms: Room[]): { rooms: Room[], migrated: bool
   return { rooms, migrated: false };
 }
 
+let isNormalizing = false;
+
 /**
  * Chuẩn hóa số lượng thành viên tối đa 6 người/phòng và tự động cập nhật loại phòng phù hợp nếu vượt quá ban đầu
  */
-export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[]): { rooms: Room[], modified: boolean } {
-  if (!rooms || rooms.length === 0) return { rooms, modified: false };
-  let modified = false;
-  const people = getPeople(tripId);
-  const peopleMap = new Map(people.map(p => [p.id, p]));
+export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[], persistPeople = false): { rooms: Room[], modified: boolean } {
+  if (isNormalizing || !rooms || rooms.length === 0) return { rooms, modified: false };
+  isNormalizing = true;
+  try {
+    let modified = false;
+    const people = getPeople(tripId);
+    const peopleMap = new Map(people.map(p => [p.id, p]));
 
-  const updatedRooms = rooms.map(room => {
-    let roomModified = false;
-    let memberIds = [...room.memberIds];
+    const updatedRooms = rooms.map(room => {
+      let roomModified = false;
+      let memberIds = [...room.memberIds];
 
-    // 1. Giới hạn tối đa 6 người/phòng: Nếu vượt quá 6 người, tách các thành viên dư ra ngoài
-    if (memberIds.length > 6) {
-      const extraMemberIds = memberIds.slice(6);
-      memberIds = memberIds.slice(0, 6);
-      extraMemberIds.forEach(mId => {
-        const p = peopleMap.get(mId) || people.find(item => item.code === mId);
-        if (p) {
-          p.roomId = null;
-        }
-      });
-      roomModified = true;
-      modified = true;
+      // 1. Giới hạn tối đa 6 người/phòng: Nếu vượt quá 6 người, tách các thành viên dư ra ngoài
+      if (memberIds.length > 6) {
+        const extraMemberIds = memberIds.slice(6);
+        memberIds = memberIds.slice(0, 6);
+        extraMemberIds.forEach(mId => {
+          const p = peopleMap.get(mId) || people.find(item => item.code === mId);
+          if (p) {
+            p.roomId = null;
+          }
+        });
+        roomModified = true;
+        modified = true;
+      }
+
+      // 2. Tự động đổi loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6)
+      const members = memberIds.map(mId => peopleMap.get(mId) || people.find(item => item.code === mId)).filter(Boolean) as Person[];
+      const adultSlots = members.filter(m => m.slot > 0).length;
+      let capacity = room.capacity;
+      if (adultSlots > capacity) {
+        capacity = Math.min(6, adultSlots);
+        roomModified = true;
+        modified = true;
+      }
+
+      if (roomModified) {
+        const validation = validateRoom(members, capacity, 2, room.adminOverride);
+        return {
+          ...room,
+          memberIds,
+          capacity,
+          usedSlots: validation.usedSlots,
+          childCount: validation.childCount,
+          status: (validation.usedSlots === capacity ? 'FULL' : (validation.usedSlots < capacity ? 'UNDER' : 'WARNING')) as RoomStatus,
+          bedType: validation.bedType,
+          updatedAt: room.updatedAt || new Date().toISOString()
+        };
+      }
+
+      return room;
+    });
+
+    if (modified && persistPeople) {
+      localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(people));
+      syncPeopleToFirebase(tripId, people);
     }
 
-    // 2. Tự động đổi loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6)
-    const members = memberIds.map(mId => peopleMap.get(mId) || people.find(item => item.code === mId)).filter(Boolean) as Person[];
-    const adultSlots = members.filter(m => m.slot > 0).length;
-    let capacity = room.capacity;
-    if (adultSlots > capacity) {
-      capacity = Math.min(6, adultSlots);
-      roomModified = true;
-      modified = true;
-    }
-
-    if (roomModified) {
-      const validation = validateRoom(members, capacity, 2, room.adminOverride);
-      return {
-        ...room,
-        memberIds,
-        capacity,
-        usedSlots: validation.usedSlots,
-        childCount: validation.childCount,
-        status: (validation.usedSlots === capacity ? 'FULL' : (validation.usedSlots < capacity ? 'UNDER' : 'WARNING')) as RoomStatus,
-        bedType: validation.bedType,
-        updatedAt: new Date().toISOString()
-      };
-    }
-
-    return room;
-  });
-
-  if (modified) {
-    savePeople(tripId, people);
+    return { rooms: updatedRooms, modified };
+  } finally {
+    isNormalizing = false;
   }
-
-  return { rooms: updatedRooms, modified };
 }
 
 export function getRooms(tripId: string): Room[] {
@@ -424,7 +432,7 @@ export function getRooms(tripId: string): Room[] {
     const raw = localStorage.getItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`);
     const rooms: Room[] = raw ? JSON.parse(raw) : [];
     const { rooms: normalizedCodes, migrated: migratedCodes } = migrateRoomCodes(rooms);
-    const { rooms: finalRooms, modified: modifiedLimits } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes);
+    const { rooms: finalRooms, modified: modifiedLimits } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, false);
     if (migratedCodes || modifiedLimits) {
       localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
       syncRoomsToFirebase(tripId, finalRooms);
@@ -436,8 +444,10 @@ export function getRooms(tripId: string): Room[] {
 }
 
 export function saveRooms(tripId: string, rooms: Room[]): void {
-  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(rooms));
-  syncRoomsToFirebase(tripId, rooms);
+  const { rooms: normalizedCodes } = migrateRoomCodes(rooms);
+  const { rooms: finalRooms } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, true);
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
+  syncRoomsToFirebase(tripId, finalRooms);
   notifyStateChange();
 }
 
@@ -733,31 +743,55 @@ export function assignRelativeAdmin(tripId: string, employeeCode: string, relati
 }
 
 /**
- * Rời khỏi phòng
+ * Rời khỏi phòng (hoặc Admin gỡ thành viên khỏi phòng)
  */
-export function leaveRoom(tripId: string, personId: string, actorId: string, actorName: string): { success: boolean; message: string } {
+export function leaveRoom(
+  tripId: string,
+  personId: string,
+  actorId: string,
+  actorName: string,
+  targetRoomId?: string
+): { success: boolean; message: string } {
   const people = getPeople(tripId);
   const rooms = getRooms(tripId);
   const person = people.find(p => p.id === personId || p.code === personId);
 
-  if (!person || !person.roomId) {
+  // Tìm phòng: Ưu tiên targetRoomId nếu có, hoặc person.roomId, hoặc tìm phòng chứa personId / code trong memberIds
+  let roomIndex = -1;
+  if (targetRoomId) {
+    roomIndex = rooms.findIndex(r => r.id === targetRoomId);
+  }
+  if (roomIndex < 0 && person?.roomId) {
+    roomIndex = rooms.findIndex(r => r.id === person.roomId);
+  }
+  if (roomIndex < 0) {
+    roomIndex = rooms.findIndex(r =>
+      r.memberIds.includes(personId) ||
+      (person && (r.memberIds.includes(person.id) || r.memberIds.includes(person.code)))
+    );
+  }
+
+  if (roomIndex < 0) {
+    if (person) {
+      person.roomId = null;
+      savePeople(tripId, people);
+    }
     return { success: false, message: 'Người này chưa có trong phòng nào.' };
   }
 
-  const roomIndex = rooms.findIndex(r => r.id === person.roomId);
-  if (roomIndex < 0) {
-    person.roomId = null;
-    savePeople(tripId, people);
-    return { success: true, message: 'Đã cập nhật trạng thái.' };
+  const room = rooms[roomIndex];
+  const idsToRemove = new Set<string>([personId]);
+  if (person) {
+    idsToRemove.add(person.id);
+    idsToRemove.add(person.code);
   }
 
-  const room = rooms[roomIndex];
-  const remainingMemberIds = room.memberIds.filter(id => id !== person.id && id !== person.code);
+  const remainingMemberIds = room.memberIds.filter(id => !idsToRemove.has(id));
 
-  // Nếu phòng không còn ai sau khi người này rời đi
+  // Nếu phòng không còn ai sau khi người này rời đi -> Xóa phòng hoàn toàn
   if (remainingMemberIds.length === 0) {
     rooms.splice(roomIndex, 1);
-    person.roomId = null;
+    if (person) person.roomId = null;
     saveRooms(tripId, rooms);
     savePeople(tripId, people);
 
@@ -787,25 +821,27 @@ export function leaveRoom(tripId: string, personId: string, actorId: string, act
       const p = people.find(item => item.id === mId || item.code === mId);
       if (p) p.roomId = null;
     });
-    person.roomId = null;
+    if (person) person.roomId = null;
     saveRooms(tripId, rooms);
     savePeople(tripId, people);
     return { success: true, message: 'Đã giải tán phòng do không còn nhân viên nào trong phòng.' };
   }
 
   // Nếu người rời phòng là trưởng phòng thì chuyển quyền cho nhân viên tiếp theo
-  if (room.leaderId === person.id || room.leaderId === person.code) {
+  if (idsToRemove.has(room.leaderId)) {
     room.leaderId = nextEmployee.id;
   }
 
   room.memberIds = remainingMemberIds;
-  person.roomId = null;
+  if (person) person.roomId = null;
 
   // Nếu người này có trẻ em đi kèm, cũng đưa trẻ em ra khỏi phòng
-  const childrenOfThisPerson = remainingMembers.filter(m => m.slot === 0 && m.ownerId === person.code);
-  for (const child of childrenOfThisPerson) {
-    room.memberIds = room.memberIds.filter(id => id !== child.id && id !== child.code);
-    child.roomId = null;
+  if (person) {
+    const childrenOfThisPerson = remainingMembers.filter(m => m.slot === 0 && m.ownerId === person.code);
+    for (const child of childrenOfThisPerson) {
+      room.memberIds = room.memberIds.filter(id => id !== child.id && id !== child.code);
+      child.roomId = null;
+    }
   }
 
   // Sau khi đưa trẻ em ra, kiểm tra lại nếu không còn ai
@@ -835,7 +871,7 @@ export function leaveRoom(tripId: string, personId: string, actorId: string, act
     action: 'LEAVE_ROOM',
     actor: actorId,
     actorName,
-    details: `${person.name} đã rời khỏi phòng ${room.code}`,
+    details: `${person?.name || personId} đã rời khỏi phòng ${room.code}`,
     timestamp: new Date().toISOString()
   });
 
@@ -852,8 +888,10 @@ export function deleteRoom(tripId: string, roomId: string, actorId: string, acto
 
   if (!room) return false;
 
+  const memberSet = new Set(room.memberIds || []);
+
   people.forEach(p => {
-    if (p.roomId === roomId || (room.memberIds && room.memberIds.includes(p.id))) {
+    if (p.roomId === roomId || memberSet.has(p.id) || memberSet.has(p.code)) {
       p.roomId = null;
     }
   });
@@ -930,12 +968,28 @@ export function subscribeToStateChanges(callback: () => void): () => void {
   return () => listeners.delete(callback);
 }
 
+let isNotifying = false;
+let hasPendingNotification = false;
+
 function notifyStateChange(): void {
-  listeners.forEach(cb => {
-    try {
-      cb();
-    } catch (e) {
-      console.error(e);
+  if (isNotifying) {
+    hasPendingNotification = true;
+    return;
+  }
+  isNotifying = true;
+  try {
+    listeners.forEach(cb => {
+      try {
+        cb();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  } finally {
+    isNotifying = false;
+    if (hasPendingNotification) {
+      hasPendingNotification = false;
+      notifyStateChange();
     }
-  });
+  }
 }

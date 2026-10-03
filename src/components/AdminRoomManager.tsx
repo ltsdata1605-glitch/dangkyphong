@@ -311,15 +311,19 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           {m.code}
                         </span>
                         <button
-                          onClick={() => onRemoveMember(room.id, m.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveMember(room.id, m.id);
+                          }}
                           style={{
                             background: 'none',
                             border: 'none',
                             color: 'var(--color-danger)',
                             cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            padding: '0 2px',
-                            lineHeight: 1
+                            fontSize: '0.8rem',
+                            padding: '2px 4px',
+                            lineHeight: 1,
+                            borderRadius: '3px'
                           }}
                           title={`Xóa ${m.name} khỏi phòng`}
                         >
@@ -362,7 +366,10 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                     <ShieldCheck size={12} />
                   </button>
                   <button
-                    onClick={() => setRoomToDelete(room)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRoomToDelete(room);
+                    }}
                     className="btn btn-danger btn-sm"
                     style={{ fontSize: '0.74rem', padding: '3px 8px' }}
                     title="Xóa giải tán phòng này"
@@ -426,7 +433,10 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                         <Edit size={14} />
                       </button>
                       <button
-                        onClick={() => setRoomToDelete(room)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRoomToDelete(room);
+                        }}
                         className="btn btn-secondary btn-sm"
                         style={{ padding: '6px 8px', color: 'var(--color-danger)' }}
                         title="Xóa phòng này"
@@ -486,9 +496,21 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                               {m.type === 'EMPLOYEE' ? m.code : (m.relation || 'Người thân')}
                             </span>
                             <button
-                              onClick={() => onRemoveMember(room.id, m.id)}
-                              style={{ border: 'none', background: 'transparent', color: 'var(--color-danger)', cursor: 'pointer', padding: 2 }}
-                              title="Bỏ ra khỏi phòng"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRemoveMember(room.id, m.id);
+                              }}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                color: 'var(--color-danger)',
+                                cursor: 'pointer',
+                                padding: '2px 5px',
+                                fontSize: '0.85rem',
+                                fontWeight: 'bold',
+                                lineHeight: 1
+                              }}
+                              title={`Xóa ${m.name} khỏi phòng`}
                             >
                               ✕
                             </button>

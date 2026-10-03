@@ -559,7 +559,7 @@ export const App: React.FC = () => {
     if (room && (room.memberIds.length <= 1 || room.memberIds.every(id => id === personId))) {
       deleteRoom(currentTrip.id, room.id, 'admin', 'Ban Tổ Chức');
     } else {
-      leaveRoom(currentTrip.id, personId, 'admin', 'Ban Tổ Chức');
+      leaveRoom(currentTrip.id, personId, 'admin', 'Ban Tổ Chức', roomId);
     }
     refreshData();
   };
