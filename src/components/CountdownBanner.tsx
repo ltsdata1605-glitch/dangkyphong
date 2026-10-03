@@ -29,32 +29,32 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
   return (
     <div style={{
       width: '100%',
-      margin: '16px 0'
+      margin: '8px 0 12px 0'
     }}>
       <div className="glass-card" style={{
-        padding: '16px 20px',
+        padding: '8px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 16,
+        gap: 10,
         borderLeft: isLocked ? '4px solid var(--color-danger)' : '4px solid var(--primary-500)',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Trip Overview */}
-        <div style={{ flex: '1 1 300px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+        {/* Trip Overview (Gọn gàng trên 2 dòng thanh mảnh) */}
+        <div style={{ flex: '1 1 auto', minWidth: 280 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: '1.02rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
               {trip.name}
             </h2>
             {isLocked ? (
-              <span className="badge badge-danger">
-                <Lock size={12} /> Đã khóa đăng ký
+              <span className="badge badge-danger" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+                <Lock size={11} /> Đã khóa đăng ký
               </span>
             ) : (
-              <span className="badge badge-success">
-                <CheckCircle2 size={12} /> Đang mở đăng ký
+              <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+                <CheckCircle2 size={11} /> Đang mở đăng ký
               </span>
             )}
           </div>
@@ -63,93 +63,97 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
             display: 'flex',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 14,
-            fontSize: '0.85rem',
+            gap: 12,
+            fontSize: '0.78rem',
             color: 'var(--text-muted)',
-            marginTop: 6
+            marginTop: 3
           }}>
             {trip.hotelName && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Building2 size={14} style={{ color: 'var(--primary-500)' }} /> {trip.hotelName}
+                <Building2 size={13} style={{ color: 'var(--primary-500)' }} /> {trip.hotelName}
               </span>
             )}
             {trip.location && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={14} style={{ color: 'var(--color-danger)' }} /> {trip.location}
+                <MapPin size={13} style={{ color: 'var(--color-danger)' }} /> {trip.location}
               </span>
             )}
             {trip.startDate && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <CalendarDays size={14} style={{ color: 'var(--color-warning)' }} /> {trip.startDate} - {trip.endDate}
+                <CalendarDays size={13} style={{ color: 'var(--color-warning)' }} /> {trip.startDate} - {trip.endDate}
               </span>
             )}
           </div>
         </div>
 
-        {/* Nút XEM PHÒNG ĐÃ ĐĂNG KÝ (Màu đỏ pastel tươi mát nổi bật) */}
-        {onOpenAllRooms && (
-          <button
-            type="button"
-            onClick={onOpenAllRooms}
-            style={{
-              fontWeight: 800,
-              fontSize: '0.88rem',
-              padding: '10px 20px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'linear-gradient(135deg, #f87171 0%, #fb7185 50%, #f43f5e 100%)',
-              color: '#ffffff',
-              border: '1px solid rgba(255, 255, 255, 0.35)',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: '0 4px 18px rgba(244, 63, 94, 0.42)',
-              whiteSpace: 'nowrap',
-              cursor: 'pointer',
-              letterSpacing: '0.3px',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            className="hover-lift"
-            title="Xem danh sách tất cả các phòng đã được sắp xếp và tra cứu nhanh"
-          >
-            <Bed size={18} style={{ color: '#ffffff' }} />
-            <span>XEM PHÒNG ĐÃ ĐĂNG KÝ</span>
-            {totalRoomsCount !== undefined && (
-              <span style={{
-                background: 'rgba(255, 255, 255, 0.28)',
-                color: '#ffffff',
-                padding: '2px 8px',
-                borderRadius: '12px',
+        {/* Right Area: Nút Xem phòng & Hạn chót (Gọn gàng, vừa vặn) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Nút XEM PHÒNG ĐÃ ĐĂNG KÝ (Nhỏ gọn, nổi bật) */}
+          {onOpenAllRooms && (
+            <button
+              type="button"
+              onClick={onOpenAllRooms}
+              style={{
+                fontWeight: 700,
                 fontSize: '0.8rem',
-                fontWeight: 800
-              }}>
-                {totalRoomsCount}
-              </span>
-            )}
-          </button>
-        )}
+                padding: '6px 14px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'linear-gradient(135deg, #f87171 0%, #fb7185 50%, #f43f5e 100%)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 2px 10px rgba(244, 63, 94, 0.35)',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                letterSpacing: '0.2px',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              className="hover-lift"
+              title="Xem danh sách tất cả các phòng đã được sắp xếp và tra cứu nhanh"
+            >
+              <Bed size={15} style={{ color: '#ffffff' }} />
+              <span>XEM PHÒNG ĐÃ ĐĂNG KÝ</span>
+              {totalRoomsCount !== undefined && (
+                <span style={{
+                  background: 'rgba(255, 255, 255, 0.28)',
+                  color: '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 800
+                }}>
+                  {totalRoomsCount}
+                </span>
+              )}
+            </button>
+          )}
 
-        {/* Countdown Box */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-md)',
-          background: isLocked ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.08)',
-          border: isLocked ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)'
-        }}>
-          <Clock size={20} style={{ color: isLocked ? 'var(--color-danger)' : 'var(--primary-500)' }} />
-          <div>
-            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' }}>
-              Hạn chót đăng ký
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 800,
-              fontSize: '1.05rem',
-              color: isLocked ? 'var(--color-danger)' : 'var(--primary-500)'
-            }}>
-              {trip.isLocked ? 'BTC đã khóa' : timeLeft.text}
+          {/* Countdown Box (Gọn gàng) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '5px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: isLocked ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.08)',
+            border: isLocked ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)'
+          }}>
+            <Clock size={16} style={{ color: isLocked ? 'var(--color-danger)' : 'var(--primary-500)', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '0.66rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', lineHeight: 1.1 }}>
+                Hạn chót đăng ký
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-heading)',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                lineHeight: 1.2,
+                color: isLocked ? 'var(--color-danger)' : 'var(--primary-500)'
+              }}>
+                {trip.isLocked ? 'BTC đã khóa' : timeLeft.text}
+              </div>
             </div>
           </div>
         </div>
