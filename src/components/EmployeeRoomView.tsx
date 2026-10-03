@@ -126,6 +126,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showAllSuggested, setShowAllSuggested] = useState(false);
   const [unclaimingRelative, setUnclaimingRelative] = useState<Person | null>(null);
   const [removingMember, setRemovingMember] = useState<Person | null>(null);
 
@@ -170,25 +171,25 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
       {/* 1.5. Gợi Ý Các Phòng Đang Thiếu Người (Hiệu ứng nhấp nháy thu hút - Thiết kế siêu gọn) */}
       {!myRoom && underCapacityRooms.length > 0 && !isLocked && (
-        <div className="room-under-suggestion-container" style={{ padding: '10px 12px', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+        <div className="room-under-suggestion-container" style={{ padding: '8px 10px', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.68rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.66rem', padding: '2px 5px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <span className="dot-blinking-urgent" />
                 ⚡ CẦN GHÉP NGƯỜI
               </span>
-              <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 Gợi Ý {underCapacityRooms.length} Phòng Chưa Đủ Người Phù Hợp Với Bạn
               </h4>
             </div>
-            <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-              Bấm <strong>Vào phòng</strong> để được ghép ngay không sợ hết định mức!
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Bấm <strong>Vào phòng</strong> để ghép ngay không sợ hết định mức!
             </span>
           </div>
 
-          {/* Danh sách thẻ phòng gợi ý - Dạng thẻ gọn 2 cột laptop / 1 cột mobile */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
-            {underCapacityRooms.slice(0, 8).map(room => {
+          {/* Danh sách thẻ phòng gợi ý - Lưới 4 cột trên laptop, 3 cột tablet, 1-2 cột mobile */}
+          <div className="suggested-rooms-grid">
+            {underCapacityRooms.slice(0, showAllSuggested ? undefined : 8).map(room => {
               const members = room.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
               const missingCount = Math.max(1, room.capacity - room.usedSlots);
               const hasSameStore = members.some(m => m.store === currentEmployee.store);
@@ -199,30 +200,30 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                   key={room.id}
                   className="suggested-room-card"
                   style={{
-                    padding: '7px 10px',
+                    padding: '5px 8px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-card-solid)',
                     border: '1px solid rgba(245, 158, 11, 0.45)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 5
+                    gap: 4
                   }}
                 >
                   {/* Hàng 1: Mã phòng, loại phòng, số chỗ thiếu + Nút Vào phòng */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', minWidth: 0 }}>
-                      <strong style={{ fontSize: '0.96rem', color: 'var(--text-main)', minWidth: 36 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', minWidth: 0 }}>
+                      <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)', minWidth: 34 }}>
                         {room.code}
                       </strong>
-                      <span className="badge badge-gray" style={{ fontSize: '0.64rem', padding: '1px 5px' }}>
+                      <span className="badge badge-gray" style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
                         {room.capacity}ng · {room.bedType}
                       </span>
-                      <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.64rem', padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                        <span className="dot-blinking-urgent" />
+                      <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.62rem', padding: '1px 4px', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                        <span className="dot-blinking-urgent" style={{ width: 5, height: 5 }} />
                         Thiếu {missingCount}
                       </span>
                       {hasSameStore && (
-                        <span className="badge badge-primary" style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
+                        <span className="badge badge-primary" style={{ fontSize: '0.6rem', padding: '1px 3px' }}>
                           Cùng ST
                         </span>
                       )}
@@ -241,15 +242,15 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       }}
                       className="btn btn-primary btn-sm"
                       style={{
-                        padding: '2px 8px',
+                        padding: '1px 6px',
                         fontWeight: 700,
-                        fontSize: '0.72rem',
-                        height: 24,
-                        minHeight: 24,
+                        fontSize: '0.7rem',
+                        height: 22,
+                        minHeight: 22,
                         whiteSpace: 'nowrap',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3,
+                        gap: 2,
                         flexShrink: 0
                       }}
                       title={`Bấm để vào ở ghép phòng ${room.code}`}
@@ -259,7 +260,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                   </div>
 
                   {/* Hàng 2: Thành viên hiện tại dạng chip siêu gọn */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
                     {members.map(m => {
                       const storeCode = m.store ? m.store.split('-')[0].trim() : '';
                       return (
@@ -268,23 +269,23 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 3,
-                            padding: '1px 5px',
+                            gap: 2,
+                            padding: '1px 4px',
                             background: 'var(--bg-muted)',
-                            borderRadius: 4,
-                            fontSize: '0.68rem',
+                            borderRadius: 3,
+                            fontSize: '0.65rem',
                             border: '1px solid var(--border-subtle)',
                             maxWidth: '100%',
-                            lineHeight: 1.3
+                            lineHeight: 1.2
                           }}
                           title={`${m.name} - ${m.store}`}
                         >
-                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.58rem', padding: '0 3px' }}>
+                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.55rem', padding: '0 2px' }}>
                             {m.gender === 'M' ? 'Nam' : 'Nữ'}
                           </span>
                           <strong style={{ whiteSpace: 'nowrap' }}>{m.name}</strong>
-                          {storeCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.62rem' }}>({storeCode})</span>}
-                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={10} style={{ color: '#d97706', flexShrink: 0 }} />}
+                          {storeCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem' }}>({storeCode})</span>}
+                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={9} style={{ color: '#d97706', flexShrink: 0 }} />}
                         </span>
                       );
                     })}
@@ -293,6 +294,20 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               );
             })}
           </div>
+
+          {/* Nút Xem thêm phòng nếu > 8 phòng */}
+          {underCapacityRooms.length > 8 && (
+            <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={() => setShowAllSuggested(!showAllSuggested)}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.72rem', padding: '2px 8px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                {showAllSuggested ? 'Thu gọn' : `Xem thêm ${underCapacityRooms.length - 8} phòng khác ▾`}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

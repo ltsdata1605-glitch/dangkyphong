@@ -1025,16 +1025,44 @@ h1, h2, h3, h4, h5, h6 {
 
 .suggested-room-card {
   background: var(--bg-card-solid);
-  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 6px 8px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .suggested-room-card:hover {
   border-color: var(--primary-500);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.1);
+}
+
+/* Lưới các thẻ gợi ý phòng chưa đủ người - 4 Cột trên Laptop */
+.suggested-rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 1200px) {
+  .suggested-rooms-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+}
+
+@media (max-width: 860px) {
+  .suggested-rooms-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+}
+
+@media (max-width: 580px) {
+  .suggested-rooms-grid {
+    grid-template-columns: 1fr !important;
+    gap: 5px !important;
+  }
 }
 
