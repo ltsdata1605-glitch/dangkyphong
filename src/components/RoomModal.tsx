@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Person, Room, Trip, BedType } from '../types';
 import { validateRoom, canAddPersonToRoom } from '../services/roomingEngine';
 import { removeVietnameseTones } from '../utils/textUtils';
@@ -58,7 +58,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     // Chọn loại phòng còn trống đầu tiên (2, 3, 4, 5, 6)
     const availableCap = [2, 3, 4, 5, 6].find(c => {
       const maxLimit = currentTrip?.roomLimits?.[c];
-      const count = allRooms.filter(r => r.tripId === currentTrip?.id && r.capacity === c).length;
+      const count = roomCountByCap[c] || 0;
       return maxLimit === undefined || count < maxLimit;
     });
     return availableCap || 2;
@@ -70,6 +70,32 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     const myRelatives = allPeople.filter(p => p.type === 'RELATIVE' && p.ownerId === currentEmployee.code && !p.roomId);
     return [currentEmployee.id, ...myRelatives.map(r => r.id)];
   });
+
+  // Tự động chuyển loại phòng nếu loại phòng hiện tại đã đạt định mức tối đa
+  useEffect(() => {
+    if (!currentTrip?.roomLimits) return;
+    const maxLimit = currentTrip.roomLimits[capacity];
+    const currentCount = roomCountByCap[capacity] || 0;
+    const isCurrentFull = maxLimit !== undefined && currentCount >= maxLimit && (!editingRoom || editingRoom.capacity !== capacity);
+
+    if (isCurrentFull) {
+      // Tìm loại phòng tiếp theo còn chỉ tiêu và đủ chỗ cho số người hiện tại
+      const adultCount = selectedMemberIds
+        .map(id => allPeople.find(p => p.id === id)!)
+        .filter(p => p && p.slot > 0).length;
+      
+      const nextAvailable = [2, 3, 4, 5, 6].find(c => {
+        if (c < Math.max(2, adultCount)) return false;
+        const lim = currentTrip.roomLimits?.[c];
+        const cnt = roomCountByCap[c] || 0;
+        return lim === undefined || cnt < lim;
+      });
+
+      if (nextAvailable && nextAvailable !== capacity) {
+        setCapacity(nextAvailable);
+      }
+    }
+  }, [capacity, roomCountByCap, currentTrip, editingRoom, selectedMemberIds, allPeople]);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -152,7 +178,14 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     const nextMembers = nextMemberIds.map(id => allPeople.find(p => p.id === id)!).filter(Boolean);
     const nextAdults = nextMembers.filter(m => m.slot > 0).length;
     if (nextAdults > capacity) {
-      setCapacity(Math.min(6, nextAdults));
+      // Tìm loại phòng nhỏ nhất >= nextAdults mà chưa đầy
+      const targetCap = [nextAdults, nextAdults + 1, nextAdults + 2, nextAdults + 3, 6].find(c => {
+        if (c > 6) return false;
+        const lim = currentTrip?.roomLimits?.[c];
+        const cnt = roomCountByCap[c] || 0;
+        return lim === undefined || cnt < lim;
+      });
+      setCapacity(targetCap || Math.min(6, nextAdults));
     }
   };
 
@@ -166,11 +199,27 @@ export const RoomModal: React.FC<RoomModalProps> = ({
   };
 
   const handleSave = () => {
-    const maxLimit = currentTrip?.roomLimits?.[capacity];
-    const currentCount = roomCountByCap[capacity] || 0;
-    if (maxLimit !== undefined && currentCount >= maxLimit && (!editingRoom || editingRoom.capacity !== capacity)) {
-      alert(`Loại phòng ${capacity} người đã đạt giới hạn tối đa (${currentCount}/${maxLimit} phòng). Vui lòng chọn loại phòng khác.`);
-      return;
+    let finalCapacity = capacity;
+    const maxLimit = currentTrip?.roomLimits?.[finalCapacity];
+    const currentCount = roomCountByCap[finalCapacity] || 0;
+    if (maxLimit !== undefined && currentCount >= maxLimit && (!editingRoom || editingRoom.capacity !== finalCapacity)) {
+      // Tự động tìm loại phòng tiếp theo còn trống
+      const adultCount = currentMembers.filter(m => m.slot > 0).length;
+      const nextAvailable = [2, 3, 4, 5, 6].find(c => {
+        if (c < Math.max(2, adultCount)) return false;
+        const lim = currentTrip?.roomLimits?.[c];
+        const cnt = roomCountByCap[c] || 0;
+        return lim === undefined || cnt < lim;
+      });
+
+      if (nextAvailable) {
+        alert(`Loại phòng ${finalCapacity} người đã đạt định mức tối đa (${currentCount}/${maxLimit} phòng). Hệ thống đã tự động chuyển sang phòng ${nextAvailable} người.`);
+        finalCapacity = nextAvailable;
+        setCapacity(nextAvailable);
+      } else {
+        alert(`Loại phòng ${finalCapacity} người đã đạt giới hạn tối đa (${currentCount}/${maxLimit} phòng) và khách sạn không còn loại phòng nào khác còn chỗ.`);
+        return;
+      }
     }
 
     if (!validation.valid) {
@@ -188,7 +237,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
       // Ignored if confetti fails
     }
 
-    onSaveRoom(capacity, selectedMemberIds);
+    onSaveRoom(finalCapacity, selectedMemberIds);
     onClose();
   };
 

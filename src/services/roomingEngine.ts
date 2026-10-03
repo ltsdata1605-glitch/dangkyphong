@@ -183,7 +183,8 @@ export function canAddPersonToRoom(
 export function autoMatchRooms(
   people: Person[],
   existingRooms: Room[],
-  tripId: string
+  tripId: string,
+  roomLimits?: Record<number, number>
 ): { newRooms: Room[]; updatedRooms: Room[]; assignedCount: number; sameStoreCount: number; crossStoreCount: number } {
   const newRooms: Room[] = [];
   const updatedRooms: Room[] = [];
@@ -194,6 +195,34 @@ export function autoMatchRooms(
   // Bản sao danh sách để thao tác
   const peopleMap = new Map<string, Person>(people.map(p => [p.id, { ...p }]));
   const roomsMap = new Map<string, Room>(existingRooms.map(r => [r.id, { ...r }]));
+
+  const defaultLimits: Record<number, number> = { 2: 152, 3: 11, 4: 20, 5: 6, 6: 6 };
+  const limits: Record<number, number> = roomLimits || defaultLimits;
+
+  // Đếm số lượng phòng hiện có theo từng loại sức chứa
+  const roomCounts: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  for (const r of roomsMap.values()) {
+    if (roomCounts[r.capacity] !== undefined) {
+      roomCounts[r.capacity]++;
+    }
+  }
+
+  // Hàm lấy loại phòng còn định mức (ưu tiên từ preferredCap, nếu đầy tự chuyển sang loại phòng tiếp theo: 2 -> 3 -> 4 -> 5 -> 6)
+  const getNextAvailableCapacity = (preferredCap = 2): number | null => {
+    for (let c = preferredCap; c <= 6; c++) {
+      const maxLim = limits[c];
+      if (maxLim === undefined || (roomCounts[c] || 0) < maxLim) {
+        return c;
+      }
+    }
+    for (let c = 2; c < preferredCap; c++) {
+      const maxLim = limits[c];
+      if (maxLim === undefined || (roomCounts[c] || 0) < maxLim) {
+        return c;
+      }
+    }
+    return null; // Đã hết định mức tất cả các loại phòng
+  };
 
   const getNextRoomCode = () => {
     const allCurrentRooms = Array.from(roomsMap.values()).concat(newRooms);
@@ -291,38 +320,49 @@ export function autoMatchRooms(
         }
       }
 
-      // A.2: Ghép cặp 2 người cùng siêu thị vào phòng mới 2 người
+      // A.2: Ghép nhân viên cùng siêu thị vào phòng mới (tự động chuyển sang loại phòng còn định mức)
       while (membersInStore.length >= 2) {
-        const p1 = membersInStore.shift()!;
-        const p2 = membersInStore.shift()!;
+        const targetCap = getNextAvailableCapacity(2);
+        if (targetCap === null) {
+          // Khách sạn đã hết sạch mọi loại phòng
+          break;
+        }
+
+        const takeCount = Math.min(targetCap, membersInStore.length);
+        if (takeCount < 2) break;
+
+        const chunk = membersInStore.splice(0, takeCount);
         const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         const roomCode = getNextRoomCode();
+        const p1 = chunk[0];
 
+        const isFull = chunk.length === targetCap;
         const newRoom: Room = {
           id: roomId,
           tripId,
           code: roomCode,
-          capacity: 2,
+          capacity: targetCap,
           leaderId: p1.id,
-          memberIds: [p1.id, p2.id],
-          usedSlots: 2,
+          memberIds: chunk.map(p => p.id),
+          usedSlots: chunk.length,
           childCount: 0,
-          status: 'FULL',
-          bedType: 'TWIN',
+          status: isFull ? 'FULL' : 'UNDER',
+          bedType: targetCap === 2 ? 'TWIN' : 'DOUBLE',
           adminOverride: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           updatedBy: 'Ghép tự động (Cùng siêu thị)'
         };
 
-        p1.roomId = roomId;
-        p2.roomId = roomId;
+        chunk.forEach(p => { p.roomId = roomId; });
         newRooms.push(newRoom);
-        assignedCount += 2;
-        sameStoreCount += 2;
+        roomsMap.set(roomId, newRoom);
+        roomCounts[targetCap] = (roomCounts[targetCap] || 0) + 1;
+        assignedCount += chunk.length;
+        sameStoreCount += chunk.length;
       }
 
-      // Mỗi siêu thị nếu còn lẻ 1 người -> đưa vào danh sách chờ ghép khác siêu thị
+      // Mỗi siêu thị nếu còn người -> đưa vào danh sách chờ ghép khác siêu thị
       if (membersInStore.length > 0) {
         leftovers.push(...membersInStore);
       }
@@ -350,7 +390,7 @@ export function autoMatchRooms(
               person.roomId = room.id;
               assignedCount++;
               crossStoreCount++;
-              if (!updatedRooms.some(r => r.id === room.id)) {
+              if (!updatedRooms.some(r => r.id === room.id) && !newRooms.some(r => r.id === room.id)) {
                 updatedRooms.push(room);
               }
             } else {
@@ -362,64 +402,102 @@ export function autoMatchRooms(
       }
     }
 
-    // B.2: Ghép các người còn lại khác siêu thị thành các phòng 2 người
+    // B.2: Ghép các người còn lại khác siêu thị thành các phòng mới (tự động chuyển loại phòng theo định mức)
     while (leftovers.length >= 2) {
-      const p1 = leftovers.shift()!;
-      const p2 = leftovers.shift()!;
+      const targetCap = getNextAvailableCapacity(2);
+      if (targetCap === null) {
+        // Khách sạn đã hết sạch mọi loại phòng
+        break;
+      }
+
+      const takeCount = Math.min(targetCap, leftovers.length);
+      const chunk = leftovers.splice(0, takeCount);
       const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const roomCode = getNextRoomCode();
+      const p1 = chunk[0];
 
+      const isFull = chunk.length === targetCap;
       const newRoom: Room = {
         id: roomId,
         tripId,
         code: roomCode,
-        capacity: 2,
+        capacity: targetCap,
         leaderId: p1.id,
-        memberIds: [p1.id, p2.id],
-        usedSlots: 2,
+        memberIds: chunk.map(p => p.id),
+        usedSlots: chunk.length,
         childCount: 0,
-        status: 'FULL',
-        bedType: 'TWIN',
+        status: isFull ? 'FULL' : 'UNDER',
+        bedType: targetCap === 2 ? 'TWIN' : 'DOUBLE',
         adminOverride: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         updatedBy: 'Ghép tự động (Khác siêu thị)'
       };
 
-      p1.roomId = roomId;
-      p2.roomId = roomId;
+      chunk.forEach(p => { p.roomId = roomId; });
       newRooms.push(newRoom);
-      assignedCount += 2;
-      crossStoreCount += 2;
+      roomsMap.set(roomId, newRoom);
+      roomCounts[targetCap] = (roomCounts[targetCap] || 0) + 1;
+      assignedCount += chunk.length;
+      crossStoreCount += chunk.length;
     }
 
-    // B.3: Nếu toàn đoàn còn lẻ đúng 1 người cuối cùng -> tạo phòng 2 người (1/2 suất)
+    // B.3: Nếu toàn đoàn còn lẻ đúng 1 người cuối cùng
     if (leftovers.length === 1) {
-      const p = leftovers.shift()!;
-      const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const roomCode = getNextRoomCode();
+      // Thử tìm phòng UNDER cùng giới tính để đưa vào
+      let placed = false;
+      for (const room of roomsMap.values()) {
+        if (room.status === 'UNDER' && !room.adminOverride && room.usedSlots < room.capacity && room.memberIds.length < 6) {
+          const roomMembers = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+          if (roomMembers.length > 0 && roomMembers[0].gender === gender && roomMembers[0].type !== 'RELATIVE') {
+            const p = leftovers.shift()!;
+            room.memberIds.push(p.id);
+            room.usedSlots = (room.usedSlots || 0) + 1;
+            room.status = room.usedSlots >= room.capacity ? 'FULL' : 'UNDER';
+            p.roomId = room.id;
+            assignedCount += 1;
+            crossStoreCount += 1;
+            placed = true;
+            if (!updatedRooms.some(r => r.id === room.id) && !newRooms.some(r => r.id === room.id)) {
+              updatedRooms.push(room);
+            }
+            break;
+          }
+        }
+      }
 
-      const newRoom: Room = {
-        id: roomId,
-        tripId,
-        code: roomCode,
-        capacity: 2,
-        leaderId: p.id,
-        memberIds: [p.id],
-        usedSlots: 1,
-        childCount: 0,
-        status: 'UNDER',
-        bedType: 'TWIN',
-        adminOverride: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        updatedBy: 'Ghép tự động (Khác siêu thị)'
-      };
+      if (!placed && leftovers.length === 1) {
+        const targetCap = getNextAvailableCapacity(2);
+        if (targetCap !== null) {
+          const p = leftovers.shift()!;
+          const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const roomCode = getNextRoomCode();
 
-      p.roomId = roomId;
-      newRooms.push(newRoom);
-      assignedCount += 1;
-      crossStoreCount += 1;
+          const newRoom: Room = {
+            id: roomId,
+            tripId,
+            code: roomCode,
+            capacity: targetCap,
+            leaderId: p.id,
+            memberIds: [p.id],
+            usedSlots: 1,
+            childCount: 0,
+            status: 'UNDER',
+            bedType: targetCap === 2 ? 'TWIN' : 'DOUBLE',
+            adminOverride: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'Ghép tự động (Khác siêu thị)'
+          };
+
+          p.roomId = roomId;
+          newRooms.push(newRoom);
+          roomsMap.set(roomId, newRoom);
+          roomCounts[targetCap] = (roomCounts[targetCap] || 0) + 1;
+          assignedCount += 1;
+          crossStoreCount += 1;
+        }
+      }
     }
   };
 

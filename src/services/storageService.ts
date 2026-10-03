@@ -626,6 +626,7 @@ export async function claimRelative(
   const rooms = getRooms(tripId);
   let roomCode = '';
   let isNewRoom = false;
+  let autoCapacity = 2;
 
   // 2. Tự động tạo phòng hoặc thêm vào phòng hiện tại của nhân viên
   let targetRoom = employee.roomId ? rooms.find(r => r.id === employee.roomId) : null;
@@ -665,8 +666,35 @@ export async function claimRelative(
     roomCode = targetRoom.code;
     isNewRoom = false;
   } else {
-    // Trường hợp B: Nhân viên chưa có phòng -> TỰ ĐỘNG TẠO PHÒNG 2 NGƯỜI
+    // Trường hợp B: Nhân viên chưa có phòng -> TỰ ĐỘNG TẠO PHÒNG MỚI (Tự động chuyển loại phòng nếu phòng 2 người đã đầy)
     isNewRoom = true;
+
+    // Kiểm tra định mức phòng
+    const currentTrip = getTrips().find(t => t.id === tripId);
+    if (currentTrip?.roomLimits) {
+      const counts: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+      rooms.forEach(r => {
+        if (counts[r.capacity] !== undefined) counts[r.capacity]++;
+      });
+
+      // Nếu phòng 2 người đã đầy, tự động chuyển sang loại phòng còn chỉ tiêu (2 -> 3 -> 4 -> 5 -> 6)
+      let foundCap: number | null = null;
+      for (let c = 2; c <= 6; c++) {
+        const lim = currentTrip.roomLimits[c];
+        if (lim === undefined || (counts[c] || 0) < lim) {
+          foundCap = c;
+          break;
+        }
+      }
+      if (foundCap === null) {
+        return {
+          success: false,
+          message: 'Khách sạn đã hết tất cả các loại phòng theo định mức. Không thể mở thêm phòng mới.'
+        };
+      }
+      autoCapacity = foundCap;
+    }
+
     const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     // Tìm số phòng P.X tiếp theo bắt đầu từ 1
@@ -696,12 +724,12 @@ export async function claimRelative(
       id: roomId,
       tripId,
       code: roomCode,
-      capacity: 2, // Mặc định phòng 2 người theo yêu cầu
+      capacity: autoCapacity,
       leaderId: employee.id,
       memberIds: [employee.id, relative.id],
       usedSlots,
       childCount,
-      status: usedSlots >= 2 ? 'FULL' : 'UNDER',
+      status: usedSlots >= autoCapacity ? 'FULL' : 'UNDER',
       bedType,
       adminOverride: false,
       createdAt: new Date().toISOString(),
@@ -730,7 +758,7 @@ export async function claimRelative(
     action: isNewRoom ? 'CREATE_ROOM' : 'UPDATE_ROOM',
     actor: employee.code,
     actorName: employee.name,
-    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relLabel}) và ${isNewRoom ? `hệ thống tự động tạo phòng ${roomCode} (2 người)` : `thêm vào phòng ${roomCode}`}`,
+    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relLabel}) và ${isNewRoom ? `hệ thống tự động tạo phòng ${roomCode} (${autoCapacity} người)` : `thêm vào phòng ${roomCode}`}`,
     timestamp: new Date().toISOString()
   });
 
@@ -739,7 +767,7 @@ export async function claimRelative(
     roomCode,
     isNewRoom,
     message: isNewRoom 
-      ? `Đã nhận người thân và tự động tạo phòng ${roomCode} (Phòng 2 người)` 
+      ? `Đã nhận người thân và tự động tạo phòng ${roomCode} (Phòng ${autoCapacity} người${autoCapacity > 2 ? ' do phòng 2 người đã đủ số lượng' : ''})` 
       : `Đã nhận người thân và thêm vào phòng ${roomCode}`
   };
 }

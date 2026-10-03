@@ -182,7 +182,49 @@ export const App: React.FC = () => {
     const currentRooms = getRooms(currentTrip.id);
     const members = memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
 
-    const validation = validateRoom(members, capacity, currentTrip.maxChildrenPerRoom, false);
+    // Kiểm tra định mức phòng nếu có
+    let actualCapacity = capacity;
+    if (currentTrip.roomLimits) {
+      const counts: Record<number, number> = {};
+      currentRooms.forEach(r => {
+        if (!editingRoomId || r.id !== editingRoomId) {
+          counts[r.capacity] = (counts[r.capacity] || 0) + 1;
+        }
+      });
+
+      const currentLimit = currentTrip.roomLimits[actualCapacity];
+      if (currentLimit !== undefined && (counts[actualCapacity] || 0) >= currentLimit) {
+        // Loại phòng này đã đầy định mức! Tự động chuyển sang loại phòng tiếp theo còn chỗ
+        const adultSlots = members.filter(m => m.slot > 0).length;
+        let nextCap: number | null = null;
+        for (let c = Math.max(actualCapacity, adultSlots, 2); c <= 6; c++) {
+          const lim = currentTrip.roomLimits[c];
+          if (lim === undefined || (counts[c] || 0) < lim) {
+            nextCap = c;
+            break;
+          }
+        }
+        if (nextCap === null) {
+          for (let c = Math.max(adultSlots, 2); c < actualCapacity; c++) {
+            const lim = currentTrip.roomLimits[c];
+            if (lim === undefined || (counts[c] || 0) < lim) {
+              nextCap = c;
+              break;
+            }
+          }
+        }
+
+        if (nextCap !== null) {
+          alert(`Loại phòng ${actualCapacity} người đã đủ số lượng quy định (${counts[actualCapacity]}/${currentLimit} phòng). Hệ thống đã tự động chuyển sang phòng ${nextCap} người.`);
+          actualCapacity = nextCap;
+        } else {
+          alert(`Loại phòng ${actualCapacity} người đã đạt giới hạn tối đa (${counts[actualCapacity]}/${currentLimit} phòng) và khách sạn đã hết tất cả các loại phòng khác.`);
+          return;
+        }
+      }
+    }
+
+    const validation = validateRoom(members, actualCapacity, currentTrip.maxChildrenPerRoom, false);
     if (!validation.valid) {
       alert(validation.errors.join('\n'));
       return;
@@ -219,12 +261,12 @@ export const App: React.FC = () => {
       id: roomId!,
       tripId: currentTrip.id,
       code: roomCode,
-      capacity,
+      capacity: actualCapacity,
       leaderId: currentEmployee.id,
       memberIds,
       usedSlots: validation.usedSlots,
       childCount: validation.childCount,
-      status: validation.usedSlots === capacity ? 'FULL' : 'UNDER',
+      status: validation.usedSlots === actualCapacity ? 'FULL' : 'UNDER',
       bedType: validation.bedType,
       adminOverride: false,
       createdAt: new Date().toISOString(),
@@ -365,7 +407,7 @@ export const App: React.FC = () => {
 
   // Ghép phòng tự động
   const handleAutoMatch = async () => {
-    const res = autoMatchRooms(people, rooms, currentTrip.id);
+    const res = autoMatchRooms(people, rooms, currentTrip.id, currentTrip.roomLimits);
     if (res.assignedCount === 0) {
       alert('Không còn nhân sự trống nào có thể tự động ghép.');
       return;
@@ -414,11 +456,14 @@ export const App: React.FC = () => {
       // Ignored
     }
 
-    alert(
-      `🎉 Đã tự động ghép thành công ${res.assignedCount} người vào các phòng!\n\n` +
+    const totalRemaining = currentPeople.filter(p => !p.roomId && p.slot > 0).length;
+    let alertMsg = `🎉 Đã tự động ghép thành công ${res.assignedCount} người vào các phòng theo đúng định mức!\n\n` +
       `🏢 Ghép cùng siêu thị: ${res.sameStoreCount || 0} người\n` +
-      `🌐 Ghép khác siêu thị: ${res.crossStoreCount || 0} người`
-    );
+      `🌐 Ghép khác siêu thị: ${res.crossStoreCount || 0} người`;
+    if (totalRemaining > 0) {
+      alertMsg += `\n\n⚠️ Lưu ý: Còn ${totalRemaining} người chưa thể ghép phòng do tất cả các loại phòng định mức của khách sạn đã đạt giới hạn tối đa!`;
+    }
+    alert(alertMsg);
     refreshData();
   };
 
@@ -579,9 +624,45 @@ export const App: React.FC = () => {
 
     // Tự động nâng loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6)
     const adultSlots = members.filter(m => m.slot > 0).length;
-    let actualCapacity = capacity;
-    if (adultSlots > actualCapacity) {
-      actualCapacity = Math.min(6, adultSlots);
+    let actualCapacity = Math.max(capacity, Math.min(6, adultSlots));
+
+    // Kiểm tra định mức phòng
+    if (currentTrip.roomLimits) {
+      const counts: Record<number, number> = {};
+      currentRooms.forEach(r => {
+        if (!editingRoomId || r.id !== editingRoomId) {
+          counts[r.capacity] = (counts[r.capacity] || 0) + 1;
+        }
+      });
+
+      const currentLimit = currentTrip.roomLimits[actualCapacity];
+      if (currentLimit !== undefined && (counts[actualCapacity] || 0) >= currentLimit) {
+        let nextCap: number | null = null;
+        for (let c = Math.max(actualCapacity, adultSlots, 2); c <= 6; c++) {
+          const lim = currentTrip.roomLimits[c];
+          if (lim === undefined || (counts[c] || 0) < lim) {
+            nextCap = c;
+            break;
+          }
+        }
+        if (nextCap === null) {
+          for (let c = Math.max(adultSlots, 2); c < actualCapacity; c++) {
+            const lim = currentTrip.roomLimits[c];
+            if (lim === undefined || (counts[c] || 0) < lim) {
+              nextCap = c;
+              break;
+            }
+          }
+        }
+
+        if (nextCap !== null) {
+          alert(`Loại phòng ${actualCapacity} người đã đủ số lượng quy định (${counts[actualCapacity]}/${currentLimit} phòng). Hệ thống đã tự động chuyển sang phòng ${nextCap} người.`);
+          actualCapacity = nextCap;
+        } else {
+          alert(`Loại phòng ${actualCapacity} người đã đạt giới hạn tối đa (${counts[actualCapacity]}/${currentLimit} phòng) và khách sạn đã hết tất cả các loại phòng khác.`);
+          return;
+        }
+      }
     }
 
     const validation = validateRoom(members, actualCapacity, currentTrip.maxChildrenPerRoom, true);
