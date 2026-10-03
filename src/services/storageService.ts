@@ -1,5 +1,4 @@
 import { Person, Room, RoomStatus, Trip, AuditLog, RelationType, BedType } from '../types';
-import seedPeople from '../data_sample.json';
 import { db } from './firebase';
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { validateRoom } from './roomingEngine';
@@ -126,10 +125,12 @@ export function setupFirestoreListeners(tripId: string): void {
   // 4. Lắng nghe audit logs
   try {
     logsUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'logs'), (snapshot) => {
+      if (snapshot.metadata.hasPendingWrites) return;
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.logs)) {
-          localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(data.logs));
+          const cleanLogs = data.logs.filter((l: AuditLog) => !l.id.startsWith('log_init_'));
+          localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(cleanLogs));
           notifyStateChange();
         }
       } else {
@@ -217,41 +218,12 @@ export function initializeStorage(): void {
     setActiveTripId(activeTripId);
   }
 
-  // 3. Nạp danh sách nhân sự mẫu (550 người từ file Excel thực tế) cho chuyến đi đầu tiên nếu chưa có
-  const people = getPeople(activeTripId);
-  if (people.length === 0) {
-    const initialPeople: Person[] = (seedPeople as any[]).map(p => ({
-      ...p,
-      nameUnsigned: p.name ? p.name.toLowerCase() : ''
-    }));
-    savePeople(activeTripId, initialPeople);
+  // KHÔNG tự động nạp dữ liệu mẫu. Hệ thống hoàn toàn làm việc trên dữ liệu thực tế do Admin thiết lập hoặc đồng bộ từ Firebase.
 
-    const nowIso = new Date().toISOString();
-    // Ghi log khởi tạo
-    addLog(activeTripId, {
-      id: `log_init_${Date.now()}`,
-      tripId: activeTripId,
-      action: 'IMPORT_EXCEL',
-      actor: 'system',
-      actorName: 'Hệ Thống',
-      details: `Đã nạp tự động 550 nhân sự từ file DANH SÁCH NHÂN VIÊN.xlsx`,
-      timestamp: nowIso
-    });
-
-    // Cập nhật thông tin nhập cho chuyến đi
-    const allTrips = getTrips();
-    const currTrip = allTrips.find(t => t.id === activeTripId);
-    if (currTrip) {
-      currTrip.lastImportedAt = nowIso;
-      currTrip.lastImportedCount = initialPeople.length;
-      saveTrip(currTrip);
-    }
-  }
-
-  // 4. Kích hoạt Firebase Realtime Listener
+  // 3. Kích hoạt Firebase Realtime Listener
   setupFirestoreListeners(activeTripId);
 
-  // 5. Chuẩn hóa số phòng bắt đầu từ 1 cho tất cả các chuyến đi
+  // 4. Chuẩn hóa số phòng bắt đầu từ 1 cho tất cả các chuyến đi
   trips.forEach(t => {
     getRooms(t.id);
   });
@@ -548,16 +520,19 @@ export async function saveRooms(tripId: string, rooms: Room[]): Promise<void> {
 export function getLogs(tripId: string): AuditLog[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(l => !l.id.startsWith('log_init_'));
   } catch {
     return [];
   }
 }
 
 export function addLog(tripId: string, log: AuditLog): void {
-  const logs = getLogs(tripId);
+  const logs = getLogs(tripId).filter(l => !l.id.startsWith('log_init_'));
   logs.unshift(log);
-  localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(logs.slice(0, 100)));
+  localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(logs.slice(0, 300)));
   syncLogsToFirebase(tripId);
   notifyStateChange();
 }
@@ -1120,23 +1095,23 @@ export async function deleteAllRooms(tripId: string, actorId: string, actorName:
 }
 
 /**
- * Khôi phục dữ liệu ban đầu
+ * Khôi phục dữ liệu ban đầu cho chuyến đi (xóa phòng, đặt lại trạng thái nhân sự hiện tại)
  */
 export async function resetDefaultData(tripId: string): Promise<void> {
-  const initialPeople: Person[] = (seedPeople as any[]).map(p => ({
+  const currentPeople = getPeople(tripId);
+  const resetPeople: Person[] = currentPeople.map(p => ({
     ...p,
-    roomId: null,
-    nameUnsigned: p.name ? p.name.toLowerCase() : ''
+    roomId: null
   }));
-  await savePeople(tripId, initialPeople);
+  await savePeople(tripId, resetPeople);
   await saveRooms(tripId, []);
   addLog(tripId, {
     id: `log_${Date.now()}`,
     tripId,
-    action: 'IMPORT_EXCEL',
+    action: 'DELETE_ROOM',
     actor: 'admin',
     actorName: 'Ban Tổ Chức',
-    details: 'Đã đặt lại dữ liệu phòng về trạng thái ban đầu',
+    details: `Đã đặt lại dữ liệu chuyến đi: xóa toàn bộ phòng và đưa tất cả ${resetPeople.length} nhân sự về trạng thái chưa xếp phòng`,
     timestamp: new Date().toISOString()
   });
 }
