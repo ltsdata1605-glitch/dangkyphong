@@ -159,33 +159,6 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
               )}
             </button>
           )}
-
-          {/* Countdown Box (Gọn gàng) */}
-          <div className="countdown-deadline-box" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '5px 12px',
-            borderRadius: 'var(--radius-md)',
-            background: isLocked ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.08)',
-            border: isLocked ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)'
-          }}>
-            <Clock size={16} style={{ color: isLocked ? 'var(--color-danger)' : 'var(--primary-500)', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '0.66rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', lineHeight: 1.1 }}>
-                Hạn chót đăng ký
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 800,
-                fontSize: '0.88rem',
-                lineHeight: 1.2,
-                color: isLocked ? 'var(--color-danger)' : 'var(--primary-500)'
-              }}>
-                {trip.isLocked ? 'BTC đã khóa' : timeLeft.text}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
