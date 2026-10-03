@@ -49,18 +49,33 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Tìm phòng hiện tại của nhân viên
-  const myRoom = allRooms.find(r => r.id === currentEmployee.roomId);
-  const isLeader = myRoom && myRoom.leaderId === currentEmployee.id;
+  // Tìm phòng hiện tại của nhân viên (kiểm tra cả roomId và danh sách memberIds)
+  const myRoom = allRooms.find(r => r.id === currentEmployee.roomId || r.memberIds.includes(currentEmployee.id) || r.memberIds.includes(currentEmployee.code));
+  const isLeader = myRoom ? (myRoom.leaderId === currentEmployee.id || myRoom.leaderId === currentEmployee.code) : false;
 
   // Thành viên trong phòng hiện tại
   const roomMembers = myRoom
-    ? myRoom.memberIds.map(id => allPeople.find(p => p.id === id)!).filter(Boolean)
+    ? myRoom.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean)
     : [];
 
   const leaderPerson = myRoom
-    ? allPeople.find(p => p.id === myRoom.leaderId)
+    ? allPeople.find(p => p.id === myRoom.leaderId || p.code === myRoom.leaderId)
     : null;
+
+  // Quản lý trạng thái xác nhận / đóng thông báo phòng
+  const [acknowledgedRoomId, setAcknowledgedRoomId] = useState<string | null>(() => {
+    return myRoom ? localStorage.getItem(`room_ack_${myRoom.id}_${currentEmployee.id}`) : null;
+  });
+
+  const isRoomAcknowledged = acknowledgedRoomId === myRoom?.id;
+
+  const handleAcknowledgeRoom = () => {
+    if (myRoom) {
+      const key = `room_ack_${myRoom.id}_${currentEmployee.id}`;
+      localStorage.setItem(key, myRoom.id);
+      setAcknowledgedRoomId(myRoom.id);
+    }
+  };
 
   // Người thân thuộc quyền bảo trợ của nhân viên này (bao gồm cả vợ/chồng là nhân viên)
   const myRelatives = allPeople.filter(p => p.ownerId === currentEmployee.code && p.id !== currentEmployee.id);
@@ -98,6 +113,10 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   };
 
   const executeLeave = () => {
+    if (myRoom) {
+      localStorage.removeItem(`room_ack_${myRoom.id}_${currentEmployee.id}`);
+      setAcknowledgedRoomId(null);
+    }
     onLeaveRoom(currentEmployee.id);
     setShowLeaveModal(false);
   };
@@ -202,8 +221,8 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
         ) : (
           /* Case B & C: In a Room */
           <div>
-            {/* Banner: Đã được người khác thêm vào phòng (Lựa chọn Giữ nguyên hoặc Rời phòng) */}
-            {!isLeader && (
+            {/* Banner: Đã được người khác thêm vào phòng (Chỉ hiển thị khi chưa xác nhận) */}
+            {!isLeader && !isRoomAcknowledged && (
               <div style={{
                 padding: '16px 20px',
                 borderRadius: 'var(--radius-md)',
@@ -214,7 +233,8 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: 14
+                gap: 14,
+                boxShadow: 'var(--shadow-sm)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 260, flex: 1 }}>
                   <div style={{
@@ -236,38 +256,44 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       Bạn đã được thêm vào phòng {myRoom.code} ({myRoom.capacity} Người)
                     </div>
                     <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
-                      Trưởng phòng <strong>{leaderPerson?.name || 'Đồng nghiệp'}</strong> ({leaderPerson?.code}) đã chọn bạn vào phòng này. Bạn có thể chọn giữ nguyên hoặc rời phòng để tự lập phòng riêng.
+                      Trưởng phòng <strong>{leaderPerson?.name || 'Đồng nghiệp'}</strong> ({leaderPerson?.code}) đã chọn bạn vào phòng này. Bấm <strong>Xác nhận giữ phòng</strong> nếu đồng ý, hoặc dùng nút <strong>Rời khỏi phòng</strong> bên dưới nếu muốn lập phòng riêng.
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => {
-                      alert(`Đã xác nhận: Bạn giữ nguyên vị trí trong phòng ${myRoom.code}. Chúc bạn và đồng nghiệp có chuyến đi vui vẻ!`);
-                    }}
-                    className="btn btn-secondary btn-sm"
+                    onClick={handleAcknowledgeRoom}
+                    className="btn btn-primary btn-sm"
                     style={{
-                      borderColor: 'var(--color-success)',
-                      color: 'var(--color-success)',
                       fontWeight: 700,
-                      background: 'rgba(34, 197, 94, 0.08)'
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
                     }}
+                    title="Xác nhận giữ nguyên phòng này và ẩn thông báo"
                   >
-                    <CheckCircle size={16} /> Giữ Nguyên Phòng
+                    <CheckCircle size={16} /> Xác Nhận Giữ Phòng
                   </button>
-
-                  {!isLocked && (
-                    <button
-                      type="button"
-                      onClick={handleConfirmLeave}
-                      className="btn btn-danger btn-sm"
-                      style={{ fontWeight: 700 }}
-                    >
-                      <LogOut size={16} /> Rời Khỏi Phòng
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleAcknowledgeRoom}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '1rem',
+                      lineHeight: 1
+                    }}
+                    title="Đóng thông báo"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             )}

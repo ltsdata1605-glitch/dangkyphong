@@ -265,14 +265,21 @@ export const App: React.FC = () => {
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
     const res = leaveRoom(currentTrip.id, personId, actorId, actorName);
     if (res.success) {
-      setCurrentEmployee(prev => {
-        if (prev && (prev.id === personId || prev.code === personId)) {
-          const updated = { ...prev, roomId: null };
-          localStorage.setItem('rooming_current_employee', JSON.stringify(updated));
-          return updated;
-        }
-        return prev;
-      });
+      const updatedPeople = getPeople(currentTrip.id);
+      const updatedEmp = updatedPeople.find(p => p.id === personId || p.code === personId);
+      if (updatedEmp) {
+        localStorage.setItem('rooming_current_employee', JSON.stringify(updatedEmp));
+        setCurrentEmployee(updatedEmp);
+      } else {
+        setCurrentEmployee(prev => {
+          if (prev && (prev.id === personId || prev.code === personId)) {
+            const updated = { ...prev, roomId: null };
+            localStorage.setItem('rooming_current_employee', JSON.stringify(updated));
+            return updated;
+          }
+          return prev;
+        });
+      }
       refreshData();
     } else {
       alert(res.message);
