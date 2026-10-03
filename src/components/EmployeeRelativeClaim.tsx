@@ -129,78 +129,41 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
         </button>
       </div>
 
-      {/* Description */}
-      {hasStoreRelatives ? (
-        <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: 14 }}>
-          Tại <strong>{currentEmployee.store}</strong> hiện có <strong>{unclaimedRelativesInStore.length}</strong> người thân đăng ký chưa gắn mã nhân viên. Nếu là người thân của bạn, hãy bấm xác nhận để được xếp chung phòng gia đình:
-        </p>
-      ) : (
-        <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: 14 }}>
-          Hiện không có người thân nào chưa gắn mã tại <strong>{currentEmployee.store}</strong>. Nếu người thân của bạn đăng ký ở siêu thị/đơn vị khác, hãy nhập tên bên dưới để tìm và nhận người thân:
-        </p>
-      )}
-
-      {/* 1. Danh sách người thân cùng siêu thị */}
-      {hasStoreRelatives && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
-          gap: 12,
-          marginBottom: showOtherStoreSearch || !hasStoreRelatives ? 16 : 0
-        }}>
-          {unclaimedRelativesInStore.map(rel => (
-            <div
-              key={rel.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-card-solid)',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: 'var(--shadow-sm)',
-                gap: 12
-              }}
-            >
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.94rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {rel.name}
-                </div>
-                <div style={{ marginTop: 4 }}>
-                  {getRelationBadge(rel.relation, rel.slot)}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleOpenClaimModal(rel)}
-                className="btn btn-sm btn-primary"
-                style={{ fontSize: '0.82rem', padding: '6px 14px', flexShrink: 0 }}
-                title="Xác nhận đây là người thân của tôi"
-              >
-                <UserPlus size={14} />
-                Nhận
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 2. Thanh tìm kiếm người thân ở siêu thị khác */}
+      {/* 1. Thanh tìm kiếm người thân ở siêu thị khác (HIỂN THỊ BÊN TRÊN KHI BẤM TÌM) */}
       {(showOtherStoreSearch || !hasStoreRelatives) && (
         <div style={{
-          marginTop: hasStoreRelatives ? 14 : 0,
-          padding: '14px 16px',
+          marginBottom: hasStoreRelatives ? 16 : 0,
+          padding: '16px 18px',
           borderRadius: 'var(--radius-md)',
           background: 'var(--bg-card-solid)',
-          border: '1px solid rgba(245, 158, 11, 0.35)'
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#b45309' }}>
-            <Building2 size={16} />
-            <strong style={{ fontSize: '0.88rem' }}>
-              Tìm Người Thân Đăng Ký Ở Siêu Thị / Đơn Vị Khác:
-            </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b45309' }}>
+              <Building2 size={16} />
+              <strong style={{ fontSize: '0.9rem' }}>
+                Tìm Người Thân Đăng Ký Ở Siêu Thị / Đơn Vị Khác:
+              </strong>
+            </div>
+            {hasStoreRelatives && (
+              <button
+                type="button"
+                onClick={() => setShowOtherStoreSearch(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: '0.78rem'
+                }}
+              >
+                <X size={14} /> Đóng tìm kiếm
+              </button>
+            )}
           </div>
 
           <div style={{ position: 'relative', marginBottom: 10 }}>
@@ -296,6 +259,65 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Description */}
+      {hasStoreRelatives ? (
+        <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: 14 }}>
+          Tại <strong>{currentEmployee.store}</strong> hiện có <strong>{unclaimedRelativesInStore.length}</strong> người thân đăng ký chưa gắn mã nhân viên. Nếu là người thân của bạn, hãy bấm xác nhận để được xếp chung phòng gia đình:
+        </p>
+      ) : (
+        !showOtherStoreSearch && (
+          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: 14 }}>
+            Hiện không có người thân nào chưa gắn mã tại <strong>{currentEmployee.store}</strong>. Nếu người thân của bạn đăng ký ở siêu thị/đơn vị khác, hãy nhập tên bên trên để tìm và nhận người thân:
+          </p>
+        )
+      )}
+
+      {/* 2. Danh sách người thân cùng siêu thị */}
+      {hasStoreRelatives && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+          gap: 12
+        }}>
+          {unclaimedRelativesInStore.map(rel => (
+            <div
+              key={rel.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-card-solid)',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: 'var(--shadow-sm)',
+                gap: 12
+              }}
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.94rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {rel.name}
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  {getRelationBadge(rel.relation, rel.slot)}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleOpenClaimModal(rel)}
+                className="btn btn-sm btn-primary"
+                style={{ fontSize: '0.82rem', padding: '6px 14px', flexShrink: 0 }}
+                title="Xác nhận đây là người thân của tôi"
+              >
+                <UserPlus size={14} />
+                Nhận
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
