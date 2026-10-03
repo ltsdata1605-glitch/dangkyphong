@@ -152,7 +152,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Top Header */}
-      <div className="glass-card" style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div className="glass-card admin-trip-header-card" style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
             Quản Lý Tours & Khách Sạn (Multi-tour)
@@ -185,7 +185,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
             return (
               <div
                 key={trip.id}
-                className="glass-card"
+                className="glass-card admin-tour-card"
                 style={{
                   padding: '20px 24px',
                   border: isActive ? '2px solid var(--primary-500)' : '1px solid var(--border-subtle)',
@@ -229,7 +229,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                   </div>
 
                   {/* Actions buttons nằm cùng hàng với tiêu đề tour */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div className="admin-tour-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {!isActive && (
                       <button
                         onClick={() => onSelectTrip(trip.id)}
@@ -312,7 +312,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 )}
 
                 {/* 2. Thông tin chi tiết chuyến đi (Dạng dòng ngang rộng rãi, không bị tràn) */}
-                <div style={{
+                <div className="admin-tour-details-box" style={{
                   display: 'flex',
                   alignItems: 'center',
                   flexWrap: 'wrap',
@@ -361,7 +361,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 </div>
 
                 {/* 3. Định mức số lượng phòng theo loại */}
-                <div style={{
+                <div className="admin-tour-limits" style={{
                   display: 'flex',
                   alignItems: 'center',
                   flexWrap: 'wrap',

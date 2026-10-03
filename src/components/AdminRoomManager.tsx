@@ -115,14 +115,14 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Search and Filters Bar */}
-      <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="glass-card admin-filter-bar" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, flex: '1 1 300px' }}>
           {/* Search Input */}
-          <div style={{ position: 'relative', minWidth: 240, flex: 1 }}>
+          <div style={{ position: 'relative', minWidth: 200, flex: 1 }}>
             <Search size={16} style={{ position: 'absolute', left: 12, top: 13, color: 'var(--text-muted)' }} />
             <input
               type="text"
-              className="input-field"
+              className="input-field admin-filter-input"
               placeholder="Tìm mã phòng, tên thành viên, MSNV..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -134,7 +134,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value as any)}
-            className="input-field"
+            className="input-field admin-filter-select"
             style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer' }}
           >
             <option value="ALL">Tất cả trạng thái</option>
@@ -147,7 +147,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
           <select
             value={capacityFilter}
             onChange={e => setCapacityFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-            className="input-field"
+            className="input-field admin-filter-select"
             style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer' }}
           >
             <option value="ALL">Tất cả loại phòng</option>
@@ -246,7 +246,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
             return (
               <div
                 key={room.id}
-                className="glass-card"
+                className="glass-card admin-room-list-item"
                 style={{
                   padding: '8px 14px',
                   display: 'flex',
@@ -258,7 +258,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 }}
               >
                 {/* Left: Thông tin phòng */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div className="admin-room-info" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <span style={{ fontSize: '1.05rem', fontWeight: 800, minWidth: 42, color: 'var(--text-main)' }}>
                     {room.code}
                   </span>
@@ -279,12 +279,13 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 </div>
 
                 {/* Middle: Thành viên trong phòng */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 260 }}>
+                <div className="admin-room-members" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 260 }}>
                   {members.map(m => {
                     const isLeader = m.id === room.leaderId;
                     return (
                       <div
                         key={m.id}
+                        className="admin-room-member-pill"
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -340,7 +341,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 </div>
 
                 {/* Right: Thao tác Admin */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div className="admin-room-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <button
                     onClick={() => {
                       if (room.memberIds.length >= 6) {

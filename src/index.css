@@ -309,8 +309,14 @@ h1, h2, h3, h4, h5, h6 {
 /* Mobile & Touch Optimizations */
 @media (max-width: 640px) {
   html {
-    font-size: 14.5px; /* Proportionally scales all rem-based typography and spacing */
+    font-size: 13.5px; /* Proportionally scales all rem-based typography and spacing */
   }
+
+@media (max-width: 390px) {
+  html {
+    font-size: 12.5px;
+  }
+}
 
   .app-main-container {
     padding: 0 8px !important;
@@ -620,6 +626,165 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 8px !important;
     padding: 6px 8px !important;
     font-size: 0.7rem !important;
+  }
+
+  /* Admin Tabs Bar Mobile Compact */
+  .admin-tabs-bar {
+    padding: 4px 6px !important;
+    gap: 4px !important;
+    margin-bottom: 8px !important;
+    border-radius: 10px !important;
+  }
+  .admin-tab-btn {
+    font-size: 0.7rem !important;
+    padding: 3px 6px !important;
+    min-height: 26px !important;
+    gap: 3px !important;
+  }
+  .admin-tab-btn svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* Universal Admin Filter Bar Mobile Compact */
+  .admin-filter-bar {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    border-radius: 10px !important;
+  }
+  .admin-filter-bar .input-field,
+  .admin-filter-input {
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 0.76rem !important;
+    padding: 3px 6px 3px 26px !important;
+    border-radius: 6px !important;
+  }
+  .admin-filter-bar select,
+  .admin-filter-select {
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 0.74rem !important;
+    padding: 0 6px !important;
+    border-radius: 6px !important;
+    flex: 1 1 110px !important;
+    max-width: 100% !important;
+  }
+  .admin-filter-bar svg {
+    width: 12px !important;
+    height: 12px !important;
+    top: 10px !important;
+    left: 8px !important;
+  }
+
+  /* Room Manager (AdminRoomManager) Mobile Compact */
+  .admin-room-list-item {
+    padding: 5px 8px !important;
+    gap: 5px !important;
+    border-radius: 8px !important;
+    margin-bottom: 2px !important;
+  }
+  .admin-room-info {
+    gap: 4px !important;
+  }
+  .admin-room-info span {
+    font-size: 0.88rem !important;
+    min-width: 32px !important;
+  }
+  .admin-room-info .badge {
+    font-size: 0.62rem !important;
+    padding: 1px 4px !important;
+  }
+  .admin-room-members {
+    gap: 3px !important;
+    min-width: 100% !important;
+    margin: 2px 0 !important;
+  }
+  .admin-room-member-pill {
+    padding: 1px 5px !important;
+    font-size: 0.72rem !important;
+    gap: 3px !important;
+    border-radius: 4px !important;
+  }
+  .admin-room-member-pill strong {
+    font-size: 0.72rem !important;
+  }
+  .admin-room-actions {
+    gap: 4px !important;
+  }
+  .admin-room-actions .btn {
+    padding: 2px 6px !important;
+    font-size: 0.68rem !important;
+    min-height: 24px !important;
+  }
+  .admin-room-actions .btn svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  /* People Manager (AdminPeopleManager) Mobile Table */
+  .admin-table-card {
+    border-radius: 10px !important;
+  }
+  .admin-compact-table th {
+    padding: 5px 7px !important;
+    font-size: 0.68rem !important;
+    white-space: nowrap !important;
+  }
+  .admin-compact-table td {
+    padding: 5px 7px !important;
+    font-size: 0.74rem !important;
+  }
+  .admin-compact-table .badge {
+    font-size: 0.62rem !important;
+    padding: 1px 4px !important;
+  }
+
+  /* Tour Manager (AdminTripManager) Mobile Compact */
+  .admin-trip-header-card {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    border-radius: 10px !important;
+  }
+  .admin-trip-header-card h3 {
+    font-size: 0.98rem !important;
+  }
+  .admin-trip-header-card p {
+    font-size: 0.72rem !important;
+  }
+  .admin-tour-card {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    border-radius: 10px !important;
+  }
+  .admin-tour-card h4 {
+    font-size: 0.92rem !important;
+  }
+  .admin-tour-actions {
+    gap: 4px !important;
+  }
+  .admin-tour-actions .btn {
+    padding: 3px 6px !important;
+    font-size: 0.7rem !important;
+    min-height: 24px !important;
+  }
+  .admin-tour-details-box {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    row-gap: 4px !important;
+    font-size: 0.72rem !important;
+    border-radius: 6px !important;
+  }
+  .admin-tour-details-box svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  .admin-tour-limits {
+    gap: 3px !important;
+  }
+  .admin-tour-limits span {
+    font-size: 0.68rem !important;
+    padding: 2px 5px !important;
   }
 }
 

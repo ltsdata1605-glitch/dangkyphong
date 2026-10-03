@@ -103,14 +103,14 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Controls Bar */}
-      <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="glass-card admin-filter-bar" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, flex: '1 1 300px' }}>
           {/* Search */}
-          <div style={{ position: 'relative', minWidth: 220, flex: 1 }}>
+          <div style={{ position: 'relative', minWidth: 200, flex: 1 }}>
             <Search size={16} style={{ position: 'absolute', left: 12, top: 13, color: 'var(--text-muted)' }} />
             <input
               type="text"
-              className="input-field"
+              className="input-field admin-filter-input"
               placeholder="Tìm theo tên, MSNV, siêu thị..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -122,7 +122,7 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value as any)}
-            className="input-field"
+            className="input-field admin-filter-select"
             style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer' }}
           >
             <option value="ALL">Tất cả đối tượng</option>
@@ -135,7 +135,7 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
           <select
             value={roomFilter}
             onChange={e => setRoomFilter(e.target.value as any)}
-            className="input-field"
+            className="input-field admin-filter-select"
             style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer' }}
           >
             <option value="ALL">Tất cả phòng</option>
@@ -147,7 +147,7 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
           <select
             value={selectedStore}
             onChange={e => setSelectedStore(e.target.value)}
-            className="input-field"
+            className="input-field admin-filter-select"
             style={{ width: 'auto', height: 40, padding: '0 12px', cursor: 'pointer', maxWidth: 200 }}
           >
             <option value="ALL">Tất cả siêu thị ({uniqueStores.length})</option>
@@ -163,9 +163,9 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
       </div>
 
       {/* People Table */}
-      <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="glass-card admin-table-card" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+          <table className="admin-compact-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
               <tr style={{ background: 'var(--bg-muted)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                 <th style={{ padding: '12px 16px' }}>Họ Và Tên</th>

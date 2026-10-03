@@ -84,9 +84,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
   return (
     <div style={{ width: '100%', margin: '20px 0' }}>
       {/* Admin Tabs Bar */}
-      <div className="glass-card" style={{
+      <div className="glass-card admin-tabs-bar" style={{
         padding: '8px 12px',
-        marginBottom: 20,
+        marginBottom: 16,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -96,47 +96,47 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`btn btn-sm ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm admin-tab-btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <LayoutDashboard size={16} /> Tổng Quan
+            <LayoutDashboard size={15} /> Tổng Quan
           </button>
 
           <button
             onClick={() => setActiveTab('rooms')}
-            className={`btn btn-sm ${activeTab === 'rooms' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm admin-tab-btn ${activeTab === 'rooms' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <Bed size={16} /> Quản Lý Phòng ({rooms.length})
+            <Bed size={15} /> Quản Lý Phòng ({rooms.length})
           </button>
 
           <button
             onClick={() => setActiveTab('people')}
-            className={`btn btn-sm ${activeTab === 'people' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm admin-tab-btn ${activeTab === 'people' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <Users size={16} /> Danh Sách Tham Gia ({people.length})
+            <Users size={15} /> Danh Sách Tham Gia ({people.length})
           </button>
 
           <button
             onClick={() => setActiveTab('trips')}
-            className={`btn btn-sm ${activeTab === 'trips' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm admin-tab-btn ${activeTab === 'trips' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <Compass size={16} /> Quản Lý Tours ({trips.length})
+            <Compass size={15} /> Quản Lý Tours ({trips.length})
           </button>
 
           <button
             onClick={() => setActiveTab('logs')}
-            className={`btn btn-sm ${activeTab === 'logs' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm admin-tab-btn ${activeTab === 'logs' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <History size={16} /> Nhật Ký
+            <History size={15} /> Nhật Ký
           </button>
         </div>
 
         <button
           onClick={onLogoutAdmin}
-          className="btn btn-secondary btn-sm"
+          className="btn btn-secondary btn-sm admin-tab-btn"
           style={{ color: 'var(--color-danger)' }}
           title="Đăng xuất quyền Admin"
         >
-          <LogOut size={15} /> Đăng Xuất Admin
+          <LogOut size={14} /> Đăng Xuất Admin
         </button>
       </div>
 
