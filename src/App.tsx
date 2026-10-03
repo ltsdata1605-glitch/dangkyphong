@@ -210,11 +210,20 @@ export const App: React.FC = () => {
     if (currentTrip.roomLimits) {
       const existingRoom = editingRoomId ? currentRooms.find(r => r.id === editingRoomId) : null;
       const isSwitchingCap = !existingRoom || existingRoom.capacity !== actualCapacity;
-      const count = currentRooms.filter(r => r.capacity === actualCapacity && r.memberIds && r.memberIds.length > 0).length;
+      const count = currentRooms.filter(r => r.id !== editingRoomId && r.capacity === actualCapacity && r.memberIds && r.memberIds.length > 0).length;
       const currentLimit = currentTrip.roomLimits[actualCapacity];
       if (currentLimit !== undefined && isSwitchingCap && count >= currentLimit) {
-        alert(`⚠️ Loại phòng ${actualCapacity} người đã đạt định mức tối đa (${count}/${currentLimit} phòng). Không thể lưu thêm phòng loại này! Vui lòng chọn loại phòng khác.`);
-        return;
+        const availableCap = [actualCapacity, actualCapacity + 1, actualCapacity + 2, 6].find(c => {
+          if (c > 6) return false;
+          const lim = currentTrip.roomLimits![c];
+          const cnt = currentRooms.filter(r => r.id !== editingRoomId && r.capacity === c && r.memberIds && r.memberIds.length > 0).length;
+          return lim === undefined || cnt < lim;
+        });
+        if (!availableCap) {
+          alert(`⚠️ Loại phòng ${actualCapacity} người đã đạt định mức tối đa (${count}/${currentLimit} phòng). Không thể lưu thêm phòng loại này! Vui lòng chọn loại phòng khác.`);
+          return;
+        }
+        actualCapacity = availableCap;
       }
     }
 
@@ -614,14 +623,23 @@ export const App: React.FC = () => {
     if (projectedAdultSlots > room.capacity) {
       const nextCapacity = Math.min(6, projectedAdultSlots);
       if (currentTrip.roomLimits) {
-        const lim = currentTrip.roomLimits[nextCapacity];
-        const count = currentRooms.filter(r => r.id !== room.id && r.capacity === nextCapacity && r.memberIds && r.memberIds.length > 0).length;
-        if (lim !== undefined && count >= lim) {
-          alert(`⚠️ KHÔNG THỂ THÊM THÀNH VIÊN VÀO PHÒNG ${room.code}!\n\nViệc thêm "${person.name}" khiến số người lớn (${projectedAdultSlots}) vượt sức chứa cũ (${room.capacity} người).\nTuy nhiên loại phòng ${nextCapacity} người đã đạt định mức tối đa (${count}/${lim} phòng).\n\nHệ thống từ chối và không cho phép nâng sức chứa phòng!`);
+        const availableCap = [nextCapacity, nextCapacity + 1, nextCapacity + 2, 6].find(c => {
+          if (c > 6) return false;
+          const lim = currentTrip.roomLimits![c];
+          const count = currentRooms.filter(r => r.id !== room.id && r.capacity === c && r.memberIds && r.memberIds.length > 0).length;
+          return lim === undefined || count < lim;
+        });
+
+        if (!availableCap) {
+          const lim = currentTrip.roomLimits[nextCapacity];
+          const count = currentRooms.filter(r => r.id !== room.id && r.capacity === nextCapacity && r.memberIds && r.memberIds.length > 0).length;
+          alert(`⚠️ KHÔNG THỂ THÊM THÀNH VIÊN VÀO PHÒNG ${room.code}!\n\nViệc thêm "${person.name}" khiến số người lớn (${projectedAdultSlots}) vượt sức chứa cũ (${room.capacity} người).\nTuy nhiên các loại phòng từ ${nextCapacity} đến 6 người đều đã đạt định mức tối đa (${count}/${lim} phòng).\n\nHệ thống từ chối và không cho phép nâng sức chứa phòng!`);
           return false;
         }
+        room.capacity = availableCap;
+      } else {
+        room.capacity = nextCapacity;
       }
-      room.capacity = nextCapacity;
     }
 
     room.memberIds.push(person.id);
@@ -671,11 +689,20 @@ export const App: React.FC = () => {
     if (currentTrip.roomLimits) {
       const existingRoom = editingRoomId ? currentRooms.find(r => r.id === editingRoomId) : null;
       const isSwitchingCap = !existingRoom || existingRoom.capacity !== actualCapacity;
-      const count = currentRooms.filter(r => r.capacity === actualCapacity && r.memberIds && r.memberIds.length > 0).length;
+      const count = currentRooms.filter(r => r.id !== editingRoomId && r.capacity === actualCapacity && r.memberIds && r.memberIds.length > 0).length;
       const currentLimit = currentTrip.roomLimits[actualCapacity];
       if (currentLimit !== undefined && isSwitchingCap && count >= currentLimit) {
-        alert(`⚠️ Loại phòng ${actualCapacity} người đã đạt định mức tối đa (${count}/${currentLimit} phòng). Không thể lưu thêm phòng loại này!`);
-        return;
+        const availableCap = [actualCapacity, actualCapacity + 1, actualCapacity + 2, 6].find(c => {
+          if (c > 6) return false;
+          const lim = currentTrip.roomLimits![c];
+          const cnt = currentRooms.filter(r => r.id !== editingRoomId && r.capacity === c && r.memberIds && r.memberIds.length > 0).length;
+          return lim === undefined || cnt < lim;
+        });
+        if (!availableCap) {
+          alert(`⚠️ Loại phòng ${actualCapacity} người đã đạt định mức tối đa (${count}/${currentLimit} phòng). Không thể lưu thêm phòng loại này!`);
+          return;
+        }
+        actualCapacity = availableCap;
       }
     }
 

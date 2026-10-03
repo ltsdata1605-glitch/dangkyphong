@@ -566,18 +566,28 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
         const currentAdultSlots = addingRoomMembers.filter(m => (m.slot ?? 1) > 0).length;
         const currentChildren = addingRoomMembers.filter(m => m.slot === 0).length;
         const isCurrentlyFull = currentAdultSlots >= addingToRoom.capacity;
-        const potentialNextCap = Math.min(6, addingToRoom.capacity + 1);
+        const projectedSlotsIfAdd1 = currentAdultSlots + 1;
 
-        let isNextCapFull = false;
+        let availableNextCap: number | null = null;
         let nextCapCount = 0;
         let nextCapLimit: number | undefined = undefined;
         if (currentTrip?.roomLimits) {
-          nextCapLimit = currentTrip.roomLimits[potentialNextCap];
-          nextCapCount = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === potentialNextCap && r.memberIds && r.memberIds.length > 0).length;
-          if (nextCapLimit !== undefined && nextCapCount >= nextCapLimit) {
-            isNextCapFull = true;
+          availableNextCap = [projectedSlotsIfAdd1, projectedSlotsIfAdd1 + 1, projectedSlotsIfAdd1 + 2, 6].find(c => {
+            if (c > 6) return false;
+            const lim = currentTrip.roomLimits![c];
+            const cnt = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === c && r.memberIds && r.memberIds.length > 0).length;
+            return lim === undefined || cnt < lim;
+          }) || null;
+
+          if (availableNextCap) {
+            nextCapLimit = currentTrip.roomLimits[availableNextCap];
+            nextCapCount = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === availableNextCap && r.memberIds && r.memberIds.length > 0).length;
           }
+        } else {
+          availableNextCap = Math.min(6, projectedSlotsIfAdd1);
         }
+
+        const isNextCapFull = isCurrentlyFull && (availableNextCap === null);
 
         return (
           <div className="modal-overlay" onClick={() => setAddingToRoom(null)}>
@@ -605,11 +615,11 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 }}>
                   {isNextCapFull ? (
                     <>
-                      ⛔ <strong>Cảnh báo định mức:</strong> Phòng đã đủ {addingToRoom.capacity} người. Loại <strong>phòng {potentialNextCap} người</strong> đã đạt tối đa ({nextCapCount}/{nextCapLimit} phòng). <u>Không thể thêm người lớn để nâng sức chứa phòng này!</u>
+                      ⛔ <strong>Cảnh báo định mức:</strong> Phòng đã đủ {addingToRoom.capacity} người và tất cả các loại phòng lớn hơn (tới 6 người) đều đã đạt tối đa định mức. <u>Không thể thêm người lớn để nâng sức chứa phòng này!</u>
                     </>
                   ) : (
                     <>
-                      ⚠️ <strong>Lưu ý:</strong> Phòng đã đủ {addingToRoom.capacity} người. Nếu thêm 1 người lớn, hệ thống sẽ tự động nâng lên <strong>Phòng {potentialNextCap} người</strong> ({nextCapCount}/{nextCapLimit ?? '∞'} phòng đã dùng).
+                      ⚠️ <strong>Lưu ý:</strong> Phòng đã đủ {addingToRoom.capacity} người. Nếu thêm 1 người lớn, hệ thống sẽ tự động nâng lên <strong>Phòng {availableNextCap} người</strong> ({nextCapCount}/{nextCapLimit ?? '∞'} phòng đã dùng).
                     </>
                   )}
                 </div>
@@ -636,16 +646,27 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                       const personSlot = (p.slot ?? 1);
                       const projectedAdultSlots = currentAdultSlots + (personSlot > 0 ? 1 : 0);
                       const willUpgrade = projectedAdultSlots > addingToRoom.capacity;
-                      const nextCap = Math.min(6, projectedAdultSlots);
 
                       let isBlocked = false;
                       let blockedReason = '';
-                      if (willUpgrade && currentTrip?.roomLimits) {
-                        const lim = currentTrip.roomLimits[nextCap];
-                        const count = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === nextCap && r.memberIds && r.memberIds.length > 0).length;
-                        if (lim !== undefined && count >= lim) {
-                          isBlocked = true;
-                          blockedReason = `Đã đủ định mức phòng ${nextCap} (${count}/${lim} phòng)`;
+                      let targetUpgradeCap = addingToRoom.capacity;
+
+                      if (willUpgrade) {
+                        if (currentTrip?.roomLimits) {
+                          const foundCap = [projectedAdultSlots, projectedAdultSlots + 1, projectedAdultSlots + 2, 6].find(c => {
+                            if (c > 6) return false;
+                            const lim = currentTrip.roomLimits![c];
+                            const count = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === c && r.memberIds && r.memberIds.length > 0).length;
+                            return lim === undefined || count < lim;
+                          });
+                          if (!foundCap) {
+                            isBlocked = true;
+                            blockedReason = `Các loại phòng từ ${projectedAdultSlots} đến 6 người đều đã hết định mức`;
+                          } else {
+                            targetUpgradeCap = foundCap;
+                          }
+                        } else {
+                          targetUpgradeCap = Math.min(6, projectedAdultSlots);
                         }
                       }
 
@@ -676,7 +697,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                               )}
                               {willUpgrade && (
                                 <span className={`badge ${isBlocked ? 'badge-danger' : 'badge-info'}`} style={{ fontSize: '0.65rem' }}>
-                                  {isBlocked ? `⛔ Nâng P.${nextCap} (Hết định mức)` : `Nâng lên P.${nextCap}`}
+                                  {isBlocked ? `⛔ Hết định mức` : `Nâng lên P.${targetUpgradeCap}`}
                                 </span>
                               )}
                             </div>
@@ -692,7 +713,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                                 return;
                               }
                               if (isBlocked) {
-                                alert(`⚠️ KHÔNG THỂ THÊM VÀO PHÒNG!\n\nViệc thêm "${p.name}" sẽ nâng phòng từ ${addingToRoom.capacity} người lên ${nextCap} người.\nTuy nhiên loại phòng ${nextCap} người đã đạt tối đa định mức (${blockedReason}).\n\nHệ thống từ chối và không cho nâng sức chứa phòng!`);
+                                alert(`⚠️ KHÔNG THỂ THÊM VÀO PHÒNG!\n\nViệc thêm "${p.name}" sẽ vượt quá sức chứa cũ (${addingToRoom.capacity} người).\nTuy nhiên ${blockedReason}.\n\nHệ thống từ chối và không cho nâng sức chứa phòng!`);
                                 return;
                               }
                               const res = await onAddMember(addingToRoom.id, p.id);

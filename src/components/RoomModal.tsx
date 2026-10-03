@@ -179,8 +179,6 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     }
 
     const nextMemberIds = [...selectedMemberIds, person.id];
-    setSelectedMemberIds(nextMemberIds);
-
     const nextMembers = nextMemberIds.map(id => allPeople.find(p => p.id === id)!).filter(Boolean);
     const nextAdults = nextMembers.filter(m => m.slot > 0).length;
     if (nextAdults > capacity) {
@@ -209,13 +207,6 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     }
     const nextMemberIds = selectedMemberIds.filter(id => id !== personId);
     setSelectedMemberIds(nextMemberIds);
-
-    // Nếu số người giảm xuống thì tự động hạ sức chứa về đúng số người (tối thiểu 2)
-    const nextMembers = nextMemberIds.map(id => allPeople.find(p => p.id === id)!).filter(Boolean);
-    const nextAdults = nextMembers.filter(m => m.slot > 0).length;
-    if (nextAdults < capacity && nextAdults >= 2) {
-      setCapacity(nextAdults);
-    }
   };
 
   const handleSave = () => {

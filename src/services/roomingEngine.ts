@@ -39,17 +39,12 @@ export function validateRoom(
     errors.push(`Tổng số suất người lớn (${usedSlots}) vượt quá sức chứa phòng ${capacity} người.`);
   }
 
-  // R8: Bắt buộc chọn ĐỦ người mới cho phép tạo/lưu phòng (Giải pháp 1)
-  // Ngoại lệ: Nếu có trẻ em đi kèm (ví dụ Mẹ + Bé < 11 tuổi) và tổng số người >= sức chứa phòng
+  // R8: Cảnh báo nếu phòng chưa đủ số lượng người theo sức chứa thiết kế (trạng thái UNDER)
   const totalOccupants = usedSlots + childCount;
   const isFamilyWithChild = childCount > 0 && totalOccupants >= capacity;
 
   if (usedSlots < capacity && !isFamilyWithChild) {
-    if (!isAdminOverride) {
-      errors.push(`Chưa đủ người: Loại phòng ${capacity} người bắt buộc phải chọn đủ ${capacity} thành viên (hiện mới có ${usedSlots}/${capacity}). Vui lòng chọn thêm người ở cùng hoặc chọn loại phòng nhỏ hơn!`);
-    } else {
-      warnings.push(`Phòng đang thiếu người: ${usedSlots}/${capacity} suất.`);
-    }
+    warnings.push(`Phòng đang thiếu người: ${usedSlots}/${capacity} suất (trạng thái Thiếu người, có thể ghép thêm sau).`);
   }
 
   // Cảnh báo số lượng trẻ em ở ghép vượt giới hạn
@@ -254,18 +249,40 @@ export function autoMatchRooms(
       const room = roomsMap.get(owner.roomId);
       if (room && room.memberIds.length < 6) {
         const currentMembers = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
-        const testValidation = validateRoom([...currentMembers, person], room.capacity, 2, false);
-        if (testValidation.valid) {
-          room.memberIds.push(person.id);
-          room.usedSlots = testValidation.usedSlots;
-          room.childCount = testValidation.childCount;
-          room.status = testValidation.usedSlots === room.capacity ? 'FULL' : 'UNDER';
-          room.bedType = testValidation.bedType;
-          person.roomId = room.id;
-          assignedCount++;
-          sameStoreCount++;
-          if (!updatedRooms.some(r => r.id === room.id)) {
-            updatedRooms.push(room);
+        const testMembers = [...currentMembers, person];
+        const nextAdults = testMembers.filter(m => m.slot > 0).length;
+        const targetCap = Math.max(room.capacity, nextAdults);
+
+        let canUpgrade = true;
+        let finalCap = room.capacity;
+        if (targetCap > room.capacity) {
+          const availableCap = getNextAvailableCapacity(targetCap);
+          if (availableCap !== null) {
+            finalCap = availableCap;
+          } else {
+            canUpgrade = false;
+          }
+        }
+
+        if (canUpgrade) {
+          const testValidation = validateRoom(testMembers, finalCap, 2, false);
+          if (testValidation.valid) {
+            room.memberIds.push(person.id);
+            if (finalCap !== room.capacity) {
+              roomCounts[room.capacity] = Math.max(0, (roomCounts[room.capacity] || 1) - 1);
+              roomCounts[finalCap] = (roomCounts[finalCap] || 0) + 1;
+              room.capacity = finalCap;
+            }
+            room.usedSlots = testValidation.usedSlots;
+            room.childCount = testValidation.childCount;
+            room.status = testValidation.usedSlots === room.capacity ? 'FULL' : 'UNDER';
+            room.bedType = testValidation.bedType;
+            person.roomId = room.id;
+            assignedCount++;
+            sameStoreCount++;
+            if (!updatedRooms.some(r => r.id === room.id)) {
+              updatedRooms.push(room);
+            }
           }
         }
       }
