@@ -168,110 +168,127 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
         onClaimRelative={onClaimRelative}
       />
 
-      {/* 1.5. Gợi Ý Các Phòng Đang Thiếu Người (Hiệu ứng nhấp nháy thu hút) */}
+      {/* 1.5. Gợi Ý Các Phòng Đang Thiếu Người (Hiệu ứng nhấp nháy thu hút - Thiết kế siêu gọn) */}
       {!myRoom && underCapacityRooms.length > 0 && !isLocked && (
-        <div className="room-under-suggestion-container" style={{ padding: '16px 14px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.74rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        <div className="room-under-suggestion-container" style={{ padding: '10px 12px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.68rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <span className="dot-blinking-urgent" />
-                ⚡ ĐANG CẦN GHÉP NGƯỜI
+                ⚡ CẦN GHÉP NGƯỜI
               </span>
-              <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 Gợi Ý {underCapacityRooms.length} Phòng Chưa Đủ Người Phù Hợp Với Bạn
               </h4>
             </div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Bấm <strong>Đăng ký vào phòng</strong> để được xếp phòng ngay mà không sợ hết định mức!
+            <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+              Bấm <strong>Vào phòng</strong> để được ghép ngay không sợ hết định mức!
             </span>
           </div>
 
-          {/* Danh sách thẻ phòng gợi ý */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 10 }}>
-            {underCapacityRooms.slice(0, 6).map(room => {
+          {/* Danh sách thẻ phòng gợi ý - Dạng thẻ gọn 2 cột laptop / 1 cột mobile */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
+            {underCapacityRooms.slice(0, 8).map(room => {
               const members = room.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
               const missingCount = Math.max(1, room.capacity - room.usedSlots);
               const hasSameStore = members.some(m => m.store === currentEmployee.store);
               const leader = members.find(m => m.id === room.leaderId || m.code === room.leaderId) || members[0];
 
               return (
-                <div key={room.id} className="suggested-room-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                <div
+                  key={room.id}
+                  className="suggested-room-card"
+                  style={{
+                    padding: '7px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-card-solid)',
+                    border: '1px solid rgba(245, 158, 11, 0.45)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 5
+                  }}
+                >
+                  {/* Hàng 1: Mã phòng, loại phòng, số chỗ thiếu + Nút Vào phòng */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', minWidth: 0 }}>
+                      <strong style={{ fontSize: '0.96rem', color: 'var(--text-main)', minWidth: 36 }}>
                         {room.code}
+                      </strong>
+                      <span className="badge badge-gray" style={{ fontSize: '0.64rem', padding: '1px 5px' }}>
+                        {room.capacity}ng · {room.bedType}
                       </span>
-                      <span className="badge badge-gray" style={{ fontSize: '0.68rem' }}>
-                        Phòng {room.capacity}ng ({room.bedType})
+                      <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.64rem', padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <span className="dot-blinking-urgent" />
+                        Thiếu {missingCount}
                       </span>
                       {hasSameStore && (
-                        <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
-                          Cùng siêu thị
+                        <span className="badge badge-primary" style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
+                          Cùng ST
                         </span>
                       )}
                     </div>
-                    <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.68rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <span className="dot-blinking-urgent" />
-                      Thiếu {missingCount} người
-                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Bạn có chắc muốn đăng ký ghép vào phòng ${room.code} (${room.capacity} người) cùng đồng nghiệp ${leader?.name || ''}?`)) {
+                          if (onJoinRoom) {
+                            onJoinRoom(room.id, currentEmployee.id);
+                          } else {
+                            onSaveRoom(room.capacity, [...room.memberIds, currentEmployee.id], room.id);
+                          }
+                        }
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        padding: '2px 8px',
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        height: 24,
+                        minHeight: 24,
+                        whiteSpace: 'nowrap',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        flexShrink: 0
+                      }}
+                      title={`Bấm để vào ở ghép phòng ${room.code}`}
+                    >
+                      ⚡ Vào phòng
+                    </button>
                   </div>
 
-                  {/* Thành viên hiện tại trong phòng */}
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-                    <div style={{ marginBottom: 4, fontWeight: 600 }}>Thành viên hiện tại ({members.length}/{room.capacity}):</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {members.map(m => (
+                  {/* Hàng 2: Thành viên hiện tại dạng chip siêu gọn */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                    {members.map(m => {
+                      const storeCode = m.store ? m.store.split('-')[0].trim() : '';
+                      return (
                         <span
                           key={m.id}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 4,
-                            padding: '2px 6px',
+                            gap: 3,
+                            padding: '1px 5px',
                             background: 'var(--bg-muted)',
                             borderRadius: 4,
-                            fontSize: '0.72rem',
-                            border: '1px solid var(--border-subtle)'
+                            fontSize: '0.68rem',
+                            border: '1px solid var(--border-subtle)',
+                            maxWidth: '100%',
+                            lineHeight: 1.3
                           }}
+                          title={`${m.name} - ${m.store}`}
                         >
-                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.6rem', padding: '0 4px' }}>
+                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.58rem', padding: '0 3px' }}>
                             {m.gender === 'M' ? 'Nam' : 'Nữ'}
                           </span>
-                          <strong>{m.name}</strong>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>({m.store})</span>
-                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={11} style={{ color: '#d97706' }} />}
+                          <strong style={{ whiteSpace: 'nowrap' }}>{m.name}</strong>
+                          {storeCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.62rem' }}>({storeCode})</span>}
+                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={10} style={{ color: '#d97706', flexShrink: 0 }} />}
                         </span>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-
-                  {/* Nút Đăng Ký Vào Phòng Này */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm(`Bạn có chắc muốn đăng ký ghép vào phòng ${room.code} (${room.capacity} người) cùng đồng nghiệp ${leader?.name || ''}?`)) {
-                        if (onJoinRoom) {
-                          onJoinRoom(room.id, currentEmployee.id);
-                        } else {
-                          onSaveRoom(room.capacity, [...room.memberIds, currentEmployee.id], room.id);
-                        }
-                      }
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{
-                      width: '100%',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
-                    }}
-                  >
-                    <Users size={14} />
-                    Đăng Ký Vào Phòng Này Ngay
-                  </button>
                 </div>
               );
             })}
