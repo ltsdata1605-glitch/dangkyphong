@@ -177,6 +177,10 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
           trips.map(trip => {
             const isActive = trip.id === currentTrip.id;
             const importInfo = getTripImportInfo(trip);
+            const tripPeople = getPeople(trip.id);
+            const empCount = tripPeople.filter(p => p.type === 'EMPLOYEE').length;
+            const relCount = tripPeople.filter(p => p.type === 'RELATIVE').length;
+            const pgCount = tripPeople.filter(p => p.type === 'PG').length;
 
             return (
               <div
@@ -223,7 +227,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                       </span>
                     )}
 
-                    {/* Hiển thị thời gian nhập và tổng số người đã nhập */}
+                    {/* Hiển thị thời gian nhập và chi tiết số người đã nhập (nhân viên, người thân) */}
                     {importInfo && (
                       <span
                         className="badge"
@@ -243,6 +247,11 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                         <FileSpreadsheet size={13} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
                         <span>
                           Đã nhập: <strong style={{ color: 'var(--color-success)' }}>{importInfo.count.toLocaleString('vi-VN')} người</strong>
+                          {tripPeople.length > 0 && (
+                            <span style={{ color: 'var(--primary-600)', fontWeight: 600, marginLeft: 4 }}>
+                              ({empCount} Nhân viên, {relCount} Người thân{pgCount > 0 ? `, ${pgCount} PG` : ''})
+                            </span>
+                          )}
                           <span style={{ margin: '0 5px', opacity: 0.4 }}>•</span>
                           <span style={{ color: 'var(--text-muted)' }}>Lúc {formatImportTime(importInfo.importedAt)}</span>
                         </span>
@@ -335,7 +344,12 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
 
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <Users size={15} style={{ color: 'var(--primary-600)', flexShrink: 0 }} />
-                    <span><strong>Nhân sự:</strong> {getPeople(trip.id).length} người</span>
+                    <span>
+                      <strong>Nhân sự:</strong> {tripPeople.length} người{' '}
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                        ({empCount} NV, {relCount} Thân{pgCount > 0 ? `, ${pgCount} PG` : ''})
+                      </span>
+                    </span>
                   </div>
 
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
