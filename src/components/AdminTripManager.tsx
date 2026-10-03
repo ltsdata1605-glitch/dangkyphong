@@ -153,15 +153,15 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
       <div className="glass-card" style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
-            Quản Lý Các Chuyến Đi & Khách Sạn (Multi-trip)
+            Quản Lý Tours & Khách Sạn (Multi-tour)
           </h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-            Hệ thống hỗ trợ quản lý nhiều chuyến đi/đợt du lịch độc lập, mỗi chuyến đi có danh sách và phòng riêng
+            Hệ thống hỗ trợ quản lý nhiều tour/đợt du lịch độc lập, mỗi tour có danh sách và phòng riêng
           </p>
         </div>
 
         <button onClick={handleStartCreate} className="btn btn-primary" style={{ fontWeight: 700 }}>
-          <Plus size={16} /> Thêm Chuyến Đi Mới
+          <Plus size={16} /> Thêm Tour Mới
         </button>
       </div>
 
@@ -169,7 +169,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {trips.length === 0 ? (
           <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            Chưa có chuyến đi nào được tạo. Vui lòng bấm "Thêm Chuyến Đi Mới".
+            Chưa có tour nào được tạo. Vui lòng bấm "Thêm Tour Mới".
           </div>
         ) : (
           trips.map(trip => {

@@ -539,6 +539,63 @@ export const App: React.FC = () => {
     refreshData();
   };
 
+  // Admin tạo phòng mới cho nhân sự
+  const handleAdminCreateRoom = (capacity: number, memberIds: string[]) => {
+    const currentPeople = getPeople(currentTrip.id);
+    const currentRooms = getRooms(currentTrip.id);
+    const members = memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
+
+    const validation = validateRoom(members, capacity, currentTrip.maxChildrenPerRoom, true);
+
+    const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const existingNums = currentRooms
+      .map(r => {
+        const match = r.code.match(/^P\.(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+    const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+    const roomCode = `P.${nextNum}`;
+
+    const newRoom: Room = {
+      id: roomId,
+      tripId: currentTrip.id,
+      code: roomCode,
+      capacity,
+      leaderId: memberIds[0] || 'admin',
+      memberIds,
+      usedSlots: validation.usedSlots,
+      childCount: validation.childCount,
+      status: validation.usedSlots === capacity ? 'FULL' : 'UNDER',
+      bedType: validation.bedType,
+      adminOverride: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'Admin'
+    };
+
+    memberIds.forEach(id => {
+      const p = currentPeople.find(cp => cp.id === id);
+      if (p) p.roomId = roomId;
+    });
+
+    currentRooms.push(newRoom);
+    saveRooms(currentTrip.id, currentRooms);
+    savePeople(currentTrip.id, currentPeople);
+
+    addLog(currentTrip.id, {
+      id: `log_${Date.now()}`,
+      tripId: currentTrip.id,
+      action: 'CREATE_ROOM',
+      actor: 'admin',
+      actorName: 'Ban Tổ Chức',
+      details: `Admin đã tạo phòng mới ${roomCode} (${capacity} người) cho ${members.map(m => m.name).join(', ')}`,
+      timestamp: new Date().toISOString()
+    });
+
+    refreshData();
+  };
+
   // Admin duyệt đặc cách
   const handleAdminSaveOverride = (roomId: string, note: string) => {
     const currentRooms = getRooms(currentTrip.id);
@@ -675,6 +732,7 @@ export const App: React.FC = () => {
               onDeleteAllRooms={handleDeleteAllRooms}
               onRemoveMember={handleAdminRemoveMember}
               onAddMember={handleAdminAddMember}
+              onCreateRoom={handleAdminCreateRoom}
               onSaveOverride={handleAdminSaveOverride}
               onToggleGender={handleToggleGender}
               onAssignRelative={handleAdminAssignRelative}

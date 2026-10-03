@@ -37,6 +37,7 @@ interface AdminViewProps {
   onDeleteAllRooms: () => void;
   onRemoveMember: (roomId: string, personId: string) => void;
   onAddMember: (roomId: string, personId: string) => void;
+  onCreateRoom?: (capacity: number, memberIds: string[]) => void;
   onSaveOverride: (roomId: string, note: string) => void;
   onToggleGender: (personId: string) => void;
   onAssignRelative: (relativeId: string, employeeCode: string) => void;
@@ -64,6 +65,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onDeleteAllRooms,
   onRemoveMember,
   onAddMember,
+  onCreateRoom,
   onSaveOverride,
   onToggleGender,
   onAssignRelative,
@@ -108,14 +110,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
             onClick={() => setActiveTab('people')}
             className={`btn btn-sm ${activeTab === 'people' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <Users size={16} /> Nhân Sự & Người Thân ({people.length})
+            <Users size={16} /> Danh Sách Tham Gia ({people.length})
           </button>
 
           <button
             onClick={() => setActiveTab('trips')}
             className={`btn btn-sm ${activeTab === 'trips' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <Compass size={16} /> Chuyến Đi ({trips.length})
+            <Compass size={16} /> Quản Lý Tours ({trips.length})
           </button>
 
           <button
@@ -165,8 +167,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <AdminPeopleManager
           people={people}
           rooms={rooms}
+          currentTrip={currentTrip}
           onToggleGender={onToggleGender}
           onAssignRelative={onAssignRelative}
+          onAddMemberToRoom={onAddMember}
+          onRemoveMemberFromRoom={onRemoveMember}
+          onCreateRoomForPerson={onCreateRoom}
         />
       )}
 
