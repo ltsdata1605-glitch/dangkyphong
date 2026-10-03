@@ -100,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     cursor: 'pointer',
                     paddingRight: 18,
                     outline: 'none',
-                    maxWidth: 220,
+                    maxWidth: 'min(500px, 80vw)',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden'
