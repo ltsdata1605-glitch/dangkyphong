@@ -428,7 +428,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
             Bạn chưa đăng ký người thân nào đi cùng chuyến du lịch này.
           </p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 8 }}>
             {myRelatives.map(rel => {
               const relRoom = allRooms.find(r => r.id === rel.roomId);
 
@@ -436,29 +436,29 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 <div
                   key={rel.id}
                   style={{
-                    padding: '12px 14px',
-                    borderRadius: 'var(--radius-md)',
+                    padding: '7px 10px',
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-muted)',
                     border: '1px solid var(--border-subtle)'
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', lineHeight: 1.25 }}>
                     {rel.name}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span>{rel.relation || 'Người thân'}</span>
                     <span>•</span>
                     <span>{rel.gender === 'M' ? 'Nam' : 'Nữ'}</span>
                     <span>•</span>
-                    <span>{rel.slot === 0 ? 'Trẻ em' : '1 suất'}</span>
+                    <span>{rel.slot === 0 ? '0 suất' : '1 suất'}</span>
                   </div>
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {relRoom ? (
-                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                      <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
                         Ở {relRoom.code}
                       </span>
                     ) : (
-                      <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
+                      <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
                         Chưa có phòng
                       </span>
                     )}
@@ -472,18 +472,18 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                           border: '1px solid rgba(239, 68, 68, 0.25)',
                           color: 'var(--color-danger)',
                           cursor: 'pointer',
-                          padding: '4px 10px',
+                          padding: '2px 7px',
                           borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.75rem',
+                          fontSize: '0.72rem',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 4,
+                          gap: 3,
                           fontWeight: 600,
                           transition: 'all 0.15s ease'
                         }}
                         title="Hủy nhận người thân này"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={11} />
                         Hủy nhận
                       </button>
                     )}
