@@ -397,7 +397,7 @@ export const App: React.FC = () => {
       action: 'AUTO_MATCH',
       actor: 'admin',
       actorName: 'Ban Tổ Chức',
-      details: `Hệ thống đã tự động ghép ${res.assignedCount} người vào các phòng`,
+      details: `Hệ thống đã tự động ghép ${res.assignedCount} người (Cùng siêu thị: ${res.sameStoreCount || 0} người, Khác siêu thị: ${res.crossStoreCount || 0} người)`,
       timestamp: new Date().toISOString()
     });
 
@@ -407,7 +407,11 @@ export const App: React.FC = () => {
       // Ignored
     }
 
-    alert(`🎉 Đã tự động ghép thành công ${res.assignedCount} người vào các phòng!`);
+    alert(
+      `🎉 Đã tự động ghép thành công ${res.assignedCount} người vào các phòng!\n\n` +
+      `🏢 Ghép cùng siêu thị: ${res.sameStoreCount || 0} người\n` +
+      `🌐 Ghép khác siêu thị: ${res.crossStoreCount || 0} người`
+    );
     refreshData();
   };
 
