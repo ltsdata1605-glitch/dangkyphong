@@ -208,26 +208,36 @@ export async function syncPeopleToFirebase(tripId: string, people: Person[]): Pr
 /**
  * Đẩy dữ liệu phòng lên Firebase (merge an toàn với Firestore)
  */
-export async function syncRoomsToFirebase(tripId: string, rooms: Room[], isExplicitDeletion = false): Promise<void> {
+export async function syncRoomsToFirebase(tripId: string, rooms: Room[], isExplicitDeletion = false, deletedRoomIds: string[] = []): Promise<void> {
   try {
     const roomDocRef = doc(db, 'trips', tripId, 'data', 'rooms');
     let finalRooms = rooms;
 
-    if (!isExplicitDeletion) {
-      try {
-        const snap = await getDoc(roomDocRef);
-        if (snap.exists()) {
-          const remoteData = snap.data();
-          if (remoteData && Array.isArray(remoteData.rooms)) {
-            const roomMap = new Map<string, Room>();
-            remoteData.rooms.forEach((r: Room) => roomMap.set(r.id, r));
-            rooms.forEach(r => roomMap.set(r.id, r));
-            finalRooms = Array.from(roomMap.values());
+    try {
+      const snap = await getDoc(roomDocRef);
+      if (snap.exists()) {
+        const remoteData = snap.data();
+        if (remoteData && Array.isArray(remoteData.rooms)) {
+          const roomMap = new Map<string, Room>();
+          // 1. Giữ tất cả phòng hiện có trên Firebase
+          remoteData.rooms.forEach((r: Room) => roomMap.set(r.id, r));
+          
+          // 2. Cập nhật / merge các phòng từ client
+          rooms.forEach(r => roomMap.set(r.id, r));
+
+          // 3. Nếu xóa theo ID cụ thể: xóa chính xác phòng đó
+          if (deletedRoomIds && deletedRoomIds.length > 0) {
+            deletedRoomIds.forEach(id => roomMap.delete(id));
+          } else if (isExplicitDeletion && rooms.length === 0) {
+            // Chỉ xóa trắng nếu có chủ đích xóa hết toàn bộ (clearAllData)
+            roomMap.clear();
           }
+
+          finalRooms = Array.from(roomMap.values());
         }
-      } catch (e) {
-        console.warn('[Firebase] Lỗi đọc rooms trước khi merge:', e);
       }
+    } catch (e) {
+      console.warn('[Firebase] Lỗi đọc rooms trước khi merge:', e);
     }
 
     // Đảm bảo không trùng mã phòng và chuẩn hóa số phòng P.1, P.2, P.3...
@@ -733,12 +743,12 @@ export function getRooms(tripId: string): Room[] {
   }
 }
 
-export async function saveRooms(tripId: string, rooms: Room[], isExplicitDeletion = false): Promise<void> {
+export async function saveRooms(tripId: string, rooms: Room[], isExplicitDeletion = false, deletedRoomIds: string[] = []): Promise<void> {
   const { rooms: normalizedCodes } = migrateRoomCodes(rooms);
   const { rooms: finalRooms } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, true);
   localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
   notifyStateChange();
-  await syncRoomsToFirebase(tripId, finalRooms, isExplicitDeletion);
+  await syncRoomsToFirebase(tripId, finalRooms, isExplicitDeletion, deletedRoomIds);
 }
 
 export function getLogs(tripId: string): AuditLog[] {
@@ -1181,7 +1191,7 @@ export async function leaveRoom(
     notifyStateChange();
 
     await Promise.all([
-      syncRoomsToFirebase(tripId, cleanRooms, true),
+      syncRoomsToFirebase(tripId, cleanRooms, true, [room.id]),
       syncPeopleToFirebase(tripId, cleanPeople)
     ]);
 
@@ -1214,7 +1224,7 @@ export async function leaveRoom(
     notifyStateChange();
 
     await Promise.all([
-      syncRoomsToFirebase(tripId, cleanRooms, true),
+      syncRoomsToFirebase(tripId, cleanRooms, true, [room.id]),
       syncPeopleToFirebase(tripId, cleanPeople)
     ]);
     return { success: true, message: 'Đã giải tán phòng.' };
@@ -1279,7 +1289,7 @@ export async function deleteRoom(tripId: string, roomId: string, actorId: string
   notifyStateChange();
 
   await Promise.all([
-    syncRoomsToFirebase(tripId, cleanRooms, true),
+    syncRoomsToFirebase(tripId, cleanRooms, true, [roomId]),
     syncPeopleToFirebase(tripId, cleanPeople)
   ]);
 
