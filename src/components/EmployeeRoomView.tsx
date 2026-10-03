@@ -80,6 +80,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [unclaimingRelative, setUnclaimingRelative] = useState<Person | null>(null);
+  const [removingMember, setRemovingMember] = useState<Person | null>(null);
 
   const handleConfirmLeave = () => {
     setShowLeaveModal(true);
@@ -356,6 +357,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 {roomMembers.map(m => {
                   const isRoomLeader = m.id === myRoom.leaderId;
                   const isSelf = m.id === currentEmployee.id;
+                  const canRemove = !currentTrip.isLocked && !isSelf && (isLeader || m.ownerId === currentEmployee.code);
 
                   let relLabel = m.type === 'EMPLOYEE' ? 'Đồng nghiệp' : (m.relation || 'Người thân');
                   if (m.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
@@ -402,8 +404,47 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                         <span>{m.code}</span>
                       </div>
 
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Building size={11} /> {m.store}
+                      <div style={{
+                        fontSize: '0.76rem',
+                        color: 'var(--text-dim)',
+                        marginTop: 8,
+                        paddingTop: 6,
+                        borderTop: '1px dashed var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.store}>
+                          <Building size={11} style={{ flexShrink: 0 }} /> {m.store}
+                        </div>
+
+                        {canRemove && (
+                          <button
+                            type="button"
+                            onClick={() => setRemovingMember(m)}
+                            className="btn btn-sm"
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              color: 'var(--color-danger)',
+                              cursor: 'pointer',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease'
+                            }}
+                            title={`Xóa ${m.name} khỏi phòng`}
+                          >
+                            <Trash2 size={12} />
+                            Xóa
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -667,6 +708,59 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               >
                 <Trash2 size={16} />
                 Xác Nhận Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Xác Nhận Xóa Thành Viên Khỏi Phòng Trực Tiếp */}
+      {removingMember && (
+        <div className="modal-overlay" onClick={() => setRemovingMember(null)} style={{ zIndex: 1200 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Trash2 size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Xóa Khỏi Phòng?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Bạn có chắc chắn muốn xóa <strong>"{removingMember.name}"</strong> ra khỏi phòng <strong>{myRoom?.code}</strong> không?
+              Thành viên này sẽ được đưa ra khỏi phòng và có thể ghép vào phòng khác sau.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setRemovingMember(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.3 }}
+                onClick={() => {
+                  onLeaveRoom(removingMember.id);
+                  setRemovingMember(null);
+                }}
+              >
+                <Trash2 size={16} />
+                Xác Nhận Xóa
               </button>
             </div>
           </div>
