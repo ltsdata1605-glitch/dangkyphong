@@ -892,21 +892,14 @@ h1, h2, h3, h4, h5, h6 {
   display: none;
 }
 
-/* Grid 3 Cột hiển thị danh sách người thân theo yêu cầu */
+/* Grid hiển thị danh sách người thân: 4 Cột trên Laptop, 3 Cột trên Tablet & Mobile */
 .relative-claim-grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
 }
 
-@media (max-width: 1280px) {
-  .relative-claim-grid-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-  }
-}
-
-@media (max-width: 1024px) {
+@media (max-width: 960px) {
   .relative-claim-grid-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 5px;
