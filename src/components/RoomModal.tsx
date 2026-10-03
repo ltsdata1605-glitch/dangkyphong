@@ -813,10 +813,16 @@ export const RoomModal: React.FC<RoomModalProps> = ({
             className="btn btn-primary"
             onClick={handleSave}
             disabled={!validation.valid}
-            style={{ opacity: validation.valid ? 1 : 0.6 }}
+            style={{
+              opacity: validation.valid ? 1 : 0.5,
+              cursor: validation.valid ? 'pointer' : 'not-allowed'
+            }}
           >
             <CheckCircle size={18} />
-            Lưu Phòng ({validation.usedSlots}/{capacity} suất)
+            {!validation.valid && validation.usedSlots < capacity && !(validation.childCount > 0 && (validation.usedSlots + validation.childCount) >= capacity)
+              ? `Cần chọn đủ ${capacity} người (${validation.usedSlots}/${capacity})`
+              : `Lưu Phòng (${validation.usedSlots}/${capacity} suất)`
+            }
           </button>
         </div>
       </div>

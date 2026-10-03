@@ -39,9 +39,17 @@ export function validateRoom(
     errors.push(`Tổng số suất người lớn (${usedSlots}) vượt quá sức chứa phòng ${capacity} người.`);
   }
 
-  // R8: Tổng suất ít hơn loại phòng -> Cảnh báo thiếu người (vẫn cho lưu)
-  if (usedSlots < capacity) {
-    warnings.push(`Phòng đang thiếu người: ${usedSlots}/${capacity} suất.`);
+  // R8: Bắt buộc chọn ĐỦ người mới cho phép tạo/lưu phòng (Giải pháp 1)
+  // Ngoại lệ: Nếu có trẻ em đi kèm (ví dụ Mẹ + Bé < 11 tuổi) và tổng số người >= sức chứa phòng
+  const totalOccupants = usedSlots + childCount;
+  const isFamilyWithChild = childCount > 0 && totalOccupants >= capacity;
+
+  if (usedSlots < capacity && !isFamilyWithChild) {
+    if (!isAdminOverride) {
+      errors.push(`Chưa đủ người: Loại phòng ${capacity} người bắt buộc phải chọn đủ ${capacity} thành viên (hiện mới có ${usedSlots}/${capacity}). Vui lòng chọn thêm người ở cùng hoặc chọn loại phòng nhỏ hơn!`);
+    } else {
+      warnings.push(`Phòng đang thiếu người: ${usedSlots}/${capacity} suất.`);
+    }
   }
 
   // Cảnh báo số lượng trẻ em ở ghép vượt giới hạn
