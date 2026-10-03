@@ -243,6 +243,25 @@ export async function syncRoomsToFirebase(tripId: string, rooms: Room[], isExpli
     // Tự động loại bỏ triệt để phòng rác (0 thành viên) không cho lưu vào Firestore
     finalRooms = finalRooms.filter(r => r.memberIds && r.memberIds.length > 0);
 
+    // BẢO VỆ CHẶN CỨNG ĐỊNH MỨC: Tuyệt đối không cho phép lưu vượt định mức lên Firestore (bảo vệ khi có race-condition)
+    const currentTrip = getTrips().find(t => t.id === tripId);
+    const limits = currentTrip?.roomLimits || { 2: 152, 3: 11, 4: 20, 5: 6, 6: 6 };
+    if (limits) {
+      for (const cap of [2, 3, 4, 5, 6]) {
+        const lim = limits[cap];
+        if (lim !== undefined) {
+          const capRooms = finalRooms.filter(r => r.capacity === cap);
+          if (capRooms.length > lim) {
+            // Sắp xếp theo ngày tạo: giữ lại đúng số phòng tạo sớm nhất hợp lệ
+            capRooms.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+            const excessRooms = capRooms.slice(lim);
+            const excessIds = new Set(excessRooms.map(r => r.id));
+            finalRooms = finalRooms.filter(r => !excessIds.has(r.id));
+          }
+        }
+      }
+    }
+
     // Đảm bảo không trùng mã phòng và chuẩn hóa số phòng P.1, P.2, P.3...
     const usedCodes = new Set<string>();
     finalRooms.forEach((r, idx) => {

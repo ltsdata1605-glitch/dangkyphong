@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Person, Room, Trip, BedType } from '../types';
 import { validateRoom, canAddPersonToRoom } from '../services/roomingEngine';
 import { removeVietnameseTones } from '../utils/textUtils';
@@ -41,17 +41,30 @@ export const RoomModal: React.FC<RoomModalProps> = ({
   currentTrip,
   allRooms = []
 }) => {
-  // Thống kê số lượng phòng đã đăng ký theo từng loại (ngoại trừ chính phòng đang sửa nếu có)
+  // Thống kê tổng số lượng phòng đang hoạt động theo từng loại
   const roomCountByCap = useMemo(() => {
     const counts: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     if (!allRooms || !currentTrip) return counts;
     allRooms.forEach(r => {
-      if (r.tripId === currentTrip.id && (!editingRoom || r.id !== editingRoom.id) && r.memberIds && r.memberIds.length > 0) {
+      if (r.tripId === currentTrip.id && r.memberIds && r.memberIds.length > 0) {
         counts[r.capacity] = (counts[r.capacity] || 0) + 1;
       }
     });
     return counts;
-  }, [allRooms, currentTrip, editingRoom]);
+  }, [allRooms, currentTrip]);
+
+  // Kiểm tra loại phòng c đã đầy định mức hay chưa
+  const isCapacityFull = useCallback((c: number): boolean => {
+    const maxLimit = currentTrip?.roomLimits?.[c];
+    if (maxLimit === undefined) return false;
+    const count = roomCountByCap[c] || 0;
+    // Nếu đang sửa chính phòng này và phòng này vốn đã thuộc loại sức chứa c -> Không làm tăng số phòng loại c
+    if (editingRoom && editingRoom.capacity === c) {
+      return count > maxLimit;
+    }
+    // Nếu là phòng mới HOẶC đổi từ loại khác sang loại c -> Làm tăng thêm 1 phòng loại c
+    return count >= maxLimit;
+  }, [currentTrip, roomCountByCap, editingRoom]);
 
   const [capacity, setCapacity] = useState<number>(() => {
     if (editingRoom) return editingRoom.capacity;
@@ -74,11 +87,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
   // Tự động chuyển loại phòng nếu loại phòng hiện tại đã đạt định mức tối đa
   useEffect(() => {
     if (!currentTrip?.roomLimits) return;
-    const maxLimit = currentTrip.roomLimits[capacity];
-    const currentCount = roomCountByCap[capacity] || 0;
-    const isCurrentFull = maxLimit !== undefined && currentCount >= maxLimit && (!editingRoom || editingRoom.capacity !== capacity);
-
-    if (isCurrentFull) {
+    if (isCapacityFull(capacity)) {
       // Tìm loại phòng tiếp theo còn chỉ tiêu và đủ chỗ cho số người hiện tại
       const adultCount = selectedMemberIds
         .map(id => allPeople.find(p => p.id === id)!)
@@ -86,16 +95,14 @@ export const RoomModal: React.FC<RoomModalProps> = ({
       
       const nextAvailable = [2, 3, 4, 5, 6].find(c => {
         if (c < Math.max(2, adultCount)) return false;
-        const lim = currentTrip.roomLimits?.[c];
-        const cnt = roomCountByCap[c] || 0;
-        return lim === undefined || cnt < lim;
+        return !isCapacityFull(c);
       });
 
       if (nextAvailable && nextAvailable !== capacity) {
         setCapacity(nextAvailable);
       }
     }
-  }, [capacity, roomCountByCap, currentTrip, editingRoom, selectedMemberIds, allPeople]);
+  }, [capacity, isCapacityFull, currentTrip, selectedMemberIds, allPeople]);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -180,15 +187,12 @@ export const RoomModal: React.FC<RoomModalProps> = ({
       // Tìm loại phòng nhỏ nhất >= nextAdults mà chưa đầy định mức
       const targetCap = [nextAdults, nextAdults + 1, nextAdults + 2, nextAdults + 3, 6].find(c => {
         if (c > 6) return false;
-        const lim = currentTrip?.roomLimits?.[c];
-        const cnt = roomCountByCap[c] || 0;
-        const adjustedCnt = (editingRoom && editingRoom.capacity === c) ? Math.max(0, cnt - 1) : cnt;
-        return lim === undefined || adjustedCnt < lim;
+        return !isCapacityFull(c);
       });
 
       if (!targetCap) {
         const limNext = currentTrip?.roomLimits?.[nextAdults];
-        alert(`Không thể thêm người! Loại phòng ${nextAdults} người đã đủ số lượng quy định${limNext !== undefined ? ` (${roomCountByCap[nextAdults] || 0}/${limNext} phòng)` : ''} và không còn loại phòng lớn hơn còn trống.`);
+        alert(`⚠️ Không thể thêm người! Loại phòng ${nextAdults} người đã đủ định mức quy định${limNext !== undefined ? ` (${roomCountByCap[nextAdults] || 0}/${limNext} phòng)` : ''} và không còn loại phòng lớn hơn còn trống.`);
         return;
       }
       setCapacity(targetCap);
@@ -217,15 +221,10 @@ export const RoomModal: React.FC<RoomModalProps> = ({
   const handleSave = () => {
     const finalCapacity = capacity;
     const maxLimit = currentTrip?.roomLimits?.[finalCapacity];
-    const currentCount = roomCountByCap[finalCapacity] || 0;
-    const isExceeded = maxLimit !== undefined && (
-      (editingRoom && editingRoom.capacity === finalCapacity)
-        ? currentCount > maxLimit
-        : currentCount >= maxLimit
-    );
+    const isExceeded = isCapacityFull(finalCapacity);
 
     if (maxLimit !== undefined && isExceeded) {
-      alert(`Phòng ${finalCapacity} người đã đạt định mức tối đa (${currentCount}/${maxLimit} phòng). Không thể lưu thêm phòng loại này! Vui lòng chọn loại phòng khác còn chỉ tiêu.`);
+      alert(`⚠️ Phòng ${finalCapacity} người đã đạt định mức tối đa (${roomCountByCap[finalCapacity] || 0}/${maxLimit} phòng). Không thể lưu thêm phòng loại này! Vui lòng chọn loại phòng khác còn chỉ tiêu.`);
       return;
     }
 
@@ -304,7 +303,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
               {[2, 3, 4, 5, 6].map(cap => {
                 const maxLimit = currentTrip?.roomLimits?.[cap];
                 const count = roomCountByCap[cap] || 0;
-                const isFull = maxLimit !== undefined && count >= maxLimit && (!editingRoom || editingRoom.capacity !== cap);
+                const isFull = isCapacityFull(cap);
                 const isSelected = capacity === cap;
                 const remaining = maxLimit !== undefined ? Math.max(0, maxLimit - count) : undefined;
 
