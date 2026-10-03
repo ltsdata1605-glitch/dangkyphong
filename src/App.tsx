@@ -151,31 +151,31 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  const handleSaveTrip = (trip: Trip, initialPeople?: Person[]) => {
+  const handleSaveTrip = async (trip: Trip, initialPeople?: Person[]) => {
     if (initialPeople && initialPeople.length > 0) {
       trip.lastImportedAt = trip.lastImportedAt || new Date().toISOString();
       trip.lastImportedCount = initialPeople.length;
-      saveTrip(trip);
-      savePeople(trip.id, initialPeople);
-      saveRooms(trip.id, []);
+      await saveTrip(trip);
+      await savePeople(trip.id, initialPeople);
+      await saveRooms(trip.id, []);
     } else {
-      saveTrip(trip);
+      await saveTrip(trip);
     }
     refreshData();
   };
 
-  const handleDeleteTrip = (tripId: string) => {
-    deleteTrip(tripId);
+  const handleDeleteTrip = async (tripId: string) => {
+    await deleteTrip(tripId);
     refreshData();
   };
 
-  const handleResetData = (tripId: string) => {
-    resetDefaultData(tripId);
+  const handleResetData = async (tripId: string) => {
+    await resetDefaultData(tripId);
     refreshData();
   };
 
   // Tạo hoặc Sửa phòng
-  const handleSaveRoom = (capacity: number, memberIds: string[], editingRoomId?: string) => {
+  const handleSaveRoom = async (capacity: number, memberIds: string[], editingRoomId?: string) => {
     if (!currentEmployee) return;
 
     const currentPeople = getPeople(currentTrip.id);
@@ -243,8 +243,8 @@ export const App: React.FC = () => {
       ? currentRooms.map(r => r.id === editingRoomId ? room : r)
       : [...currentRooms, room];
 
-    saveRooms(currentTrip.id, updatedRooms);
-    savePeople(currentTrip.id, currentPeople);
+    await saveRooms(currentTrip.id, updatedRooms);
+    await savePeople(currentTrip.id, currentPeople);
 
     addLog(currentTrip.id, {
       id: `log_${Date.now()}`,
@@ -260,10 +260,10 @@ export const App: React.FC = () => {
   };
 
   // Rời phòng
-  const handleLeaveRoom = (personId: string) => {
+  const handleLeaveRoom = async (personId: string) => {
     const actorId = currentEmployee ? currentEmployee.code : 'admin';
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
-    const res = leaveRoom(currentTrip.id, personId, actorId, actorName);
+    const res = await leaveRoom(currentTrip.id, personId, actorId, actorName);
     if (res.success) {
       const updatedPeople = getPeople(currentTrip.id);
       const updatedEmp = updatedPeople.find(p => p.id === personId || p.code === personId);
@@ -287,10 +287,10 @@ export const App: React.FC = () => {
   };
 
   // Xóa / Hủy phòng
-  const handleDeleteRoom = (roomId: string) => {
+  const handleDeleteRoom = async (roomId: string) => {
     const actorId = currentEmployee ? currentEmployee.code : 'admin';
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
-    deleteRoom(currentTrip.id, roomId, actorId, actorName);
+    await deleteRoom(currentTrip.id, roomId, actorId, actorName);
     setCurrentEmployee(prev => {
       if (prev && prev.roomId === roomId) {
         const updated = { ...prev, roomId: null };
@@ -303,10 +303,10 @@ export const App: React.FC = () => {
   };
 
   // Xóa toàn bộ phòng
-  const handleDeleteAllRooms = () => {
+  const handleDeleteAllRooms = async () => {
     const actorId = currentEmployee ? currentEmployee.code : 'admin';
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
-    deleteAllRooms(currentTrip.id, actorId, actorName);
+    await deleteAllRooms(currentTrip.id, actorId, actorName);
     setCurrentEmployee(prev => {
       if (prev && prev.roomId) {
         const updated = { ...prev, roomId: null };
@@ -319,9 +319,9 @@ export const App: React.FC = () => {
   };
 
   // Nhận người thân (chọn mối quan hệ) -> Tự động tạo phòng 2 người hoặc thêm vào phòng hiện tại
-  const handleClaimRelative = (relativeId: string, relation?: RelationType) => {
+  const handleClaimRelative = async (relativeId: string, relation?: RelationType) => {
     if (!currentEmployee) return;
-    const res = claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name, relation);
+    const res = await claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name, relation);
     if (res.success) {
       // Cập nhật ngay currentEmployee với roomId mới từ storage để UI chuyển ngay lập tức
       const updatedPeople = getPeople(currentTrip.id);
@@ -342,10 +342,10 @@ export const App: React.FC = () => {
   };
 
   // Hủy nhận người thân
-  const handleUnclaimRelative = (relativeId: string) => {
+  const handleUnclaimRelative = async (relativeId: string) => {
     if (!currentEmployee) return;
     const tripId = currentTrip?.id || getActiveTripId();
-    const res = unclaimRelative(tripId, currentEmployee.code, relativeId);
+    const res = await unclaimRelative(tripId, currentEmployee.code, relativeId);
     
     // Đồng bộ lại currentEmployee nếu có thay đổi
     const updatedPeople = getPeople(tripId);
@@ -364,7 +364,7 @@ export const App: React.FC = () => {
   };
 
   // Ghép phòng tự động
-  const handleAutoMatch = () => {
+  const handleAutoMatch = async () => {
     const res = autoMatchRooms(people, rooms, currentTrip.id);
     if (res.assignedCount === 0) {
       alert('Không còn nhân sự trống nào có thể tự động ghép.');
@@ -395,8 +395,8 @@ export const App: React.FC = () => {
       });
     });
 
-    saveRooms(currentTrip.id, updatedRooms);
-    savePeople(currentTrip.id, currentPeople);
+    await saveRooms(currentTrip.id, updatedRooms);
+    await savePeople(currentTrip.id, currentPeople);
 
     addLog(currentTrip.id, {
       id: `log_${Date.now()}`,
@@ -428,12 +428,12 @@ export const App: React.FC = () => {
   };
 
   // Khóa / Mở đăng ký
-  const handleToggleLock = () => {
+  const handleToggleLock = async () => {
     const updatedTrip: Trip = {
       ...currentTrip,
       isLocked: !currentTrip.isLocked
     };
-    saveTrip(updatedTrip);
+    await saveTrip(updatedTrip);
     addLog(currentTrip.id, {
       id: `log_${Date.now()}`,
       tripId: currentTrip.id,
@@ -447,12 +447,12 @@ export const App: React.FC = () => {
   };
 
   // Admin nạp file Excel cho một chuyến đi cụ thể
-  const handleConfirmImport = (targetTripId: string, newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => {
+  const handleConfirmImport = async (targetTripId: string, newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => {
     const tripId = targetTripId || currentTrip.id;
     let finalCount = 0;
     if (mode === 'OVERWRITE') {
-      savePeople(tripId, newPeople);
-      saveRooms(tripId, []);
+      await savePeople(tripId, newPeople);
+      await saveRooms(tripId, []);
       finalCount = newPeople.length;
     } else {
       const existing = getPeople(tripId);
@@ -471,7 +471,7 @@ export const App: React.FC = () => {
           merged.push(np);
         }
       });
-      savePeople(tripId, merged);
+      await savePeople(tripId, merged);
       finalCount = merged.length;
     }
 
@@ -483,7 +483,7 @@ export const App: React.FC = () => {
     if (targetTrip) {
       targetTrip.lastImportedAt = importTime;
       targetTrip.lastImportedCount = finalCount;
-      saveTrip(targetTrip);
+      await saveTrip(targetTrip);
     }
 
     addLog(tripId, {
@@ -500,19 +500,19 @@ export const App: React.FC = () => {
   };
 
   // Admin đổi nhanh giới tính
-  const handleToggleGender = (personId: string) => {
+  const handleToggleGender = async (personId: string) => {
     const currentPeople = getPeople(currentTrip.id);
     const p = currentPeople.find(cp => cp.id === personId);
     if (p) {
       p.gender = p.gender === 'M' ? 'F' : 'M';
-      savePeople(currentTrip.id, currentPeople);
+      await savePeople(currentTrip.id, currentPeople);
       refreshData();
     }
   };
 
   // Admin gán người thân cho nhân viên
-  const handleAdminAssignRelative = (relativeId: string, employeeCode: string) => {
-    const res = claimRelative(currentTrip.id, employeeCode, relativeId, 'Ban Tổ Chức');
+  const handleAdminAssignRelative = async (relativeId: string, employeeCode: string) => {
+    const res = await claimRelative(currentTrip.id, employeeCode, relativeId, 'Ban Tổ Chức');
     refreshData();
     if (res.success && res.roomCode) {
       alert(`Đã gán người thân cho nhân viên ${employeeCode} thành công (Phòng: ${res.roomCode})!`);
@@ -520,7 +520,7 @@ export const App: React.FC = () => {
   };
 
   // Admin thêm người vào phòng
-  const handleAdminAddMember = (roomId: string, personId: string) => {
+  const handleAdminAddMember = async (roomId: string, personId: string) => {
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
@@ -554,25 +554,25 @@ export const App: React.FC = () => {
     room.updatedAt = new Date().toISOString();
     room.updatedBy = 'Admin BTC';
 
-    saveRooms(currentTrip.id, currentRooms);
-    savePeople(currentTrip.id, currentPeople);
+    await saveRooms(currentTrip.id, currentRooms);
+    await savePeople(currentTrip.id, currentPeople);
     refreshData();
   };
 
   // Admin gỡ người khỏi phòng (hoặc xóa phòng hoàn toàn nếu chỉ còn người này)
-  const handleAdminRemoveMember = (roomId: string, personId: string) => {
+  const handleAdminRemoveMember = async (roomId: string, personId: string) => {
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
     if (room && (room.memberIds.length <= 1 || room.memberIds.every(id => id === personId))) {
-      deleteRoom(currentTrip.id, room.id, 'admin', 'Ban Tổ Chức');
+      await deleteRoom(currentTrip.id, room.id, 'admin', 'Ban Tổ Chức');
     } else {
-      leaveRoom(currentTrip.id, personId, 'admin', 'Ban Tổ Chức', roomId);
+      await leaveRoom(currentTrip.id, personId, 'admin', 'Ban Tổ Chức', roomId);
     }
     refreshData();
   };
 
   // Admin tạo hoặc sửa phòng cho nhân sự
-  const handleAdminSaveRoom = (capacity: number, memberIds: string[], editingRoomId?: string) => {
+  const handleAdminSaveRoom = async (capacity: number, memberIds: string[], editingRoomId?: string) => {
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
     const members = memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
@@ -645,8 +645,8 @@ export const App: React.FC = () => {
       const p = currentPeople.find(cp => cp.id === id);
       if (p) p.roomId = roomId!;
     });
-    saveRooms(currentTrip.id, currentRooms);
-    savePeople(currentTrip.id, currentPeople);
+    await saveRooms(currentTrip.id, currentRooms);
+    await savePeople(currentTrip.id, currentPeople);
 
     addLog(currentTrip.id, {
       id: `log_${Date.now()}`,
@@ -664,13 +664,13 @@ export const App: React.FC = () => {
   };
 
   // Admin duyệt đặc cách
-  const handleAdminSaveOverride = (roomId: string, note: string) => {
+  const handleAdminSaveOverride = async (roomId: string, note: string) => {
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
     if (room) {
       room.adminOverride = true;
       room.adminNote = note;
-      saveRooms(currentTrip.id, currentRooms);
+      await saveRooms(currentTrip.id, currentRooms);
       addLog(currentTrip.id, {
         id: `log_${Date.now()}`,
         tripId: currentTrip.id,
@@ -680,8 +680,8 @@ export const App: React.FC = () => {
         details: `Duyệt đặc cách cho phòng ${room.code}: "${note}"`,
         timestamp: new Date().toISOString()
       });
-      refreshData();
     }
+    refreshData();
   };
 
   return (

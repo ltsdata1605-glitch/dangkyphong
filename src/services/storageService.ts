@@ -75,7 +75,14 @@ export function setupFirestoreListeners(tripId: string): void {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.people)) {
-          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(data.people));
+          const currentRooms = getRooms(tripId);
+          const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, currentRooms, data.people);
+          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+          if (modified) {
+            localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+            syncRoomsToFirebase(tripId, cleanRooms);
+            syncPeopleToFirebase(tripId, cleanPeople);
+          }
           notifyStateChange();
         }
       } else {
@@ -97,10 +104,16 @@ export function setupFirestoreListeners(tripId: string): void {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.rooms)) {
-          const { rooms: normalized, migrated } = migrateRoomCodes(data.rooms);
+          const currentPeople = getPeople(tripId);
+          const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, data.rooms, currentPeople);
+          const { rooms: normalized, migrated } = migrateRoomCodes(cleanRooms);
           localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(normalized));
-          if (migrated) {
+          if (modified) {
+            localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+          }
+          if (migrated || modified) {
             syncRoomsToFirebase(tripId, normalized);
+            if (modified) syncPeopleToFirebase(tripId, cleanPeople);
           }
           notifyStateChange();
         }
@@ -261,7 +274,7 @@ export function getTrips(): Trip[] {
   }
 }
 
-export function saveTrip(trip: Trip): void {
+export async function saveTrip(trip: Trip): Promise<void> {
   const trips = getTrips();
   const index = trips.findIndex(t => t.id === trip.id);
   if (index >= 0) {
@@ -270,11 +283,11 @@ export function saveTrip(trip: Trip): void {
     trips.unshift(trip);
   }
   localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
-  syncTripsToFirebase();
   notifyStateChange();
+  await syncTripsToFirebase();
 }
 
-export function deleteTrip(tripId: string): void {
+export async function deleteTrip(tripId: string): Promise<void> {
   let trips = getTrips();
   trips = trips.filter(t => t.id !== tripId);
   localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
@@ -283,7 +296,7 @@ export function deleteTrip(tripId: string): void {
   localStorage.removeItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`);
   localStorage.removeItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`);
 
-  syncTripsToFirebase();
+  await syncTripsToFirebase();
 
   if (getActiveTripId() === tripId) {
     if (trips.length > 0) {
@@ -320,10 +333,10 @@ export function getPeople(tripId: string): Person[] {
   }
 }
 
-export function savePeople(tripId: string, people: Person[]): void {
+export async function savePeople(tripId: string, people: Person[]): Promise<void> {
   localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(people));
-  syncPeopleToFirebase(tripId, people);
   notifyStateChange();
+  await syncPeopleToFirebase(tripId, people);
 }
 
 /**
@@ -356,6 +369,92 @@ export function migrateRoomCodes(rooms: Room[]): { rooms: Room[], migrated: bool
   }
 
   return { rooms, migrated: false };
+}
+
+/**
+ * Tự động hàn gắn và đồng bộ 2 chiều giữa Rooms và People:
+ * - Nếu person.roomId trỏ tới phòng không tồn tại hoặc phòng không chứa người này -> person.roomId = null
+ * - Nếu room.memberIds chứa người mà người đó có person.roomId !== room.id hoặc null -> gỡ khỏi memberIds
+ * - Nếu phòng không còn ai hoặc không còn nhân viên -> giải tán phòng
+ */
+export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: Person[]): { rooms: Room[], people: Person[], modified: boolean } {
+  let modified = false;
+  const peopleMap = new Map<string, Person>();
+  people.forEach(p => {
+    peopleMap.set(p.id, p);
+    peopleMap.set(p.code, p);
+  });
+
+  const validRoomIds = new Set(rooms.map(r => r.id));
+
+  // 1. Chuẩn hóa People: Nếu roomId trỏ tới phòng không có hoặc phòng không chứa người này
+  people.forEach(p => {
+    if (p.roomId) {
+      if (!validRoomIds.has(p.roomId)) {
+        p.roomId = null;
+        modified = true;
+      } else {
+        const room = rooms.find(r => r.id === p.roomId);
+        if (room && !room.memberIds.includes(p.id) && !room.memberIds.includes(p.code)) {
+          p.roomId = null;
+          modified = true;
+        }
+      }
+    }
+  });
+
+  // 2. Chuẩn hóa Rooms: Loại bỏ các thành viên đã rời khỏi phòng (p.roomId === null hoặc khác room.id)
+  const updatedRooms: Room[] = [];
+  rooms.forEach(room => {
+    const originalCount = room.memberIds.length;
+    const cleanMemberIds = room.memberIds.filter(mId => {
+      const p = peopleMap.get(mId);
+      if (!p) return false;
+      // Nếu p.roomId rõ ràng là null hoặc trỏ sang phòng khác -> không còn trong phòng này
+      if (p.roomId && p.roomId !== room.id) return false;
+      if (p.roomId === null) return false;
+      return true;
+    });
+
+    if (cleanMemberIds.length !== originalCount) {
+      modified = true;
+    }
+
+    const members = cleanMemberIds.map(mId => peopleMap.get(mId)!).filter(Boolean);
+    const hasEmployee = members.some(m => m.type === 'EMPLOYEE');
+
+    if (cleanMemberIds.length > 0 && hasEmployee) {
+      const usedSlots = members.reduce((sum, m) => sum + (m.slot || 0), 0);
+      const childCount = members.filter(m => m.slot === 0).length;
+      let leaderId = room.leaderId;
+      if (!cleanMemberIds.includes(leaderId)) {
+        const nextEmp = members.find(m => m.type === 'EMPLOYEE');
+        leaderId = nextEmp ? nextEmp.id : cleanMemberIds[0];
+        modified = true;
+      }
+
+      updatedRooms.push({
+        ...room,
+        memberIds: cleanMemberIds,
+        leaderId,
+        usedSlots,
+        childCount,
+        status: (usedSlots === room.capacity ? 'FULL' : (usedSlots < room.capacity ? 'UNDER' : 'WARNING')) as RoomStatus
+      });
+    } else {
+      // Giải tán phòng nếu trống hoặc không còn nhân viên
+      cleanMemberIds.forEach(mId => {
+        const p = peopleMap.get(mId);
+        if (p) {
+          p.roomId = null;
+          modified = true;
+        }
+      });
+      modified = true;
+    }
+  });
+
+  return { rooms: updatedRooms, people, modified };
 }
 
 let isNormalizing = false;
@@ -443,12 +542,12 @@ export function getRooms(tripId: string): Room[] {
   }
 }
 
-export function saveRooms(tripId: string, rooms: Room[]): void {
+export async function saveRooms(tripId: string, rooms: Room[]): Promise<void> {
   const { rooms: normalizedCodes } = migrateRoomCodes(rooms);
   const { rooms: finalRooms } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, true);
   localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
-  syncRoomsToFirebase(tripId, finalRooms);
   notifyStateChange();
+  await syncRoomsToFirebase(tripId, finalRooms);
 }
 
 export function getLogs(tripId: string): AuditLog[] {
@@ -494,13 +593,13 @@ export function getTripImportInfo(trip: Trip): { count: number; importedAt: stri
  *   Riêng đối với con < 11 tuổi (CHILD_U5, CHILD_5_11) thì ở cùng người thân, slot = 0 (không tính là 1 người).
  * - Nếu nhân viên đã có phòng: Tự động thêm người thân vào phòng hiện tại.
  */
-export function claimRelative(
+export async function claimRelative(
   tripId: string, 
   employeeCode: string, 
   relativeId: string, 
   employeeName?: string,
   relation?: RelationType
-): { success: boolean; roomCode?: string; isNewRoom?: boolean; message?: string } {
+): Promise<{ success: boolean; roomCode?: string; isNewRoom?: boolean; message?: string }> {
   const people = getPeople(tripId);
   const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
   const relative = people.find(p => p.id === relativeId || p.code === relativeId);
@@ -620,8 +719,15 @@ export function claimRelative(
     rooms.push(newRoom);
   }
 
-  saveRooms(tripId, rooms);
-  savePeople(tripId, people);
+  const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, rooms, people);
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+  localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+  notifyStateChange();
+
+  await Promise.all([
+    syncRoomsToFirebase(tripId, cleanRooms),
+    syncPeopleToFirebase(tripId, cleanPeople)
+  ]);
 
   addLog(tripId, {
     id: `log_${Date.now()}`,
@@ -646,11 +752,11 @@ export function claimRelative(
 /**
  * Hủy nhận người thân
  */
-export function unclaimRelative(
+export async function unclaimRelative(
   tripId: string, 
   employeeCodeOrId: string, 
   relativeId: string
-): { success: boolean; message: string } {
+): Promise<{ success: boolean; message: string }> {
   const targetTripId = tripId || getActiveTripId();
   const people = getPeople(targetTripId);
 
@@ -674,23 +780,23 @@ export function unclaimRelative(
   const relRoomId = relative.roomId;
   relative.roomId = null;
 
+  const rooms = getRooms(targetTripId);
   if (relRoomId) {
-    const rooms = getRooms(targetTripId);
     const room = rooms.find(r => r.id === relRoomId);
     if (room) {
       room.memberIds = room.memberIds.filter(id => id !== relative.id && id !== relativeId);
-      const remainingMembers = room.memberIds
-        .map(id => people.find(p => p.id === id)!)
-        .filter(Boolean);
-      room.usedSlots = remainingMembers.reduce((sum, m) => sum + (m.slot ?? 1), 0);
-      room.childCount = remainingMembers.filter(m => m.slot === 0).length;
-      room.status = room.usedSlots >= room.capacity ? 'FULL' : 'UNDER';
-      room.updatedAt = new Date().toISOString();
-      saveRooms(targetTripId, rooms);
     }
   }
 
-  savePeople(targetTripId, people);
+  const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(targetTripId, rooms, people);
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${targetTripId}`, JSON.stringify(cleanRooms));
+  localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${targetTripId}`, JSON.stringify(cleanPeople));
+  notifyStateChange();
+
+  await Promise.all([
+    syncRoomsToFirebase(targetTripId, cleanRooms),
+    syncPeopleToFirebase(targetTripId, cleanPeople)
+  ]);
 
   addLog(targetTripId, {
     id: `log_${Date.now()}`,
@@ -708,7 +814,7 @@ export function unclaimRelative(
 /**
  * Admin gán người thân cho nhân viên
  */
-export function assignRelativeAdmin(tripId: string, employeeCode: string, relativeId: string): boolean {
+export async function assignRelativeAdmin(tripId: string, employeeCode: string, relativeId: string): Promise<boolean> {
   const people = getPeople(tripId);
   const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
   const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
@@ -717,17 +823,24 @@ export function assignRelativeAdmin(tripId: string, employeeCode: string, relati
 
   relative.ownerId = employee.code;
 
+  const rooms = getRooms(tripId);
   if (employee.roomId) {
-    const rooms = getRooms(tripId);
     const room = rooms.find(r => r.id === employee.roomId);
     if (room && !room.memberIds.includes(relative.id)) {
       room.memberIds.push(relative.id);
       relative.roomId = room.id;
-      saveRooms(tripId, rooms);
     }
   }
 
-  savePeople(tripId, people);
+  const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, rooms, people);
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+  localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+  notifyStateChange();
+
+  await Promise.all([
+    syncRoomsToFirebase(tripId, cleanRooms),
+    syncPeopleToFirebase(tripId, cleanPeople)
+  ]);
 
   addLog(tripId, {
     id: `log_${Date.now()}`,
@@ -745,13 +858,13 @@ export function assignRelativeAdmin(tripId: string, employeeCode: string, relati
 /**
  * Rời khỏi phòng (hoặc Admin gỡ thành viên khỏi phòng)
  */
-export function leaveRoom(
+export async function leaveRoom(
   tripId: string,
   personId: string,
   actorId: string,
   actorName: string,
   targetRoomId?: string
-): { success: boolean; message: string } {
+): Promise<{ success: boolean; message: string }> {
   const people = getPeople(tripId);
   const rooms = getRooms(tripId);
   const person = people.find(p => p.id === personId || p.code === personId);
@@ -774,7 +887,7 @@ export function leaveRoom(
   if (roomIndex < 0) {
     if (person) {
       person.roomId = null;
-      savePeople(tripId, people);
+      await savePeople(tripId, people);
     }
     return { success: false, message: 'Người này chưa có trong phòng nào.' };
   }
@@ -792,8 +905,16 @@ export function leaveRoom(
   if (remainingMemberIds.length === 0) {
     rooms.splice(roomIndex, 1);
     if (person) person.roomId = null;
-    saveRooms(tripId, rooms);
-    savePeople(tripId, people);
+
+    const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, rooms, people);
+    localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+    localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+    notifyStateChange();
+
+    await Promise.all([
+      syncRoomsToFirebase(tripId, cleanRooms),
+      syncPeopleToFirebase(tripId, cleanPeople)
+    ]);
 
     addLog(tripId, {
       id: `log_${Date.now()}`,
@@ -822,8 +943,17 @@ export function leaveRoom(
       if (p) p.roomId = null;
     });
     if (person) person.roomId = null;
-    saveRooms(tripId, rooms);
-    savePeople(tripId, people);
+
+    const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, rooms, people);
+    localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+    localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+    notifyStateChange();
+
+    await Promise.all([
+      syncRoomsToFirebase(tripId, cleanRooms),
+      syncPeopleToFirebase(tripId, cleanPeople)
+    ]);
+
     return { success: true, message: 'Đã giải tán phòng do không còn nhân viên nào trong phòng.' };
   }
 
@@ -847,8 +977,15 @@ export function leaveRoom(
   // Sau khi đưa trẻ em ra, kiểm tra lại nếu không còn ai
   if (room.memberIds.length === 0) {
     rooms.splice(roomIndex, 1);
-    saveRooms(tripId, rooms);
-    savePeople(tripId, people);
+    const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, rooms, people);
+    localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+    localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+    notifyStateChange();
+
+    await Promise.all([
+      syncRoomsToFirebase(tripId, cleanRooms),
+      syncPeopleToFirebase(tripId, cleanPeople)
+    ]);
     return { success: true, message: 'Đã giải tán phòng.' };
   }
 
@@ -862,8 +999,15 @@ export function leaveRoom(
   room.updatedAt = new Date().toISOString();
   room.updatedBy = actorName;
 
-  saveRooms(tripId, rooms);
-  savePeople(tripId, people);
+  const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, rooms, people);
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+  localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+  notifyStateChange();
+
+  await Promise.all([
+    syncRoomsToFirebase(tripId, cleanRooms),
+    syncPeopleToFirebase(tripId, cleanPeople)
+  ]);
 
   addLog(tripId, {
     id: `log_${Date.now()}`,
@@ -881,7 +1025,7 @@ export function leaveRoom(
 /**
  * Xóa phòng hoàn toàn (Admin hoặc Trưởng phòng hủy)
  */
-export function deleteRoom(tripId: string, roomId: string, actorId: string, actorName: string): boolean {
+export async function deleteRoom(tripId: string, roomId: string, actorId: string, actorName: string): Promise<boolean> {
   const people = getPeople(tripId);
   const rooms = getRooms(tripId);
   const room = rooms.find(r => r.id === roomId);
@@ -897,8 +1041,16 @@ export function deleteRoom(tripId: string, roomId: string, actorId: string, acto
   });
 
   const updatedRooms = rooms.filter(r => r.id !== roomId);
-  saveRooms(tripId, updatedRooms);
-  savePeople(tripId, people);
+  const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(tripId, updatedRooms, people);
+
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+  localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+  notifyStateChange();
+
+  await Promise.all([
+    syncRoomsToFirebase(tripId, cleanRooms),
+    syncPeopleToFirebase(tripId, cleanPeople)
+  ]);
 
   addLog(tripId, {
     id: `log_${Date.now()}`,
@@ -916,14 +1068,20 @@ export function deleteRoom(tripId: string, roomId: string, actorId: string, acto
 /**
  * Xóa toàn bộ phòng đã tạo trong chuyến đi (Admin)
  */
-export function deleteAllRooms(tripId: string, actorId: string, actorName: string): boolean {
+export async function deleteAllRooms(tripId: string, actorId: string, actorName: string): Promise<boolean> {
   const people = getPeople(tripId);
   people.forEach(p => {
     p.roomId = null;
   });
 
-  saveRooms(tripId, []);
-  savePeople(tripId, people);
+  localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify([]));
+  localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(people));
+  notifyStateChange();
+
+  await Promise.all([
+    syncRoomsToFirebase(tripId, []),
+    syncPeopleToFirebase(tripId, people)
+  ]);
 
   addLog(tripId, {
     id: `log_${Date.now()}`,
@@ -941,14 +1099,14 @@ export function deleteAllRooms(tripId: string, actorId: string, actorName: strin
 /**
  * Khôi phục dữ liệu ban đầu
  */
-export function resetDefaultData(tripId: string): void {
+export async function resetDefaultData(tripId: string): Promise<void> {
   const initialPeople: Person[] = (seedPeople as any[]).map(p => ({
     ...p,
     roomId: null,
     nameUnsigned: p.name ? p.name.toLowerCase() : ''
   }));
-  savePeople(tripId, initialPeople);
-  saveRooms(tripId, []);
+  await savePeople(tripId, initialPeople);
+  await saveRooms(tripId, []);
   addLog(tripId, {
     id: `log_${Date.now()}`,
     tripId,
