@@ -139,44 +139,44 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
       />
 
       {/* 2. Room Status Section */}
-      <div className="glass-card" style={{ padding: '24px', marginBottom: 24, boxShadow: 'var(--shadow-lg)' }}>
+      <div className="glass-card emp-no-room-card" style={{ padding: '16px 14px', marginBottom: 16 }}>
         {!myRoom ? (
           /* Case A: Not in any room */
-          <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+          <div style={{ textAlign: 'center', padding: '8px 4px' }}>
             <div style={{
-              width: 64,
-              height: 64,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
               background: 'rgba(37, 99, 235, 0.1)',
               color: 'var(--primary-500)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 16
+              marginBottom: 8
             }}>
-              <Bed size={32} />
+              <Bed size={22} />
             </div>
 
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: 8 }}>
+            <h3 style={{ fontSize: '1.08rem', fontWeight: 800, marginBottom: 4 }}>
               Bạn Chưa Có Phòng Khách Sạn
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: 520, margin: '0 auto 16px auto', lineHeight: 1.5 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', maxWidth: 480, margin: '0 auto 8px auto', lineHeight: 1.45 }}>
               Thực hiện theo 3 bước: <strong>1. Chọn người thân</strong> (chọn mối quan hệ) → <strong>2. Tự động tạo phòng 2 người</strong> → <strong>3. Ghép thêm người ở cùng</strong> (hoặc chờ đồng nghiệp chọn bạn vào phòng của họ).
             </p>
 
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '8px 16px',
+              gap: 6,
+              padding: '4px 10px',
               borderRadius: 'var(--radius-full)',
               background: 'rgba(245, 158, 11, 0.1)',
               color: '#b45309',
-              fontSize: '0.82rem',
+              fontSize: '0.72rem',
               fontWeight: 600,
-              marginBottom: 20
+              marginBottom: 12
             }}>
-              <Info size={15} />
+              <Info size={14} style={{ flexShrink: 0 }} />
               <span>Ghi chú: Nếu bé &lt; 11 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).</span>
             </div>
 
@@ -184,24 +184,24 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '10px 18px',
+                gap: 6,
+                padding: '8px 14px',
                 borderRadius: 'var(--radius-md)',
                 background: 'rgba(239, 68, 68, 0.1)',
                 color: 'var(--color-danger)',
                 fontWeight: 600,
-                fontSize: '0.9rem'
+                fontSize: '0.82rem'
               }}>
-                <AlertCircle size={18} /> Hệ thống đã khóa đăng ký, vui lòng liên hệ Admin BTC để được hỗ trợ xếp phòng.
+                <AlertCircle size={16} /> Hệ thống đã khóa đăng ký, vui lòng liên hệ Admin BTC để được hỗ trợ xếp phòng.
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <button
                   onClick={handleOpenCreateModal}
-                  className="btn btn-primary btn-lg"
-                  style={{ boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)' }}
+                  className="btn btn-primary"
+                  style={{ padding: '7px 16px', fontSize: '0.84rem', fontWeight: 700, boxShadow: '0 3px 12px rgba(37, 99, 235, 0.35)' }}
                 >
-                  <PlusCircle size={20} />
+                  <PlusCircle size={17} />
                   Tạo Phòng Mới Ngay
                 </button>
 
@@ -209,11 +209,11 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                   <button
                     type="button"
                     onClick={onOpenAllRooms}
-                    className="btn btn-secondary btn-lg"
-                    style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                    className="btn btn-secondary"
+                    style={{ padding: '7px 14px', fontSize: '0.84rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     title="Xem tất cả các phòng đã xếp và tra cứu thành viên"
                   >
-                    <Search size={19} />
+                    <Search size={16} />
                     Tra Cứu Phòng ({allRooms.length})
                   </button>
                 )}
@@ -512,20 +512,20 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
       </div>
 
       {/* 3. My Family Relatives Section */}
-      <div className="glass-card" style={{ padding: '20px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Heart size={20} style={{ color: 'var(--color-danger)' }} />
-          <h4 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+      <div className="glass-card" style={{ padding: '12px 14px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <Heart size={16} style={{ color: 'var(--color-danger)' }} />
+          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0 }}>
             Người Thân Của Tôi ({myRelatives.length})
           </h4>
         </div>
 
         {myRelatives.length === 0 ? (
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
             Bạn chưa đăng ký người thân nào đi cùng chuyến du lịch này.
           </p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
             {myRelatives.map(rel => {
               const relRoom = allRooms.find(r => r.id === rel.roomId);
 

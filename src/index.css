@@ -837,30 +837,37 @@ h1, h2, h3, h4, h5, h6 {
   .audit-col-details {
     font-size: 0.72rem !important;
   }
+  .emp-no-room-card {
+    padding: 12px 10px !important;
+    margin-bottom: 12px !important;
+  }
 }
 
-/* Grid 4 Cột hiển thị người thân */
-.relative-claim-grid-4 {
+/* Grid 3 Cột hiển thị danh sách người thân theo yêu cầu */
+.relative-claim-grid-3 {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 @media (max-width: 1280px) {
-  .relative-claim-grid-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .relative-claim-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 }
 
 @media (max-width: 1024px) {
-  .relative-claim-grid-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .relative-claim-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
   }
 }
 
 @media (max-width: 580px) {
-  .relative-claim-grid-4 {
-    grid-template-columns: 1fr;
+  .relative-claim-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
   }
 }
 

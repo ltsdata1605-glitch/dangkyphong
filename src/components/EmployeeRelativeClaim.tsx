@@ -90,25 +90,25 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
 
   return (
     <div style={{
-      marginBottom: 20,
-      padding: '18px 22px',
-      borderRadius: 'var(--radius-lg)',
+      marginBottom: 12,
+      padding: '12px 14px',
+      borderRadius: 'var(--radius-md)',
       background: 'rgba(245, 158, 11, 0.08)',
       border: '1px solid rgba(245, 158, 11, 0.28)',
       boxShadow: 'var(--shadow-sm)'
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <HeartHandshake size={22} style={{ color: 'var(--color-warning)' }} />
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <HeartHandshake size={18} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
+          <h3 style={{ fontSize: '0.92rem', fontWeight: 800, margin: 0 }}>
             Xác Nhận Người Thân Đi Kèm Của Bạn
           </h3>
         </div>
 
-        {/* Dòng nhập tìm thông tin người thân trực tiếp ở vị trí nút trước đây */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: 300, minWidth: 220 }}>
-          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        {/* Dòng nhập tìm thông tin người thân trực tiếp ở vị trí nút trước đây - Ô tìm kiếm nhỏ lại */}
+        <div style={{ position: 'relative', width: 220, maxWidth: '100%' }}>
+          <Search size={13} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="input-field"
@@ -116,12 +116,10 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
             value={searchOtherStore}
             onChange={e => setSearchOtherStore(e.target.value)}
             style={{
-              paddingLeft: 30,
-              paddingRight: searchOtherStore ? 28 : 10,
-              paddingTop: '6px',
-              paddingBottom: '6px',
-              fontSize: '0.82rem',
-              height: 34,
+              paddingLeft: 26,
+              paddingRight: searchOtherStore ? 24 : 8,
+              fontSize: '0.74rem',
+              height: 28,
               borderRadius: 'var(--radius-sm)',
               background: 'var(--bg-card-solid)',
               border: '1px solid rgba(245, 158, 11, 0.45)'
@@ -133,7 +131,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               onClick={() => setSearchOtherStore('')}
               style={{
                 position: 'absolute',
-                right: 8,
+                right: 6,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'none',
@@ -146,7 +144,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               }}
               title="Xóa tìm kiếm"
             >
-              <X size={14} />
+              <X size={12} />
             </button>
           )}
         </div>
@@ -155,16 +153,16 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
       {/* Kết quả tìm kiếm người thân ở siêu thị khác (HIỂN THỊ KHI NGƯỜI DÙNG NHẬP VÀO Ô TÌM KIẾM) */}
       {searchOtherStore.trim() && (
         <div style={{
-          marginBottom: 14,
-          padding: '12px 14px',
-          borderRadius: 'var(--radius-md)',
+          marginBottom: 10,
+          padding: '8px 10px',
+          borderRadius: 'var(--radius-sm)',
           background: 'var(--bg-card-solid)',
           border: '1px solid rgba(245, 158, 11, 0.4)',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#b45309', fontSize: '0.84rem', fontWeight: 700 }}>
-              <Building2 size={15} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#b45309', fontSize: '0.78rem', fontWeight: 700 }}>
+              <Building2 size={14} />
               <span>Kết quả tìm người thân ở siêu thị khác ({searchedOtherRelatives.length}):</span>
             </div>
             <button
@@ -177,51 +175,54 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 4,
-                fontSize: '0.76rem'
+                gap: 3,
+                fontSize: '0.72rem'
               }}
             >
-              <X size={13} /> Đóng tìm kiếm
+              <X size={12} /> Đóng
             </button>
           </div>
 
           {searchedOtherRelatives.length === 0 ? (
-            <div style={{ padding: '10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+            <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.76rem' }}>
               Không tìm thấy người thân nào khớp với từ khóa "{searchOtherStore}". Vui lòng kiểm tra lại họ tên, MSNV hoặc tên siêu thị.
             </div>
           ) : (
-            <div className="relative-claim-grid-4">
+            <div className="relative-claim-grid-3">
               {searchedOtherRelatives.map(rel => (
                 <div
                   key={rel.id}
+                  className="relative-claim-item"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '5px 8px',
+                    padding: '4px 6px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-muted)',
                     border: '1px solid var(--border-subtle)',
-                    gap: 6,
-                    whiteSpace: 'nowrap',
-                    minHeight: 34
+                    gap: 4,
+                    minHeight: 32,
+                    overflow: 'hidden'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }} title={rel.name}>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, overflow: 'hidden', lineHeight: 1.2 }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.74rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={rel.name}>
                       {rel.name}
                     </span>
-                    {getRelationBadge(rel.relation, rel.slot, rel.type)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+                      {getRelationBadge(rel.relation, rel.slot, rel.type)}
+                    </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleOpenClaimModal(rel)}
                     className="btn btn-sm btn-primary"
-                    style={{ fontSize: '0.74rem', padding: '2px 7px', height: 24, flexShrink: 0, borderRadius: 'var(--radius-sm)', gap: 3 }}
+                    style={{ fontSize: '0.68rem', padding: '2px 6px', height: 22, flexShrink: 0, borderRadius: 'var(--radius-sm)', gap: 2, fontWeight: 700 }}
                     title={`Nhận ${rel.name} (${rel.store})`}
                   >
-                    <UserPlus size={11} />
+                    <UserPlus size={10} />
                     Nhận
                   </button>
                 </div>
@@ -233,61 +234,63 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
 
       {/* Description */}
       {hasStoreRelatives ? (
-        <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+        <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
           Tại <strong>{currentEmployee.store}</strong> hiện có <strong>{unclaimedRelativesInStore.length}</strong> người thân đăng ký chưa gắn mã nhân viên. Nếu là người thân của bạn, hãy bấm xác nhận để được xếp chung phòng gia đình:
         </p>
       ) : (
         !searchOtherStore.trim() && (
-          <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-            Hiện không có người thân nào chưa gắn mã tại <strong>{currentEmployee.store}</strong>. Nếu người thân của bạn đăng ký ở siêu thị/đơn vị khác, hãy nhập tên vào ô tìm kiếm ở góc trên bên phải để tìm và nhận người thân:
+          <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
+            Hiện không có người thân nào chưa gắn mã tại <strong>{currentEmployee.store}</strong>. Nếu người thân của bạn đăng ký ở siêu thị/đơn vị khác, hãy nhập tên vào ô tìm kiếm ở góc trên để tìm và nhận người thân:
           </p>
         )
       )}
 
-      {/* 2. Danh sách người thân cùng siêu thị (GRID 4 CỘT - 1 DÒNG 4 NGƯỜI) */}
+      {/* 2. Danh sách người thân cùng siêu thị (GRID 3 CỘT) */}
       {hasStoreRelatives && (
-        <div className="relative-claim-grid-4">
+        <div className="relative-claim-grid-3">
           {unclaimedRelativesInStore.map(rel => (
             <div
               key={rel.id}
+              className="relative-claim-item"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '5px 8px',
+                padding: '4px 6px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--bg-card-solid)',
                 border: '1px solid var(--border-subtle)',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                gap: 6,
-                whiteSpace: 'nowrap',
-                minHeight: 34
+                gap: 4,
+                minHeight: 32,
+                overflow: 'hidden'
               }}
             >
-              {/* Tên + Badge quan hệ (không hiển thị suất) */}
+              {/* Tên + Badge quan hệ */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
-                gap: 5,
+                flexDirection: 'column',
                 minWidth: 0,
                 flex: 1,
-                overflow: 'hidden'
+                overflow: 'hidden',
+                lineHeight: 1.2
               }}>
                 <span
                   style={{
                     fontWeight: 700,
-                    fontSize: '0.82rem',
+                    fontSize: '0.74rem',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    color: 'var(--text-main)',
-                    maxWidth: 110
+                    color: 'var(--text-main)'
                   }}
                   title={rel.name}
                 >
                   {rel.name}
                 </span>
-                {getRelationBadge(rel.relation, rel.slot, rel.type)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+                  {getRelationBadge(rel.relation, rel.slot, rel.type)}
+                </div>
               </div>
 
               <button
@@ -295,16 +298,17 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
                 onClick={() => handleOpenClaimModal(rel)}
                 className="btn btn-sm btn-primary"
                 style={{
-                  fontSize: '0.74rem',
-                  padding: '2px 7px',
-                  height: 24,
+                  fontSize: '0.68rem',
+                  padding: '2px 6px',
+                  height: 22,
                   flexShrink: 0,
                   borderRadius: 'var(--radius-sm)',
-                  gap: 3
+                  gap: 2,
+                  fontWeight: 700
                 }}
                 title="Xác nhận đây là người thân của tôi"
               >
-                <UserPlus size={11} />
+                <UserPlus size={10} />
                 Nhận
               </button>
             </div>
