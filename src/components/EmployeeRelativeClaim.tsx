@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Person, RelationType, PersonType } from '../types';
-import { HeartHandshake, UserPlus, Search, Building2, Info, X, Check, Baby, Users } from 'lucide-react';
+import { HeartHandshake, UserPlus, Search, Building2, Info, X, Check, Baby, Users, AlertTriangle } from 'lucide-react';
 import { removeVietnameseTones } from '../utils/textUtils';
 
 interface EmployeeRelativeClaimProps {
@@ -30,6 +30,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
   // Modal chọn mối quan hệ khi thêm
   const [claimingRelative, setClaimingRelative] = useState<Person | null>(null);
   const [selectedRelation, setSelectedRelation] = useState<RelationType>('SPOUSE');
+  const [isCommitted, setIsCommitted] = useState(false);
 
   // Kết quả tìm kiếm người thân ở siêu thị khác
   const searchedOtherRelatives = useMemo(() => {
@@ -54,6 +55,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
 
   const handleOpenClaimModal = (rel: Person) => {
     setClaimingRelative(rel);
+    setIsCommitted(false);
     // Ưu tiên quan hệ có sẵn hoặc mặc định
     if (rel.relation) {
       setSelectedRelation(rel.relation);
@@ -467,6 +469,78 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               </div>
             </div>
 
+            {/* Cảnh báo răn đe quy định nam nữ ở cùng phòng / quan hệ vợ chồng */}
+            {(() => {
+              const isOppositeGender = Boolean(
+                claimingRelative &&
+                claimingRelative.gender &&
+                currentEmployee.gender &&
+                claimingRelative.gender !== currentEmployee.gender
+              );
+              const isSpouseRelation = selectedRelation === 'SPOUSE';
+              const showDeterrentWarning = isOppositeGender || isSpouseRelation;
+
+              if (!showDeterrentWarning) return null;
+
+              return (
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                  marginBottom: 16
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    color: 'var(--color-danger)',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    marginBottom: 8
+                  }}>
+                    <AlertTriangle size={18} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+                    <span>CẢNH BÁO QUY ĐỊNH CÔNG TY (NGHIÊM CẤM GIAN LẬN)</span>
+                  </div>
+
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.55 }}>
+                    <p style={{ margin: '0 0 6px 0' }}>
+                      ⚖️ Công ty <strong>nghiêm cấm Nam và Nữ ở cùng phòng</strong> nếu không phải là <strong>Vợ / Chồng hợp pháp</strong> hoặc <strong>người thân ruột thịt</strong>.
+                    </p>
+                    <p style={{ margin: 0, color: 'var(--color-danger)', fontWeight: 600 }}>
+                      ⚠️ Khi xác nhận, bạn <strong>hoàn toàn chịu trách nhiệm kỷ luật</strong> trước Công ty nếu khai báo không trung thực nhằm mục đích ghép phòng trái quy định.
+                    </p>
+                  </div>
+
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    marginTop: 12,
+                    paddingTop: 10,
+                    borderTop: '1px dashed rgba(239, 68, 68, 0.35)',
+                    cursor: 'pointer'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={isCommitted}
+                      onChange={e => setIsCommitted(e.target.checked)}
+                      style={{
+                        width: 17,
+                        height: 17,
+                        marginTop: 2,
+                        cursor: 'pointer',
+                        accentColor: 'var(--color-danger)'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-danger)', lineHeight: 1.4 }}>
+                      Tôi cam kết thông tin quan hệ trên là đúng sự thật và chịu hoàn toàn trách nhiệm kỷ luật nếu không trung thực.
+                    </span>
+                  </label>
+                </div>
+              );
+            })()}
+
             {/* Note about Auto Room Creation & Child < 11 years old */}
             <div style={{
               padding: '12px 14px',
@@ -494,14 +568,33 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               >
                 Hủy
               </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleConfirmClaim}
-              >
-                <Check size={16} />
-                Xác Nhận Nhận Người Thân
-              </button>
+              {(() => {
+                const isOppositeGender = Boolean(
+                  claimingRelative &&
+                  claimingRelative.gender &&
+                  currentEmployee.gender &&
+                  claimingRelative.gender !== currentEmployee.gender
+                );
+                const isSpouseRelation = selectedRelation === 'SPOUSE';
+                const showDeterrentWarning = isOppositeGender || isSpouseRelation;
+                const isDisabled = showDeterrentWarning && !isCommitted;
+
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleConfirmClaim}
+                    disabled={isDisabled}
+                    style={{
+                      opacity: isDisabled ? 0.5 : 1,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <Check size={16} />
+                    Xác Nhận Nhận Người Thân
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

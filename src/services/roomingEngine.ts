@@ -90,7 +90,7 @@ export function validateRoom(
 
     if (!isStrictSingleFamily && !isAdminOverride) {
       warnings.push(
-        '✕ Quy tắc giới tính: Nam ở với Nam, Nữ ở với Nữ. Phòng chỉ được ở chung Nam - Nữ khi là Vợ/Chồng hoặc người thân. Bạn sẽ chịu trách nhiệm không trung thực.'
+        '✕ CẢNH BÁO QUY ĐỊNH CÔNG TY: Nghiêm cấm Nam và Nữ ở cùng phòng nếu không phải là quan hệ Vợ Chồng hoặc người thân ruột thịt. Người đăng ký hoàn toàn chịu trách nhiệm kỷ luật nếu khai báo không trung thực.'
       );
     }
   }
