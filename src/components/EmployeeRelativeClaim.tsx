@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Person, RelationType } from '../types';
+import { Person, RelationType, PersonType } from '../types';
 import { HeartHandshake, UserPlus, Search, Building2, Info, X, Check, Baby, Users } from 'lucide-react';
 import { removeVietnameseTones } from '../utils/textUtils';
 
@@ -33,25 +33,24 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
 
   // Kết quả tìm kiếm người thân ở siêu thị khác
   const searchedOtherRelatives = useMemo(() => {
-    const clean = removeVietnameseTones(searchOtherStore).trim();
+    const clean = removeVietnameseTones(searchOtherStore).trim().toLowerCase();
     if (!clean) return [];
 
     return allPeople.filter(p => {
-      // Chỉ tìm người thân chưa được nhận
-      if (p.type !== 'RELATIVE') return false;
-      if (p.ownerId && p.ownerId !== '') return false;
+      // 1. Không tìm chính mình
+      if (p.id === currentEmployee.id || p.code === currentEmployee.code) return false;
 
-      // Không hiển thị người đã nằm trong danh sách cùng siêu thị bên trên để tránh trùng lặp
-      if (p.store === currentEmployee.store) return false;
+      // 2. Không tìm người đã được nhân viên khác nhận
+      if (p.ownerId && p.ownerId !== '' && p.ownerId !== currentEmployee.code) return false;
 
-      const matchName = removeVietnameseTones(p.name).includes(clean);
-      const matchStore = removeVietnameseTones(p.store).includes(clean);
+      const matchName = removeVietnameseTones(p.name).toLowerCase().includes(clean);
+      const matchStore = removeVietnameseTones(p.store).toLowerCase().includes(clean);
       const matchCode = p.code.toLowerCase().includes(clean);
       const matchPhone = p.phone ? p.phone.toLowerCase().includes(clean) : false;
 
       return matchName || matchStore || matchCode || matchPhone;
-    }).slice(0, 30);
-  }, [allPeople, searchOtherStore, currentEmployee.store]);
+    });
+  }, [allPeople, searchOtherStore, currentEmployee.id, currentEmployee.code]);
 
   const handleOpenClaimModal = (rel: Person) => {
     setClaimingRelative(rel);
@@ -69,8 +68,8 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
     setClaimingRelative(null);
   };
 
-  const getRelationBadge = (relation: RelationType | null, slot: number) => {
-    let label = 'Người thân';
+  const getRelationBadge = (relation: RelationType | null, slot: number, type?: PersonType) => {
+    let label = type === 'EMPLOYEE' ? 'Nhân viên' : 'Người thân';
     let isChild = false;
 
     if (relation === 'SPOUSE') label = 'Vợ / Chồng';
@@ -81,7 +80,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: 4, flexShrink: 0 }}>
-        <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+        <span className={`badge ${type === 'EMPLOYEE' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
           {label}
         </span>
         <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
@@ -171,7 +170,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
             <input
               type="text"
               className="input-field"
-              placeholder="Nhập họ tên người thân, số điện thoại hoặc tên siêu thị khác để tìm kiếm..."
+              placeholder="Nhập họ tên, MSNV (ví dụ: 28683), số điện thoại hoặc tên siêu thị để tìm kiếm..."
               value={searchOtherStore}
               onChange={e => setSearchOtherStore(e.target.value)}
               style={{ paddingLeft: 38, fontSize: '0.88rem', background: 'var(--bg-muted)' }}
@@ -237,13 +236,18 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
                         flex: 1,
                         overflow: 'hidden'
                       }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
                           {rel.name}
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
+                        {rel.code && (
+                          <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25 }}>
+                            {rel.code}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
                           🏢 {rel.store}
                         </span>
-                        {getRelationBadge(rel.relation, rel.slot)}
+                        {getRelationBadge(rel.relation, rel.slot, rel.type)}
                       </div>
 
                       <button

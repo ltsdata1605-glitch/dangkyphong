@@ -401,7 +401,7 @@ export function claimRelative(
 ): { success: boolean; roomCode?: string; isNewRoom?: boolean; message?: string } {
   const people = getPeople(tripId);
   const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
-  const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
+  const relative = people.find(p => p.id === relativeId || p.code === relativeId);
 
   if (!employee || !relative) {
     return { success: false, message: 'Không tìm thấy thông tin nhân viên hoặc người thân.' };
@@ -554,8 +554,7 @@ export function unclaimRelative(
 
   // Tìm relative bằng ID hoặc Code (linh hoạt cả hai)
   const relative = people.find(p => 
-    (p.id === relativeId || p.code === relativeId) && 
-    (p.type === 'RELATIVE' || p.type === 'PG')
+    (p.id === relativeId || p.code === relativeId)
   );
 
   if (!relative) {

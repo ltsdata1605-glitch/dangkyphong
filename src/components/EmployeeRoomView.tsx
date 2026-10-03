@@ -62,8 +62,8 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
     ? allPeople.find(p => p.id === myRoom.leaderId)
     : null;
 
-  // Người thân thuộc quyền bảo trợ của nhân viên này
-  const myRelatives = allPeople.filter(p => p.type === 'RELATIVE' && p.ownerId === currentEmployee.code);
+  // Người thân thuộc quyền bảo trợ của nhân viên này (bao gồm cả vợ/chồng là nhân viên)
+  const myRelatives = allPeople.filter(p => p.ownerId === currentEmployee.code && p.id !== currentEmployee.id);
 
   const isLocked = currentTrip.isLocked;
 
