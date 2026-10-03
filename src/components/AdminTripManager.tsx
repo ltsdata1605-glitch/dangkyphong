@@ -14,11 +14,26 @@ import {
   AlertCircle,
   Upload,
   Download,
-  Users
+  Users,
+  FileSpreadsheet
 } from 'lucide-react';
 import { exportTemplatePersonnelExcel, parseUploadedExcel } from '../services/excelService';
-import { getPeople, savePeople } from '../services/storageService';
+import { getPeople, savePeople, getTripImportInfo } from '../services/storageService';
 import { ExcelImportModal } from './ExcelImportModal';
+
+const formatImportTime = (isoString?: string) => {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const seconds = pad(d.getSeconds());
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+  const year = d.getFullYear();
+  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+};
 
 interface AdminTripManagerProps {
   currentTrip: Trip;
@@ -114,7 +129,11 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
 
     const tripToSave: Trip = {
       ...(formData as Trip),
-      deadline: new Date(formData.deadline || '').toISOString()
+      deadline: new Date(formData.deadline || '').toISOString(),
+      ...(attachedPeople.length > 0 ? {
+        lastImportedAt: new Date().toISOString(),
+        lastImportedCount: attachedPeople.length
+      } : {})
     };
 
     onSaveTrip(tripToSave, attachedPeople.length > 0 ? attachedPeople : undefined);
@@ -155,6 +174,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
         ) : (
           trips.map(trip => {
             const isActive = trip.id === currentTrip.id;
+            const importInfo = getTripImportInfo(trip);
 
             return (
               <div
@@ -198,6 +218,32 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                     ) : (
                       <span className="badge badge-success" style={{ fontSize: '0.78rem' }}>
                         Đang mở đăng ký
+                      </span>
+                    )}
+
+                    {/* Hiển thị thời gian nhập và tổng số người đã nhập */}
+                    {importInfo && (
+                      <span
+                        className="badge"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          fontSize: '0.78rem',
+                          background: 'rgba(16, 185, 129, 0.08)',
+                          border: '1px solid rgba(16, 185, 129, 0.28)',
+                          color: 'var(--text-main)',
+                          padding: '4px 10px',
+                          borderRadius: 6
+                        }}
+                        title={`Thời gian nạp danh sách: ${formatImportTime(importInfo.importedAt)}`}
+                      >
+                        <FileSpreadsheet size={13} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                        <span>
+                          Đã nhập: <strong style={{ color: 'var(--color-success)' }}>{importInfo.count.toLocaleString('vi-VN')} người</strong>
+                          <span style={{ margin: '0 5px', opacity: 0.4 }}>•</span>
+                          <span style={{ color: 'var(--text-muted)' }}>Lúc {formatImportTime(importInfo.importedAt)}</span>
+                        </span>
                       </span>
                     )}
                   </div>

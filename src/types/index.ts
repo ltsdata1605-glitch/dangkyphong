@@ -62,6 +62,8 @@ export interface Trip {
   maxChildrenPerRoom: number; // Mặc định: 2
   roomLimits?: Record<number, number>; // Giới hạn số lượng phòng tối đa theo từng loại (2, 3, 4, 5, 6 người)
   createdAt: string;
+  lastImportedAt?: string;    // Thời gian nhập danh sách gần nhất (ISO string)
+  lastImportedCount?: number; // Tổng số người đã nhập gần nhất
 }
 
 export interface AuditLog {

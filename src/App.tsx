@@ -152,10 +152,14 @@ export const App: React.FC = () => {
   };
 
   const handleSaveTrip = (trip: Trip, initialPeople?: Person[]) => {
-    saveTrip(trip);
     if (initialPeople && initialPeople.length > 0) {
+      trip.lastImportedAt = trip.lastImportedAt || new Date().toISOString();
+      trip.lastImportedCount = initialPeople.length;
+      saveTrip(trip);
       savePeople(trip.id, initialPeople);
       saveRooms(trip.id, []);
+    } else {
+      saveTrip(trip);
     }
     refreshData();
   };
@@ -434,9 +438,11 @@ export const App: React.FC = () => {
   // Admin nạp file Excel cho một chuyến đi cụ thể
   const handleConfirmImport = (targetTripId: string, newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => {
     const tripId = targetTripId || currentTrip.id;
+    let finalCount = 0;
     if (mode === 'OVERWRITE') {
       savePeople(tripId, newPeople);
       saveRooms(tripId, []);
+      finalCount = newPeople.length;
     } else {
       const existing = getPeople(tripId);
       const merged = [...existing];
@@ -455,6 +461,18 @@ export const App: React.FC = () => {
         }
       });
       savePeople(tripId, merged);
+      finalCount = merged.length;
+    }
+
+    const importTime = new Date().toISOString();
+
+    // Cập nhật thời gian nhập và tổng số người đã nhập cho chuyến đi
+    const allTrips = getTrips();
+    const targetTrip = allTrips.find(t => t.id === tripId);
+    if (targetTrip) {
+      targetTrip.lastImportedAt = importTime;
+      targetTrip.lastImportedCount = finalCount;
+      saveTrip(targetTrip);
     }
 
     addLog(tripId, {
@@ -464,7 +482,7 @@ export const App: React.FC = () => {
       actor: 'admin',
       actorName: 'Ban Tổ Chức',
       details: `Đã nạp file Excel danh sách (${newPeople.length} người - Chế độ: ${mode})`,
-      timestamp: new Date().toISOString()
+      timestamp: importTime
     });
 
     refreshData();

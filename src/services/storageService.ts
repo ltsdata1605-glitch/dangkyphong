@@ -216,6 +216,7 @@ export function initializeStorage(): void {
     }));
     savePeople(activeTripId, initialPeople);
 
+    const nowIso = new Date().toISOString();
     // Ghi log khởi tạo
     addLog(activeTripId, {
       id: `log_init_${Date.now()}`,
@@ -224,8 +225,17 @@ export function initializeStorage(): void {
       actor: 'system',
       actorName: 'Hệ Thống',
       details: `Đã nạp tự động 550 nhân sự từ file DANH SÁCH NHÂN VIÊN.xlsx`,
-      timestamp: new Date().toISOString()
+      timestamp: nowIso
     });
+
+    // Cập nhật thông tin nhập cho chuyến đi
+    const allTrips = getTrips();
+    const currTrip = allTrips.find(t => t.id === activeTripId);
+    if (currTrip) {
+      currTrip.lastImportedAt = nowIso;
+      currTrip.lastImportedCount = initialPeople.length;
+      saveTrip(currTrip);
+    }
   }
 
   // 4. Kích hoạt Firebase Realtime Listener
@@ -383,6 +393,25 @@ export function addLog(tripId: string, log: AuditLog): void {
   localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`, JSON.stringify(logs.slice(0, 100)));
   syncLogsToFirebase(tripId);
   notifyStateChange();
+}
+
+/**
+ * Lấy thông tin thời gian nhập và số người đã nhập cho chuyến đi
+ */
+export function getTripImportInfo(trip: Trip): { count: number; importedAt: string } | null {
+  if (trip.lastImportedAt && trip.lastImportedCount !== undefined && trip.lastImportedCount > 0) {
+    return { count: trip.lastImportedCount, importedAt: trip.lastImportedAt };
+  }
+  const logs = getLogs(trip.id);
+  const importLog = logs.find(l => l.action === 'IMPORT_EXCEL');
+  const people = getPeople(trip.id);
+  if (importLog && people.length > 0) {
+    return { count: people.length, importedAt: importLog.timestamp };
+  }
+  if (people.length > 0) {
+    return { count: people.length, importedAt: trip.createdAt };
+  }
+  return null;
 }
 
 /**
