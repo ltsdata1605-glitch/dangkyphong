@@ -66,14 +66,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Top Banner Actions */}
-      <div className="glass-card" style={{
+      <div className="glass-card admin-dashboard-banner" style={{
         padding: '12px 18px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 16
+        flexWrap: 'wrap',
+        gap: 12
       }}>
-        <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+        <div style={{ flex: '1 1 280px', minWidth: 260 }}>
           <h2 style={{ fontSize: '1.22rem', fontWeight: 800, margin: 0 }}>
             Bảng Điều Khiển Ban Tổ Chức (Admin)
           </h2>
@@ -82,8 +83,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons: thu nhỏ gọn và cùng dòng với tiêu đề */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        {/* Action Buttons: co giãn linh hoạt và không chèn ép tiêu đề */}
+        <div className="admin-banner-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={onExportExcel}
             className="btn btn-success btn-sm"

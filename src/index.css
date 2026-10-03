@@ -551,6 +551,31 @@ h1, h2, h3, h4, h5, h6 {
     gap: 3px !important;
   }
 
+  /* Admin Dashboard Banner mobile fix */
+  .admin-dashboard-banner {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+  .admin-dashboard-banner h2 {
+    font-size: 1.05rem !important;
+    line-height: 1.3 !important;
+  }
+  .admin-dashboard-banner p {
+    font-size: 0.74rem !important;
+    line-height: 1.35 !important;
+  }
+  .admin-banner-actions {
+    width: 100% !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+  }
+  .admin-banner-actions button {
+    flex: 1 1 calc(50% - 6px) !important;
+    justify-content: center !important;
+    font-size: 0.74rem !important;
+    padding: 6px 8px !important;
+  }
+
   /* Employee Login mobile card compactness */
   .employee-login-wrapper {
     margin: 6px auto !important;
