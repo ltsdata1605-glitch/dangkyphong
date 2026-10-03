@@ -653,14 +653,41 @@ export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[], 
         modified = true;
       }
 
-      // 2. Tự động đổi loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6)
       const members = memberIds.map(mId => peopleMap.get(mId) || people.find(item => item.code === mId)).filter(Boolean) as Person[];
       const adultSlots = members.filter(m => m.slot > 0).length;
       let capacity = room.capacity;
-      if (adultSlots > capacity) {
-        capacity = Math.min(6, adultSlots);
+
+      // Chuẩn hóa: nếu số người ít hơn sức chứa (ví dụ phòng gán nhầm 3 người nhưng chỉ có 2 người) -> hạ về đúng số người (tối thiểu 2)
+      if (adultSlots < capacity && capacity > 2 && adultSlots >= 2) {
+        capacity = Math.max(2, adultSlots);
         roomModified = true;
         modified = true;
+      }
+
+      // 2. Nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6): kiểm tra định mức trước khi nâng
+      if (adultSlots > capacity) {
+        const trip = getTrips().find(t => t.id === tripId);
+        const targetCap = Math.min(6, adultSlots);
+        const currentCount = rooms.filter(r => r.id !== room.id && r.capacity === targetCap).length;
+        const limit = trip?.roomLimits?.[targetCap];
+
+        if (limit === undefined || currentCount < limit) {
+          capacity = targetCap;
+          roomModified = true;
+          modified = true;
+        } else {
+          // Định mức loại phòng lớn hơn đã đầy! Không được phép nâng sức chứa.
+          // Tách các thành viên vượt sức chứa ra khỏi phòng để bảo toàn định mức
+          const allowedMembers = members.slice(0, capacity);
+          const rejectedMembers = members.slice(capacity);
+          memberIds = allowedMembers.map(m => m.id);
+          rejectedMembers.forEach(m => {
+            const p = peopleMap.get(m.id) || people.find(item => item.code === m.code);
+            if (p) p.roomId = null;
+          });
+          roomModified = true;
+          modified = true;
+        }
       }
 
       if (roomModified) {
@@ -818,9 +845,27 @@ export async function claimRelative(
     targetRoom.usedSlots = currentMembers.reduce((sum, m) => sum + (m.slot ?? 1), 0);
     targetRoom.childCount = currentMembers.filter(m => m.slot === 0).length;
 
-    // Tự động nâng sức chứa phòng nếu người lớn vượt quá loại phòng hiện tại (tối đa 6)
-    if (targetRoom.usedSlots > targetRoom.capacity && targetRoom.capacity < 6) {
-      targetRoom.capacity = Math.min(6, targetRoom.usedSlots);
+    // Nếu số người lớn vượt quá sức chứa hiện tại: kiểm tra định mức trước khi nâng sức chứa
+    if (targetRoom.usedSlots > targetRoom.capacity) {
+      const newCap = Math.min(6, targetRoom.usedSlots);
+      const currentTrip = getTrips().find(t => t.id === tripId);
+      if (currentTrip?.roomLimits) {
+        const counts: Record<number, number> = {};
+        rooms.forEach(r => {
+          if (r.id !== targetRoom.id) counts[r.capacity] = (counts[r.capacity] || 0) + 1;
+        });
+        const lim = currentTrip.roomLimits[newCap];
+        if (lim !== undefined && (counts[newCap] || 0) >= lim) {
+          // Hoàn tác việc thêm người thân này vì loại phòng lớn hơn đã hết định mức
+          targetRoom.memberIds = targetRoom.memberIds.filter(id => id !== relative.id);
+          relative.roomId = null;
+          return {
+            success: false,
+            message: `Phòng hiện tại đã đủ ${targetRoom.capacity} người và khách sạn đã hết định mức phòng ${newCap} người (${counts[newCap]}/${lim} phòng). Không thể thêm người vào phòng này!`
+          };
+        }
+      }
+      targetRoom.capacity = newCap;
     }
 
     // Cập nhật loại giường thích hợp
@@ -838,33 +883,24 @@ export async function claimRelative(
     roomCode = targetRoom.code;
     isNewRoom = false;
   } else {
-    // Trường hợp B: Nhân viên chưa có phòng -> TỰ ĐỘNG TẠO PHÒNG MỚI (Tự động chuyển loại phòng nếu phòng 2 người đã đầy)
+    // Trường hợp B: Nhân viên chưa có phòng -> TỰ ĐỘNG TẠO PHÒNG MỚI (Mặc định phòng 2 người)
     isNewRoom = true;
+    autoCapacity = 2;
 
-    // Kiểm tra định mức phòng
+    // Kiểm tra định mức phòng 2 người
     const currentTrip = getTrips().find(t => t.id === tripId);
     if (currentTrip?.roomLimits) {
-      const counts: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+      const counts: Record<number, number> = {};
       rooms.forEach(r => {
-        if (counts[r.capacity] !== undefined) counts[r.capacity]++;
+        counts[r.capacity] = (counts[r.capacity] || 0) + 1;
       });
-
-      // Nếu phòng 2 người đã đầy, tự động chuyển sang loại phòng còn chỉ tiêu (2 -> 3 -> 4 -> 5 -> 6)
-      let foundCap: number | null = null;
-      for (let c = 2; c <= 6; c++) {
-        const lim = currentTrip.roomLimits[c];
-        if (lim === undefined || (counts[c] || 0) < lim) {
-          foundCap = c;
-          break;
-        }
-      }
-      if (foundCap === null) {
+      const lim = currentTrip.roomLimits[2];
+      if (lim !== undefined && (counts[2] || 0) >= lim) {
         return {
           success: false,
-          message: 'Khách sạn đã hết tất cả các loại phòng theo định mức. Không thể mở thêm phòng mới.'
+          message: `Khách sạn đã hết định mức phòng 2 người (${counts[2]}/${lim} phòng). Vui lòng liên hệ BTC.`
         };
       }
-      autoCapacity = foundCap;
     }
 
     const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

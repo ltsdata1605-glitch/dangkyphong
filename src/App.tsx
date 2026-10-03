@@ -217,33 +217,8 @@ export const App: React.FC = () => {
 
       const currentLimit = currentTrip.roomLimits[actualCapacity];
       if (currentLimit !== undefined && (counts[actualCapacity] || 0) >= currentLimit) {
-        // Loại phòng này đã đầy định mức! Tự động chuyển sang loại phòng tiếp theo còn chỗ
-        const adultSlots = members.filter(m => m.slot > 0).length;
-        let nextCap: number | null = null;
-        for (let c = Math.max(actualCapacity, adultSlots, 2); c <= 6; c++) {
-          const lim = currentTrip.roomLimits[c];
-          if (lim === undefined || (counts[c] || 0) < lim) {
-            nextCap = c;
-            break;
-          }
-        }
-        if (nextCap === null) {
-          for (let c = Math.max(adultSlots, 2); c < actualCapacity; c++) {
-            const lim = currentTrip.roomLimits[c];
-            if (lim === undefined || (counts[c] || 0) < lim) {
-              nextCap = c;
-              break;
-            }
-          }
-        }
-
-        if (nextCap !== null) {
-          alert(`Loại phòng ${actualCapacity} người đã đủ số lượng quy định (${counts[actualCapacity]}/${currentLimit} phòng). Hệ thống đã tự động chuyển sang phòng ${nextCap} người.`);
-          actualCapacity = nextCap;
-        } else {
-          alert(`Loại phòng ${actualCapacity} người đã đạt giới hạn tối đa (${counts[actualCapacity]}/${currentLimit} phòng) và khách sạn đã hết tất cả các loại phòng khác.`);
-          return;
-        }
+        alert(`Loại phòng ${actualCapacity} người đã đạt định mức tối đa (${counts[actualCapacity]}/${currentLimit} phòng). Không thể lưu thêm phòng loại này! Vui lòng chọn loại phòng khác.`);
+        return;
       }
     }
 
@@ -689,31 +664,8 @@ export const App: React.FC = () => {
 
       const currentLimit = currentTrip.roomLimits[actualCapacity];
       if (currentLimit !== undefined && (counts[actualCapacity] || 0) >= currentLimit) {
-        let nextCap: number | null = null;
-        for (let c = Math.max(actualCapacity, adultSlots, 2); c <= 6; c++) {
-          const lim = currentTrip.roomLimits[c];
-          if (lim === undefined || (counts[c] || 0) < lim) {
-            nextCap = c;
-            break;
-          }
-        }
-        if (nextCap === null) {
-          for (let c = Math.max(adultSlots, 2); c < actualCapacity; c++) {
-            const lim = currentTrip.roomLimits[c];
-            if (lim === undefined || (counts[c] || 0) < lim) {
-              nextCap = c;
-              break;
-            }
-          }
-        }
-
-        if (nextCap !== null) {
-          alert(`Loại phòng ${actualCapacity} người đã đủ số lượng quy định (${counts[actualCapacity]}/${currentLimit} phòng). Hệ thống đã tự động chuyển sang phòng ${nextCap} người.`);
-          actualCapacity = nextCap;
-        } else {
-          alert(`Loại phòng ${actualCapacity} người đã đạt giới hạn tối đa (${counts[actualCapacity]}/${currentLimit} phòng) và khách sạn đã hết tất cả các loại phòng khác.`);
-          return;
-        }
+        alert(`Loại phòng ${actualCapacity} người đã đạt định mức tối đa (${counts[actualCapacity]}/${currentLimit} phòng). Không thể lưu thêm phòng loại này!`);
+        return;
       }
     }
 
