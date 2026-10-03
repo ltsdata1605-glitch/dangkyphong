@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Person, Room, Trip, AuditLog, RelationType } from './types';
 import {
   initializeStorage,
+  initializeStorageAsync,
   getTrips,
   getActiveTrip,
   getActiveTripId,
@@ -26,6 +27,7 @@ import { validateRoom, autoMatchRooms } from './services/roomingEngine';
 import { exportRoomingListExcel } from './services/excelService';
 
 import { Navbar } from './components/Navbar';
+import { LoadingScreen } from './components/LoadingScreen';
 import { CountdownBanner } from './components/CountdownBanner';
 import { EmployeeLogin } from './components/EmployeeLogin';
 import { EmployeeRoomView } from './components/EmployeeRoomView';
@@ -61,6 +63,7 @@ export const App: React.FC = () => {
   });
 
   // Trip & Data States
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(getActiveTrip());
   const [people, setPeople] = useState<Person[]>([]);
@@ -97,12 +100,28 @@ export const App: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    initializeStorage();
-    refreshData();
+    let isMounted = true;
+    const initApp = async () => {
+      try {
+        await initializeStorageAsync();
+      } catch (err) {
+        console.warn('Initial storage load error:', err);
+      }
+      if (isMounted) {
+        refreshData();
+        setIsInitialLoading(false);
+      }
+    };
+
+    initApp();
+
     const unsubscribe = subscribeToStateChanges(() => {
       refreshData();
     });
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [refreshData]);
 
   // Theme effect
@@ -770,6 +789,10 @@ export const App: React.FC = () => {
     }
     refreshData();
   };
+
+  if (isInitialLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

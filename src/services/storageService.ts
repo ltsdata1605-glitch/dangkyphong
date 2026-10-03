@@ -275,10 +275,87 @@ export async function syncLogsToFirebase(tripId: string): Promise<void> {
 }
 
 /**
- * Khởi tạo dữ liệu mặc định và kích hoạt Firebase Realtime Sync
+ * Khởi tạo dữ liệu bất đồng bộ từ Firebase Firestore trước khi hiển thị giao diện
+ */
+export async function initializeStorageAsync(): Promise<void> {
+  const timeoutPromise = new Promise<void>((resolve) => setTimeout(() => resolve(), 6000));
+
+  const loadData = async () => {
+    try {
+      // 1. Tải danh sách Chuyến đi từ Firestore
+      const snap = await getDoc(doc(db, 'system', 'trips'));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && Array.isArray(data.trips) && data.trips.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(data.trips));
+        }
+      }
+    } catch (e) {
+      console.warn('[Firebase] Lỗi nạp trips ban đầu:', e);
+    }
+
+    // Xác định chuyến đi active
+    const trips = getTrips();
+    let activeTripId = getActiveTripId();
+    if (!activeTripId || !trips.some(t => t.id === activeTripId)) {
+      if (trips.length > 0) {
+        activeTripId = trips[0].id;
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_TRIP, activeTripId);
+      }
+    }
+
+    if (activeTripId) {
+      try {
+        // 2. Tải đồng thời Rooms, People, Logs cho chuyến đi active
+        const [roomsSnap, peopleSnap, logsSnap] = await Promise.all([
+          getDoc(doc(db, 'trips', activeTripId, 'data', 'rooms')),
+          getDoc(doc(db, 'trips', activeTripId, 'data', 'people')),
+          getDoc(doc(db, 'trips', activeTripId, 'data', 'logs'))
+        ]);
+
+        let remoteRooms: Room[] = [];
+        if (roomsSnap.exists()) {
+          const rData = roomsSnap.data();
+          if (rData && Array.isArray(rData.rooms)) remoteRooms = rData.rooms;
+        }
+
+        let remotePeople: Person[] = [];
+        if (peopleSnap.exists()) {
+          const pData = peopleSnap.data();
+          if (pData && Array.isArray(pData.people)) remotePeople = pData.people;
+        }
+
+        if (logsSnap.exists()) {
+          const lData = logsSnap.data();
+          if (lData && Array.isArray(lData.logs)) {
+            localStorage.setItem(`${STORAGE_KEYS.LOGS_PREFIX}${activeTripId}`, JSON.stringify(lData.logs));
+          }
+        }
+
+        if (remoteRooms.length > 0 || remotePeople.length > 0) {
+          const currentPeople = remotePeople.length > 0 ? remotePeople : getPeople(activeTripId);
+          const currentRooms = remoteRooms.length > 0 ? remoteRooms : getRooms(activeTripId);
+          const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(activeTripId, currentRooms, currentPeople);
+          const { rooms: normalized } = migrateRoomCodes(cleanRooms);
+          localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${activeTripId}`, JSON.stringify(normalized));
+          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${activeTripId}`, JSON.stringify(cleanPeople));
+        }
+      } catch (e) {
+        console.warn('[Firebase] Lỗi nạp chi tiết phòng và nhân sự ban đầu:', e);
+      }
+    }
+
+    // 3. Khởi chạy bộ lắng nghe Realtime Listener
+    setupFirestoreListeners(activeTripId || '');
+  };
+
+  await Promise.race([loadData(), timeoutPromise]);
+}
+
+/**
+ * Khởi tạo dữ liệu mặc định (đồng bộ fallback)
  */
 export function initializeStorage(): void {
-  // Chỉ chèn DEFAULT_TRIP nếu key TRIPS chưa từng tồn tại trong localStorage (lần đầu truy cập app mới)
   const tripsRaw = localStorage.getItem(STORAGE_KEYS.TRIPS);
   let trips = getTrips();
   if (tripsRaw === null && trips.length === 0) {
@@ -286,7 +363,6 @@ export function initializeStorage(): void {
     localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
   }
 
-  // 2. Kiểm tra chuyến đi active
   let activeTripId = getActiveTripId();
   if (!activeTripId || !trips.some(t => t.id === activeTripId)) {
     if (trips.length > 0) {
@@ -298,12 +374,8 @@ export function initializeStorage(): void {
     }
   }
 
-  // KHÔNG tự động nạp dữ liệu mẫu. Hệ thống hoàn toàn làm việc trên dữ liệu thực tế do Admin thiết lập hoặc đồng bộ từ Firebase.
-
-  // 3. Kích hoạt Firebase Realtime Listener
   setupFirestoreListeners(activeTripId || '');
 
-  // 4. Chuẩn hóa số phòng bắt đầu từ 1 cho tất cả các chuyến đi
   trips.forEach(t => {
     getRooms(t.id);
   });
