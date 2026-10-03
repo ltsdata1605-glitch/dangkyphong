@@ -43,11 +43,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
         gap: 8
       }}>
         {/* Brand & Active Trip Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
           <div className="navbar-brand-logo" style={{
             width: 38,
             height: 38,
@@ -63,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Hotel size={20} />
           </div>
 
-          <div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="navbar-brand-title" style={{
                 fontFamily: 'var(--font-heading)',
@@ -72,21 +72,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 letterSpacing: '-0.02em',
                 background: 'var(--primary-gradient)',
                 WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                WebkitTextFillColor: 'transparent',
+                whiteSpace: 'nowrap'
               }}>
                 ĐĂNG KÝ PHÒNG
-              </span>
-              <span className="badge badge-primary navbar-version-badge" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>v1.0</span>
-              <span className="badge badge-success navbar-live-badge" style={{ fontSize: '0.62rem', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }} title="Dữ liệu đồng bộ thời gian thực qua Firebase Firestore">
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
-                Firebase Live
               </span>
             </div>
 
             {/* Trip Dropdown Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
               <Calendar size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              <div style={{ position: 'relative', display: 'inline-block' }}>
+              <div style={{ position: 'relative', display: 'inline-block', maxWidth: 'calc(100% - 18px)' }}>
                 <select
                   value={currentTrip?.id || ''}
                   onChange={(e) => onSelectTrip(e.target.value)}
@@ -102,7 +98,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     cursor: 'pointer',
                     paddingRight: 16,
                     outline: 'none',
-                    maxWidth: 'min(450px, 65vw)',
+                    width: '100%',
+                    maxWidth: 'min(450px, 50vw)',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden'
@@ -128,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {/* Employee status if logged in */}
           {activeRole === 'EMPLOYEE' && loggedInEmployeeName && (
             <div style={{
