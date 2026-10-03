@@ -533,9 +533,15 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  // Admin gỡ người khỏi phòng
+  // Admin gỡ người khỏi phòng (hoặc xóa phòng hoàn toàn nếu chỉ còn người này)
   const handleAdminRemoveMember = (roomId: string, personId: string) => {
-    leaveRoom(currentTrip.id, personId, 'admin', 'Ban Tổ Chức');
+    const currentRooms = getRooms(currentTrip.id);
+    const room = currentRooms.find(r => r.id === roomId);
+    if (room && (room.memberIds.length <= 1 || room.memberIds.every(id => id === personId))) {
+      deleteRoom(currentTrip.id, room.id, 'admin', 'Ban Tổ Chức');
+    } else {
+      leaveRoom(currentTrip.id, personId, 'admin', 'Ban Tổ Chức');
+    }
     refreshData();
   };
 

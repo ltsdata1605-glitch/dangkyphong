@@ -675,7 +675,7 @@ export function assignRelativeAdmin(tripId: string, employeeCode: string, relati
 export function leaveRoom(tripId: string, personId: string, actorId: string, actorName: string): { success: boolean; message: string } {
   const people = getPeople(tripId);
   const rooms = getRooms(tripId);
-  const person = people.find(p => p.id === personId);
+  const person = people.find(p => p.id === personId || p.code === personId);
 
   if (!person || !person.roomId) {
     return { success: false, message: 'Người này chưa có trong phòng nào.' };
@@ -689,66 +689,79 @@ export function leaveRoom(tripId: string, personId: string, actorId: string, act
   }
 
   const room = rooms[roomIndex];
+  const remainingMemberIds = room.memberIds.filter(id => id !== person.id && id !== person.code);
 
-  // Nếu người rời phòng là TRƯỞNG PHÒNG
-  if (room.leaderId === person.id) {
-    if (room.memberIds.length <= 1) {
-      rooms.splice(roomIndex, 1);
-      person.roomId = null;
-      saveRooms(tripId, rooms);
-      savePeople(tripId, people);
+  // Nếu phòng không còn ai sau khi người này rời đi
+  if (remainingMemberIds.length === 0) {
+    rooms.splice(roomIndex, 1);
+    person.roomId = null;
+    saveRooms(tripId, rooms);
+    savePeople(tripId, people);
 
-      addLog(tripId, {
-        id: `log_${Date.now()}`,
-        tripId,
-        action: 'DELETE_ROOM',
-        actor: actorId,
-        actorName,
-        details: `${actorName} đã giải tán phòng ${room.code}`,
-        timestamp: new Date().toISOString()
-      });
+    addLog(tripId, {
+      id: `log_${Date.now()}`,
+      tripId,
+      action: 'DELETE_ROOM',
+      actor: actorId,
+      actorName,
+      details: `${actorName} đã giải tán phòng ${room.code}`,
+      timestamp: new Date().toISOString()
+    });
 
-      return { success: true, message: 'Đã giải tán phòng.' };
-    }
+    return { success: true, message: 'Đã giải tán phòng.' };
+  }
 
-    const remainingMembers = room.memberIds
-      .filter(id => id !== person.id)
-      .map(id => people.find(p => p.id === id)!)
-      .filter(Boolean);
+  const remainingMembers = remainingMemberIds
+    .map(id => people.find(p => p.id === id || p.code === id)!)
+    .filter(Boolean);
 
-    const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE');
-    if (!nextEmployee) {
-      rooms.splice(roomIndex, 1);
-      room.memberIds.forEach(mId => {
-        const p = people.find(item => item.id === mId);
-        if (p) p.roomId = null;
-      });
-      saveRooms(tripId, rooms);
-      savePeople(tripId, people);
-      return { success: true, message: 'Đã giải tán phòng do không còn nhân viên nào trong phòng.' };
-    }
+  // Kiểm tra xem còn nhân viên nào trong phòng không
+  const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE');
+  if (!nextEmployee) {
+    // Không còn nhân viên nào (chỉ còn trẻ em/người thân), giải tán toàn bộ phòng
+    rooms.splice(roomIndex, 1);
+    room.memberIds.forEach(mId => {
+      const p = people.find(item => item.id === mId || item.code === mId);
+      if (p) p.roomId = null;
+    });
+    person.roomId = null;
+    saveRooms(tripId, rooms);
+    savePeople(tripId, people);
+    return { success: true, message: 'Đã giải tán phòng do không còn nhân viên nào trong phòng.' };
+  }
 
+  // Nếu người rời phòng là trưởng phòng thì chuyển quyền cho nhân viên tiếp theo
+  if (room.leaderId === person.id || room.leaderId === person.code) {
     room.leaderId = nextEmployee.id;
   }
 
-  room.memberIds = room.memberIds.filter(id => id !== person.id);
+  room.memberIds = remainingMemberIds;
   person.roomId = null;
 
-  const remainingMembers = room.memberIds
-    .map(id => people.find(p => p.id === id)!)
+  // Nếu người này có trẻ em đi kèm, cũng đưa trẻ em ra khỏi phòng
+  const childrenOfThisPerson = remainingMembers.filter(m => m.slot === 0 && m.ownerId === person.code);
+  for (const child of childrenOfThisPerson) {
+    room.memberIds = room.memberIds.filter(id => id !== child.id && id !== child.code);
+    child.roomId = null;
+  }
+
+  // Sau khi đưa trẻ em ra, kiểm tra lại nếu không còn ai
+  if (room.memberIds.length === 0) {
+    rooms.splice(roomIndex, 1);
+    saveRooms(tripId, rooms);
+    savePeople(tripId, people);
+    return { success: true, message: 'Đã giải tán phòng.' };
+  }
+
+  const finalMembers = room.memberIds
+    .map(id => people.find(p => p.id === id || p.code === id)!)
     .filter(Boolean);
 
-  room.usedSlots = remainingMembers.reduce((sum, m) => sum + (m.slot || 0), 0);
-  room.childCount = remainingMembers.filter(m => m.slot === 0).length;
+  room.usedSlots = finalMembers.reduce((sum, m) => sum + (m.slot || 0), 0);
+  room.childCount = finalMembers.filter(m => m.slot === 0).length;
   room.status = room.usedSlots === room.capacity ? 'FULL' : 'UNDER';
   room.updatedAt = new Date().toISOString();
   room.updatedBy = actorName;
-
-  const childrenOfThisPerson = remainingMembers.filter(m => m.slot === 0 && m.ownerId === person.code);
-  for (const child of childrenOfThisPerson) {
-    room.memberIds = room.memberIds.filter(id => id !== child.id);
-    child.roomId = null;
-  }
 
   saveRooms(tripId, rooms);
   savePeople(tripId, people);

@@ -13,7 +13,8 @@ import {
   Users,
   Bed,
   RotateCcw,
-  Plus
+  Plus,
+  AlertTriangle
 } from 'lucide-react';
 
 import { RoomModal } from './RoomModal';
@@ -52,6 +53,10 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
 
   // Modal sắp / xếp phòng cho nhân sự
   const [arrangingPerson, setArrangingPerson] = useState<Person | null>(null);
+
+  // Modal xác nhận xóa người ra khỏi phòng
+  const [personToRemoveFromRoom, setPersonToRemoveFromRoom] = useState<{ person: Person; room: Room } | null>(null);
+
   const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const peopleMap = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
 
@@ -260,14 +265,10 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                if (onRemoveMemberFromRoom && confirm(`Bạn có chắc muốn đưa ${p.name} ra khỏi phòng ${room.code}?`)) {
-                                  onRemoveMemberFromRoom(room.id, p.id);
-                                }
-                              }}
+                              onClick={() => setPersonToRemoveFromRoom({ person: p, room })}
                               className="btn btn-danger btn-sm"
                               style={{ padding: '3px 7px', fontSize: '0.74rem' }}
-                              title={`Rời khỏi phòng ${room.code}`}
+                              title={`Xóa ${p.name} khỏi phòng ${room.code}`}
                             >
                               <UserX size={12} />
                             </button>
@@ -371,6 +372,64 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
                   Xác Nhận Gán
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác Nhận Xóa Người Khỏi Phòng */}
+      {personToRemoveFromRoom && (
+        <div className="modal-overlay" onClick={() => setPersonToRemoveFromRoom(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <AlertTriangle size={26} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8, color: 'var(--color-danger)' }}>
+              Xác Nhận Xóa Khỏi Phòng {personToRemoveFromRoom.room.code}?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Bạn có chắc chắn muốn đưa <strong>{personToRemoveFromRoom.person.name}</strong> (Mã: {personToRemoveFromRoom.person.code}) ra khỏi phòng <strong>{personToRemoveFromRoom.room.code}</strong>?
+              {personToRemoveFromRoom.room.memberIds.length <= 1 && (
+                <span style={{ display: 'block', marginTop: 8, color: 'var(--color-danger)', fontWeight: 600 }}>
+                  (Phòng {personToRemoveFromRoom.room.code} sẽ được tự động xóa/giải tán do không còn thành viên nào khác)
+                </span>
+              )}
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setPersonToRemoveFromRoom(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.3, fontWeight: 700 }}
+                onClick={() => {
+                  if (onRemoveMemberFromRoom) {
+                    onRemoveMemberFromRoom(personToRemoveFromRoom.room.id, personToRemoveFromRoom.person.id);
+                  }
+                  setPersonToRemoveFromRoom(null);
+                }}
+              >
+                Xác Nhận Xóa
+              </button>
             </div>
           </div>
         </div>
