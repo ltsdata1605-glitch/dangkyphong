@@ -871,6 +871,35 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Ô tìm kiếm người thân nhỏ gọn */
+.relative-search-input {
+  padding-left: 22px !important;
+  padding-right: 20px !important;
+  font-size: 0.72rem !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--bg-card-solid) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+@media (max-width: 580px) {
+  .relative-claim-title {
+    font-size: 0.78rem !important;
+  }
+  .relative-search-box {
+    width: 140px !important;
+    min-width: 110px !important;
+  }
+  .relative-search-input {
+    font-size: 0.68rem !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    padding-left: 20px !important;
+    padding-right: 18px !important;
+  }
+}
+
 /* ==============================================================
    Hiệu Ứng Thông Báo Nhấp Nháy & Gợi Ý Phòng Chưa Đủ Người
    ============================================================== */

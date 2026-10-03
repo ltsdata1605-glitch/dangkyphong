@@ -98,32 +98,23 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
       boxShadow: 'var(--shadow-sm)'
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <HeartHandshake size={18} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
-          <h3 style={{ fontSize: '0.92rem', fontWeight: 800, margin: 0 }}>
-            Xác Nhận Người Thân Đi Kèm Của Bạn
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'nowrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+          <HeartHandshake size={17} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
+          <h3 className="relative-claim-title" style={{ fontSize: '0.86rem', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Xác Nhận Người Thân Đi Kèm
           </h3>
         </div>
 
-        {/* Dòng nhập tìm thông tin người thân trực tiếp ở vị trí nút trước đây - Ô tìm kiếm nhỏ lại */}
-        <div style={{ position: 'relative', width: 220, maxWidth: '100%' }}>
-          <Search size={13} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        {/* Dòng nhập tìm thông tin người thân trực tiếp - Ô tìm kiếm nhỏ gọn cùng hàng theo yêu cầu */}
+        <div className="relative-search-box" style={{ position: 'relative', width: 175, minWidth: 120, flexShrink: 0 }}>
+          <Search size={12} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
-            className="input-field"
-            placeholder="Tìm người thân ở siêu thị khác..."
+            className="input-field relative-search-input"
+            placeholder="Tìm ở siêu thị khác..."
             value={searchOtherStore}
             onChange={e => setSearchOtherStore(e.target.value)}
-            style={{
-              paddingLeft: 26,
-              paddingRight: searchOtherStore ? 24 : 8,
-              fontSize: '0.74rem',
-              height: 28,
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-card-solid)',
-              border: '1px solid rgba(245, 158, 11, 0.45)'
-            }}
           />
           {searchOtherStore && (
             <button
@@ -131,7 +122,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               onClick={() => setSearchOtherStore('')}
               style={{
                 position: 'absolute',
-                right: 6,
+                right: 5,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'none',
@@ -144,7 +135,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               }}
               title="Xóa tìm kiếm"
             >
-              <X size={12} />
+              <X size={11} />
             </button>
           )}
         </div>
