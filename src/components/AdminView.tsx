@@ -38,6 +38,7 @@ interface AdminViewProps {
   onRemoveMember: (roomId: string, personId: string) => void;
   onAddMember: (roomId: string, personId: string) => void;
   onCreateRoom?: (capacity: number, memberIds: string[]) => void;
+  onSaveRoom?: (capacity: number, memberIds: string[], editingRoomId?: string) => void;
   onSaveOverride: (roomId: string, note: string) => void;
   onToggleGender: (personId: string) => void;
   onAssignRelative: (relativeId: string, employeeCode: string) => void;
@@ -66,6 +67,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onRemoveMember,
   onAddMember,
   onCreateRoom,
+  onSaveRoom,
   onSaveOverride,
   onToggleGender,
   onAssignRelative,
@@ -173,6 +175,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           onAddMemberToRoom={onAddMember}
           onRemoveMemberFromRoom={onRemoveMember}
           onCreateRoomForPerson={onCreateRoom}
+          onSaveRoomForPerson={onSaveRoom || onCreateRoom}
         />
       )}
 

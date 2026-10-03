@@ -539,57 +539,85 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  // Admin tạo phòng mới cho nhân sự
-  const handleAdminCreateRoom = (capacity: number, memberIds: string[]) => {
+  // Admin tạo hoặc sửa phòng cho nhân sự
+  const handleAdminSaveRoom = (capacity: number, memberIds: string[], editingRoomId?: string) => {
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
     const members = memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
 
     const validation = validateRoom(members, capacity, currentTrip.maxChildrenPerRoom, true);
+    if (!validation.valid) {
+      alert(validation.errors.join('\n'));
+      return;
+    }
 
-    const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const existingNums = currentRooms
-      .map(r => {
-        const match = r.code.match(/^P\.(\d+)$/);
-        return match ? parseInt(match[1], 10) : 0;
-      })
-      .filter(n => n > 0);
-    const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
-    const roomCode = `P.${nextNum}`;
+    let roomId = editingRoomId;
+    let roomCode = '';
 
-    const newRoom: Room = {
-      id: roomId,
-      tripId: currentTrip.id,
-      code: roomCode,
-      capacity,
-      leaderId: memberIds[0] || 'admin',
-      memberIds,
-      usedSlots: validation.usedSlots,
-      childCount: validation.childCount,
-      status: validation.usedSlots === capacity ? 'FULL' : 'UNDER',
-      bedType: validation.bedType,
-      adminOverride: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      updatedBy: 'Admin'
-    };
+    if (editingRoomId) {
+      const existing = currentRooms.find(r => r.id === editingRoomId);
+      if (existing) {
+        roomCode = existing.code;
+        currentPeople.forEach(p => {
+          if (p.roomId === editingRoomId && !memberIds.includes(p.id)) {
+            p.roomId = null;
+          }
+        });
+        existing.capacity = capacity;
+        existing.memberIds = memberIds;
+        existing.usedSlots = validation.usedSlots;
+        existing.childCount = validation.childCount;
+        existing.status = validation.usedSlots === capacity ? 'FULL' : 'UNDER';
+        existing.bedType = validation.bedType;
+        existing.updatedAt = new Date().toISOString();
+        existing.updatedBy = 'Admin BTC';
+      }
+    } else {
+      roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const existingNums = currentRooms
+        .map(r => {
+          const match = r.code.match(/^P\.(\d+)$/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter(n => n > 0);
+      const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+      roomCode = `P.${nextNum}`;
+
+      const newRoom: Room = {
+        id: roomId,
+        tripId: currentTrip.id,
+        code: roomCode,
+        capacity,
+        leaderId: memberIds[0] || 'admin',
+        memberIds,
+        usedSlots: validation.usedSlots,
+        childCount: validation.childCount,
+        status: validation.usedSlots === capacity ? 'FULL' : 'UNDER',
+        bedType: validation.bedType,
+        adminOverride: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'Admin BTC'
+      };
+      currentRooms.push(newRoom);
+    }
 
     memberIds.forEach(id => {
       const p = currentPeople.find(cp => cp.id === id);
-      if (p) p.roomId = roomId;
+      if (p) p.roomId = roomId!;
     });
-
-    currentRooms.push(newRoom);
     saveRooms(currentTrip.id, currentRooms);
     savePeople(currentTrip.id, currentPeople);
 
     addLog(currentTrip.id, {
       id: `log_${Date.now()}`,
       tripId: currentTrip.id,
-      action: 'CREATE_ROOM',
+      action: editingRoomId ? 'UPDATE_ROOM' : 'CREATE_ROOM',
       actor: 'admin',
       actorName: 'Ban Tổ Chức',
-      details: `Admin đã tạo phòng mới ${roomCode} (${capacity} người) cho ${members.map(m => m.name).join(', ')}`,
+      details: editingRoomId
+        ? `Admin đã cập nhật phòng ${roomCode} (${capacity} người): ${members.map(m => m.name).join(', ')}`
+        : `Admin đã tạo phòng mới ${roomCode} (${capacity} người) cho ${members.map(m => m.name).join(', ')}`,
       timestamp: new Date().toISOString()
     });
 
@@ -732,7 +760,8 @@ export const App: React.FC = () => {
               onDeleteAllRooms={handleDeleteAllRooms}
               onRemoveMember={handleAdminRemoveMember}
               onAddMember={handleAdminAddMember}
-              onCreateRoom={handleAdminCreateRoom}
+              onCreateRoom={handleAdminSaveRoom}
+              onSaveRoom={handleAdminSaveRoom}
               onSaveOverride={handleAdminSaveOverride}
               onToggleGender={handleToggleGender}
               onAssignRelative={handleAdminAssignRelative}

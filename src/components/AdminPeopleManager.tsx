@@ -16,6 +16,8 @@ import {
   Plus
 } from 'lucide-react';
 
+import { RoomModal } from './RoomModal';
+
 interface AdminPeopleManagerProps {
   people: Person[];
   rooms: Room[];
@@ -25,6 +27,7 @@ interface AdminPeopleManagerProps {
   onAddMemberToRoom?: (roomId: string, personId: string) => void;
   onRemoveMemberFromRoom?: (roomId: string, personId: string) => void;
   onCreateRoomForPerson?: (capacity: number, memberIds: string[]) => void;
+  onSaveRoomForPerson?: (capacity: number, memberIds: string[], editingRoomId?: string) => void;
 }
 
 export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
@@ -35,7 +38,8 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
   onAssignRelative,
   onAddMemberToRoom,
   onRemoveMemberFromRoom,
-  onCreateRoomForPerson
+  onCreateRoomForPerson,
+  onSaveRoomForPerson
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'EMPLOYEE' | 'RELATIVE' | 'PG'>('ALL');
@@ -48,54 +52,8 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
 
   // Modal sắp / xếp phòng cho nhân sự
   const [arrangingPerson, setArrangingPerson] = useState<Person | null>(null);
-  const [roomSearchTerm, setRoomSearchTerm] = useState('');
-  const [newRoomCapacity, setNewRoomCapacity] = useState<number>(2);
-
   const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const peopleMap = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
-
-  // Danh sách các phòng còn chỗ trống
-  const availableRooms = useMemo(() => {
-    return rooms.filter(r => r.usedSlots < r.capacity);
-  }, [rooms]);
-
-  // Lọc phòng theo tìm kiếm
-  const filteredAvailableRooms = useMemo(() => {
-    if (!roomSearchTerm.trim()) return availableRooms;
-    const clean = removeVietnameseTones(roomSearchTerm).toLowerCase();
-    return availableRooms.filter(r => {
-      const matchCode = r.code.toLowerCase().includes(clean);
-      const members = r.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
-      const matchMember = members.some(m => removeVietnameseTones(m.name).toLowerCase().includes(clean) || m.code.toLowerCase().includes(clean));
-      return matchCode || matchMember;
-    });
-  }, [availableRooms, roomSearchTerm, peopleMap]);
-
-  const handleAssignToExistingRoom = (targetRoom: Room) => {
-    if (!arrangingPerson) return;
-    if (arrangingPerson.roomId && arrangingPerson.roomId !== targetRoom.id) {
-      if (onRemoveMemberFromRoom) {
-        onRemoveMemberFromRoom(arrangingPerson.roomId, arrangingPerson.id);
-      }
-    }
-    if (onAddMemberToRoom) {
-      onAddMemberToRoom(targetRoom.id, arrangingPerson.id);
-    }
-    setArrangingPerson(null);
-  };
-
-  const handleCreateNewRoomForPerson = () => {
-    if (!arrangingPerson) return;
-    if (arrangingPerson.roomId) {
-      if (onRemoveMemberFromRoom) {
-        onRemoveMemberFromRoom(arrangingPerson.roomId, arrangingPerson.id);
-      }
-    }
-    if (onCreateRoomForPerson) {
-      onCreateRoomForPerson(newRoomCapacity, [arrangingPerson.id]);
-    }
-    setArrangingPerson(null);
-  };
 
   // Danh sách các siêu thị duy nhất
   const uniqueStores = useMemo(() => {
@@ -293,10 +251,7 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
                           <>
                             <button
                               type="button"
-                              onClick={() => {
-                                setArrangingPerson(p);
-                                setRoomSearchTerm('');
-                              }}
+                              onClick={() => setArrangingPerson(p)}
                               className="btn btn-secondary btn-sm"
                               style={{ padding: '3px 8px', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                               title={`Đang ở phòng ${room.code} - Bấm để chuyển phòng khác`}
@@ -320,10 +275,7 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
                         ) : (
                           <button
                             type="button"
-                            onClick={() => {
-                              setArrangingPerson(p);
-                              setRoomSearchTerm('');
-                            }}
+                            onClick={() => setArrangingPerson(p)}
                             className="btn btn-primary btn-sm"
                             style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700 }}
                             title="Sắp phòng cho nhân viên này"
@@ -357,165 +309,25 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
         </div>
       </div>
 
-      {/* Modal Sắp / Xếp Phòng Cho Nhân Sự */}
+      {/* Modal Sắp / Ghép Phòng cho Admin theo mẫu chuẩn Hình 3 */}
       {arrangingPerson && (
-        <div className="modal-overlay" onClick={() => setArrangingPerson(null)} style={{ zIndex: 1200 }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 640, width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
-            {/* Header */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card-solid)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Bed size={20} style={{ color: 'var(--primary-500)' }} />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
-                  Sắp Phòng Cho {arrangingPerson.name}
-                </h3>
-              </div>
-              <button onClick={() => setArrangingPerson(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
-            </div>
-
-            {/* Body */}
-            <div style={{ padding: '18px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Thông tin nhân sự */}
-              <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
-                    {arrangingPerson.name} <span style={{ fontWeight: 500, fontSize: '0.85rem', color: 'var(--text-muted)' }}>({arrangingPerson.code})</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                    🏢 {arrangingPerson.store} • {arrangingPerson.type === 'EMPLOYEE' ? 'Nhân viên' : (arrangingPerson.type === 'RELATIVE' ? 'Người thân' : 'PG')}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className={`badge ${arrangingPerson.gender === 'M' ? 'badge-primary' : 'badge-warning'}`}>
-                    {arrangingPerson.gender === 'M' ? 'Nam' : 'Nữ'}
-                  </span>
-                  {arrangingPerson.roomId ? (
-                    <span className="badge badge-success">
-                      Phòng hiện tại: {roomsMap.get(arrangingPerson.roomId)?.code}
-                    </span>
-                  ) : (
-                    <span className="badge badge-gray">Chưa có phòng</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Tùy chọn 1: Ghép vào phòng có sẵn còn chỗ */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                  <label style={{ fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>
-                    1. Ghép vào phòng có sẵn còn chỗ trống ({availableRooms.length} phòng):
-                  </label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="Tìm theo số phòng, tên thành viên..."
-                    value={roomSearchTerm}
-                    onChange={e => setRoomSearchTerm(e.target.value)}
-                    style={{ height: 32, fontSize: '0.78rem', width: 220, padding: '4px 8px' }}
-                  />
-                </div>
-
-                <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-main)' }}>
-                  {filteredAvailableRooms.length === 0 ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
-                      Không có phòng nào phù hợp hoặc tất cả các phòng đã đủ người.
-                    </div>
-                  ) : (
-                    filteredAvailableRooms.map(r => {
-                      const members = r.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
-                      const isSameGender = members.every(m => m.gender === arrangingPerson.gender);
-                      const availableSlots = r.capacity - r.usedSlots;
-
-                      return (
-                        <div
-                          key={r.id}
-                          style={{
-                            padding: '8px 12px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border-subtle)',
-                            background: 'var(--bg-card-solid)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 10
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)', minWidth: 46 }}>
-                              {r.code}
-                            </span>
-                            <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
-                              Phòng {r.capacity} người
-                            </span>
-                            <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
-                              Còn {availableSlots} chỗ
-                            </span>
-                            {isSameGender && (
-                              <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                                Cùng giới ({arrangingPerson.gender === 'M' ? 'Nam' : 'Nữ'})
-                              </span>
-                            )}
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              ({members.map(m => m.name).join(', ')})
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleAssignToExistingRoom(r)}
-                            className="btn btn-primary btn-sm"
-                            style={{ fontSize: '0.75rem', padding: '4px 10px', whiteSpace: 'nowrap', fontWeight: 700 }}
-                          >
-                            + Ghép vào phòng
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Tùy chọn 2: Hoặc tạo phòng mới cho nhân sự này */}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: 8 }}>
-                  2. Hoặc tạo phòng mới cho {arrangingPerson.name}:
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>Loại phòng:</span>
-                    {[2, 3, 4, 5, 6].map(cap => (
-                      <button
-                        key={cap}
-                        type="button"
-                        onClick={() => setNewRoomCapacity(cap)}
-                        className={`btn btn-sm ${newRoomCapacity === cap ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-                      >
-                        {cap} người
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleCreateNewRoomForPerson}
-                    className="btn btn-primary btn-sm"
-                    style={{ fontSize: '0.8rem', padding: '6px 14px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                  >
-                    <Plus size={14} /> Tạo phòng {newRoomCapacity} người
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', background: 'var(--bg-muted)' }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setArrangingPerson(null)}>
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
+        <RoomModal
+          isOpen={!!arrangingPerson}
+          onClose={() => setArrangingPerson(null)}
+          onSaveRoom={(cap, memberIds) => {
+            const handleSave = onSaveRoomForPerson || onCreateRoomForPerson;
+            if (handleSave) {
+              handleSave(cap, memberIds, arrangingPerson.roomId || undefined);
+            }
+            setArrangingPerson(null);
+          }}
+          currentEmployee={arrangingPerson}
+          allPeople={people}
+          editingRoom={arrangingPerson.roomId ? (rooms.find(r => r.id === arrangingPerson.roomId) || null) : null}
+          maxChildrenPerRoom={currentTrip?.maxChildrenPerRoom || 2}
+          currentTrip={currentTrip}
+          allRooms={rooms}
+        />
       )}
 
       {/* Modal Gán Người Thân */}
