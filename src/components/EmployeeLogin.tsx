@@ -34,11 +34,11 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
   };
 
   return (
-    <div style={{ maxWidth: 520, margin: '30px auto', padding: '0 16px' }}>
-      <div className="glass-card" style={{ padding: '28px 24px', boxShadow: 'var(--shadow-xl)' }}>
+    <div className="employee-login-wrapper" style={{ maxWidth: 520, margin: '30px auto', padding: '0 16px' }}>
+      <div className="glass-card employee-login-card" style={{ padding: '28px 24px', boxShadow: 'var(--shadow-xl)' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{
+        <div className="employee-login-header" style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div className="employee-login-avatar" style={{
             width: 52,
             height: 52,
             borderRadius: '50%',
@@ -50,10 +50,10 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
             marginBottom: 12,
             boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)'
           }}>
-            <UserCheck size={28} />
+            <UserCheck size={26} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đăng Nhập Nhân Viên</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4 }}>
+          <h2 className="employee-login-title" style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đăng Nhập Nhân Viên</h2>
+          <p className="employee-login-desc" style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4 }}>
             Tìm tên của bạn để tự đăng ký và sắp xếp phòng khách sạn
           </p>
         </div>

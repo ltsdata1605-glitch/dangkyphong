@@ -33,43 +33,33 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
       width: '100%',
       margin: '8px 0 12px 0'
     }}>
-      <div className="glass-card" style={{
-        padding: '8px 16px',
+      <div className="glass-card countdown-banner-card" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 10,
         borderLeft: isLocked ? '4px solid var(--color-danger)' : '4px solid var(--primary-500)',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Trip Overview (Gọn gàng trên 2 dòng thanh mảnh) */}
-        <div style={{ flex: '1 1 auto', minWidth: 280 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <h2 style={{ fontSize: '1.02rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+        {/* Trip Overview */}
+        <div style={{ flex: '1 1 auto', minWidth: 260 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h2 className="countdown-trip-title">
               {trip.name}
             </h2>
             {isLocked ? (
-              <span className="badge badge-danger" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+              <span className="badge badge-danger" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
                 <Lock size={11} /> Đã khóa đăng ký
               </span>
             ) : (
-              <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+              <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
                 <CheckCircle2 size={11} /> Đang mở đăng ký
               </span>
             )}
           </div>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 12,
-            fontSize: '0.78rem',
-            color: 'var(--text-muted)',
-            marginTop: 3
-          }}>
+          <div className="countdown-trip-details">
             {trip.hotelName && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Building2 size={13} style={{ color: 'var(--primary-500)' }} /> {trip.hotelName}
@@ -89,18 +79,9 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
 
           {/* Định mức phòng & Số lượng đã đăng ký */}
           {trip.roomLimits && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 8,
-              fontSize: '0.78rem',
-              marginTop: 6,
-              paddingTop: 6,
-              borderTop: '1px dashed var(--border-subtle)'
-            }}>
-              <span style={{ fontWeight: 700, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Bed size={13} style={{ color: 'var(--primary-500)' }} /> Định mức phòng:
+            <div className="countdown-room-limits">
+              <span className="room-limit-heading" style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Bed size={13} style={{ color: 'var(--primary-500)' }} /> Định mức:
               </span>
               {[2, 3, 4, 5, 6].map(cap => {
                 const limit = trip.roomLimits?.[cap];
@@ -112,35 +93,19 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
                 return (
                   <span
                     key={cap}
-                    style={{
-                      background: isFull ? 'rgba(239, 68, 68, 0.08)' : count > 0 ? 'rgba(37, 99, 235, 0.07)' : 'var(--bg-card-solid)',
-                      border: isFull ? '1px solid rgba(239, 68, 68, 0.35)' : count > 0 ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid var(--border-subtle)',
-                      padding: '2px 8px',
-                      borderRadius: 'var(--radius-sm)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      color: isFull ? 'var(--color-danger)' : 'var(--text-main)',
-                      fontWeight: 600
-                    }}
+                    className={`room-quota-chip ${isFull ? 'is-full' : count > 0 ? 'has-rooms' : ''}`}
                   >
-                    <span>Phòng {cap} người:</span>
+                    <span className="quota-label-long">Phòng {cap} người:</span>
+                    <span className="quota-label-short">P.{cap}:</span>
                     <strong style={{ color: isFull ? 'var(--color-danger)' : count > 0 ? 'var(--primary-600)' : 'var(--text-muted)' }}>
                       {count}/{limit}
                     </strong>
                     {isFull ? (
-                      <span style={{
-                        fontSize: '0.66rem',
-                        fontWeight: 800,
-                        color: '#fff',
-                        background: 'var(--color-danger)',
-                        padding: '1px 5px',
-                        borderRadius: 4
-                      }}>
+                      <span className="quota-tag-full">
                         ĐÃ ĐỦ
                       </span>
                     ) : (
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                      <span className="quota-tag-remaining">
                         (Còn {remaining})
                       </span>
                     )}
@@ -152,12 +117,13 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
         </div>
 
         {/* Right Area: Nút Xem phòng & Hạn chót (Gọn gàng, vừa vặn) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="countdown-banner-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Nút XEM PHÒNG ĐÃ ĐĂNG KÝ (Nhỏ gọn, nổi bật) */}
           {onOpenAllRooms && (
             <button
               type="button"
               onClick={onOpenAllRooms}
+              className="btn-view-rooms-badge hover-lift"
               style={{
                 fontWeight: 700,
                 fontSize: '0.8rem',
@@ -175,7 +141,6 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
                 letterSpacing: '0.2px',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
-              className="hover-lift"
               title="Xem danh sách tất cả các phòng đã được sắp xếp và tra cứu nhanh"
             >
               <Bed size={15} style={{ color: '#ffffff' }} />
@@ -196,7 +161,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
           )}
 
           {/* Countdown Box (Gọn gàng) */}
-          <div style={{
+          <div className="countdown-deadline-box" style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
