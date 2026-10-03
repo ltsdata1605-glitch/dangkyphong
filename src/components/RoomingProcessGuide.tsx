@@ -120,11 +120,11 @@ export const RoomingProcessGuide: React.FC<RoomingProcessGuideProps> = ({
             </span>
             <PlusCircle size={18} style={{ color: 'var(--primary-500)' }} />
             <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>
-              Tạo Phòng
+              Tự Động Tạo Phòng
             </strong>
           </div>
           <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            Bấm nút <strong>"Tạo Phòng Mới Ngay"</strong> để làm trưởng phòng. Chọn loại phòng phù hợp với số lượng thành viên (2, 3, 4, 5 hoặc 6 người).
+            Khi nhận người thân, hệ thống sẽ <strong>tự động tạo ngay phòng 2 người</strong> với người thân (hoặc bấm <em>"Tạo Phòng Mới"</em> nếu ở cùng đồng nghiệp).
           </div>
         </div>
 
@@ -156,11 +156,11 @@ export const RoomingProcessGuide: React.FC<RoomingProcessGuideProps> = ({
             </span>
             <Users size={18} style={{ color: 'var(--color-success)' }} />
             <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>
-              Chọn Người Ở Cùng
+              Ghép Thêm Người Ở Cùng
             </strong>
           </div>
           <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            Hệ thống tự động đưa người thân đã nhận vào phòng. Bạn chọn thêm đồng nghiệp cùng/khác siêu thị vào để hoàn tất ghép đủ suất phòng.
+            Phòng đã có bạn và người thân. Nếu đi theo nhóm cần phòng lớn hơn (3–6 người), bạn có thể bấm <strong>"Sửa Phòng"</strong> để chọn thêm đồng nghiệp.
           </div>
         </div>
       </div>

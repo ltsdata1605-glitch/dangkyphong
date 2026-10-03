@@ -304,11 +304,27 @@ export const App: React.FC = () => {
     refreshData();
   };
 
-  // Nhận người thân (chọn mối quan hệ)
+  // Nhận người thân (chọn mối quan hệ) -> Tự động tạo phòng 2 người hoặc thêm vào phòng hiện tại
   const handleClaimRelative = (relativeId: string, relation?: RelationType) => {
     if (!currentEmployee) return;
-    claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name, relation);
-    refreshData();
+    const res = claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name, relation);
+    if (res.success) {
+      // Cập nhật ngay currentEmployee với roomId mới từ storage để UI chuyển ngay lập tức
+      const updatedPeople = getPeople(currentTrip.id);
+      const updatedEmp = updatedPeople.find(p => p.id === currentEmployee.id || p.code === currentEmployee.code);
+      if (updatedEmp) {
+        localStorage.setItem('rooming_current_employee', JSON.stringify(updatedEmp));
+        setCurrentEmployee(updatedEmp);
+      }
+      refreshData();
+      if (res.roomCode) {
+        if (res.isNewRoom) {
+          alert(`Đã nhận người thân thành công!\n\n🎉 Hệ thống đã tự động tạo phòng ${res.roomCode} (Phòng 2 người) cho bạn và người thân.`);
+        } else {
+          alert(`Đã nhận người thân thành công!\n\nNgười thân đã được thêm vào phòng ${res.roomCode} của bạn.`);
+        }
+      }
+    }
   };
 
   // Hủy nhận người thân
@@ -440,8 +456,11 @@ export const App: React.FC = () => {
 
   // Admin gán người thân cho nhân viên
   const handleAdminAssignRelative = (relativeId: string, employeeCode: string) => {
-    claimRelative(currentTrip.id, employeeCode, relativeId, 'Ban Tổ Chức');
+    const res = claimRelative(currentTrip.id, employeeCode, relativeId, 'Ban Tổ Chức');
     refreshData();
+    if (res.success && res.roomCode) {
+      alert(`Đã gán người thân cho nhân viên ${employeeCode} thành công (Phòng: ${res.roomCode})!`);
+    }
   };
 
   // Admin thêm người vào phòng

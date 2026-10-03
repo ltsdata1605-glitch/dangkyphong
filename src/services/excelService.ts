@@ -334,162 +334,312 @@ export async function parseUploadedExcel(file: File): Promise<{
   errors: string[];
   warnings: string[];
 }> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
+  try {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
 
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+      return {
+        success: false,
+        people: [],
+        errors: ['File Excel không chứa bất kỳ trang tính (sheet) nào.'],
+        warnings: []
+      };
+    }
 
-        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        if (rows.length < 2) {
-          resolve({
-            success: false,
-            people: [],
-            errors: ['File Excel rỗng hoặc không có dữ liệu hợp lệ.'],
-            warnings: []
-          });
-          return;
-        }
+    // 1. Tìm sheet đầu tiên có chứa dữ liệu bảng
+    let targetRows: any[][] = [];
+    let selectedSheetName = '';
 
-        const errors: string[] = [];
-        const warnings: string[] = [];
-        const parsedPeople: Person[] = [];
-        const empByStore: Record<string, Person[]> = {};
-
-        // Vòng 1: Tìm dòng nhân viên trước
-        let ntCounter = 1;
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0 || !row[1]) continue;
-
-          const colA = String(row[0] || '').trim(); // USER (MSNV hoặc Quan hệ)
-          const colB = String(row[1] || '').trim(); // HỌ TÊN
-          const colC = String(row[2] || '').trim(); // MST - TÊN SIÊU THỊ
-          const colD = String(row[3] || '').trim().toUpperCase(); // NHÂN VIÊN / NGƯỜI THÂN
-          const colE = String(row[4] || '').trim(); // GIỚI TÍNH
-
-          if (colD === 'NHÂN VIÊN') {
-            const gender = colE.toLowerCase().includes('nữ') ? 'F' : 'M';
-            const person: Person = {
-              id: `emp_${colA}_${Date.now()}_${i}`,
-              code: colA,
-              name: colB,
-              nameUnsigned: removeVietnameseTones(colB),
-              store: colC,
-              type: 'EMPLOYEE',
-              relation: null,
-              gender,
-              ownerId: null,
-              slot: 1,
-              roomId: null
-            };
-            parsedPeople.push(person);
-
-            if (!empByStore[colC]) empByStore[colC] = [];
-            empByStore[colC].push(person);
-          }
-        }
-
-        // Vòng 2: Xử lý người thân và PG
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0 || !row[1]) continue;
-
-          const colA = String(row[0] || '').trim();
-          const colB = String(row[1] || '').trim();
-          const colC = String(row[2] || '').trim();
-          const colD = String(row[3] || '').trim().toUpperCase();
-          const colE = String(row[4] || '').trim();
-
-          if (colD !== 'NHÂN VIÊN') {
-            const isPG = colA.toUpperCase().includes('PG');
-            let pType: 'PG' | 'RELATIVE' = isPG ? 'PG' : 'RELATIVE';
-            let relation: Person['relation'] = 'OTHER';
-            let slot = 1;
-
-            const relLower = colA.toLowerCase();
-            if (relLower.includes('vợ') || relLower.includes('chồng')) {
-              relation = 'SPOUSE';
-              slot = 1;
-            } else if (relLower.includes('ba') || relLower.includes('mẹ')) {
-              relation = 'PARENT';
-              slot = 1;
-            } else if (relLower.includes('dưới 5') || relLower.includes('< 5')) {
-              relation = 'CHILD_U5';
-              slot = 0;
-            } else if (relLower.includes('5-11') || relLower.includes('5 - 11')) {
-              relation = 'CHILD_5_11';
-              slot = 0;
-            } else if (relLower.includes('12')) {
-              relation = 'CHILD_12P';
-              slot = 1;
-            } else if (isPG) {
-              relation = 'PG';
-              slot = 1;
-            }
-
-            // Xử lý auto-link nếu siêu thị có đúng 1 nhân viên
-            let ownerId: string | null = null;
-            let employeeGender: 'M' | 'F' | undefined = undefined;
-
-            if (pType !== 'PG') {
-              const matchingEmps = empByStore[colC] || [];
-              if (matchingEmps.length === 1) {
-                ownerId = matchingEmps[0].code;
-                employeeGender = matchingEmps[0].gender;
-              } else if (matchingEmps.length > 1) {
-                warnings.push(`Dòng ${i + 1}: Người thân "${colB}" tại "${colC}" có ${matchingEmps.length} nhân viên cùng siêu thị. Cần nhân viên hoặc Admin chọn gán thủ công.`);
-              }
-            }
-
-            // Suy luận giới tính thông minh
-            let gender = inferGender(colB, relation, employeeGender);
-            if (colE.toLowerCase().includes('nữ')) gender = 'F';
-            else if (colE.toLowerCase().includes('nam')) gender = 'M';
-
-            const personCode = ownerId ? `${ownerId}-NT${ntCounter}` : `NT${String(ntCounter).padStart(3, '0')}`;
-            ntCounter++;
-
-            const person: Person = {
-              id: `rel_${i}_${Date.now()}`,
-              code: personCode,
-              name: colB,
-              nameUnsigned: removeVietnameseTones(colB),
-              store: colC,
-              type: pType,
-              relation,
-              gender,
-              ownerId,
-              slot,
-              roomId: null
-            };
-
-            parsedPeople.push(person);
-          }
-        }
-
-        resolve({
-          success: true,
-          people: parsedPeople,
-          errors,
-          warnings
-        });
-      } catch (err: any) {
-        resolve({
-          success: false,
-          people: [],
-          errors: [`Lỗi đọc file Excel: ${err?.message || 'Định dạng file không hỗ trợ.'}`],
-          warnings: []
-        });
+    for (const sName of workbook.SheetNames) {
+      const ws = workbook.Sheets[sName];
+      if (!ws) continue;
+      const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false });
+      if (rows && rows.length >= 2) {
+        targetRows = rows;
+        selectedSheetName = sName;
+        break;
       }
-    };
+    }
 
-    reader.readAsBinaryString(file);
-  });
+    if (!targetRows || targetRows.length < 2) {
+      return {
+        success: false,
+        people: [],
+        errors: ['File Excel rỗng hoặc không tìm thấy hàng dữ liệu hợp lệ.'],
+        warnings: []
+      };
+    }
+
+    // 2. Tự động quét tìm hàng tiêu đề (Header row) trong 15 dòng đầu tiên
+    let headerRowIdx = -1;
+    let colName = -1;
+    let colUser = -1;
+    let colStore = -1;
+    let colType = -1;
+    let colGender = -1;
+    let colPhone = -1;
+
+    for (let r = 0; r < Math.min(15, targetRows.length); r++) {
+      const row = targetRows[r];
+      if (!row || !Array.isArray(row)) continue;
+
+      const lowerRow = row.map(c => removeVietnameseTones(String(c || '')).trim());
+
+      const hasName = lowerRow.some(c => c.includes('ho ten') || c.includes('ho va ten') || c === 'ten' || c === 'name');
+      const hasUser = lowerRow.some(c => c.includes('user') || c.includes('msnv') || c.includes('ma nv') || c.includes('ma so') || c === 'ma');
+      const hasStore = lowerRow.some(c => c.includes('sieu thi') || c.includes('mst') || c.includes('don vi') || c.includes('chi nhanh'));
+      const hasType = lowerRow.some(c => c.includes('nhan vien') || c.includes('doi tuong') || c.includes('nguoi than') || c.includes('phan loai'));
+      const hasGender = lowerRow.some(c => c.includes('gioi tinh') || c.includes('phai') || c.includes('nam/nu'));
+
+      const matchScore = [hasName, hasUser, hasStore, hasType, hasGender].filter(Boolean).length;
+
+      if (matchScore >= 2 || (hasName && (hasUser || hasStore))) {
+        headerRowIdx = r;
+
+        lowerRow.forEach((c, idx) => {
+          if (colName === -1 && (c.includes('ho ten') || c.includes('ho va ten') || c.includes('ten tham gia') || c === 'ten' || c === 'name')) {
+            colName = idx;
+          } else if (colUser === -1 && (c.includes('user') || c.includes('msnv') || c.includes('ma nv') || c.includes('ma so') || c === 'ma' || c === 'code')) {
+            colUser = idx;
+          } else if (colStore === -1 && (c.includes('sieu thi') || c.includes('mst') || c.includes('don vi') || c.includes('chi nhanh') || c.includes('store') || c.includes('phong ban'))) {
+            colStore = idx;
+          } else if (colType === -1 && (c.includes('nhan vien /') || c.includes('doi tuong') || c.includes('phan loai') || c.includes('loai') || c.includes('chuc danh'))) {
+            colType = idx;
+          } else if (colGender === -1 && (c.includes('gioi tinh') || c.includes('phai') || c.includes('nam/nu') || c === 'gt' || c === 'gender')) {
+            colGender = idx;
+          } else if (colPhone === -1 && (c.includes('sdt') || c.includes('dien thoai') || c.includes('phone') || c.includes('mobile'))) {
+            colPhone = idx;
+          }
+        });
+        break;
+      }
+    }
+
+    // Nếu không tìm thấy bằng từ khóa, dự đoán theo vị trí cột mặc định
+    if (headerRowIdx === -1) {
+      headerRowIdx = 0;
+      colUser = 0;
+      colName = 1;
+      colStore = 2;
+      colType = 3;
+      colGender = 4;
+    } else {
+      // Bổ sung các cột chưa map được
+      if (colName === -1) colName = 1;
+      if (colUser === -1) colUser = colName === 1 ? 0 : 1;
+      if (colStore === -1) colStore = 2;
+      if (colGender === -1) colGender = 4;
+    }
+
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const parsedPeople: Person[] = [];
+    const empByStore: Record<string, Person[]> = {};
+
+    const dataRows = targetRows.slice(headerRowIdx + 1);
+
+    // Vòng 1: Tìm dòng nhân viên trước
+    let ntCounter = 1;
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+      const rawUser = String(row[colUser] !== undefined ? row[colUser] : '').trim();
+      const rawName = String(row[colName] !== undefined ? row[colName] : '').trim();
+      const rawStore = String(row[colStore] !== undefined ? row[colStore] : '').trim();
+      const rawType = colType >= 0 ? String(row[colType] !== undefined ? row[colType] : '').trim() : '';
+      const rawGender = colGender >= 0 ? String(row[colGender] !== undefined ? row[colGender] : '').trim() : '';
+      const rawPhone = colPhone >= 0 ? String(row[colPhone] !== undefined ? row[colPhone] : '').trim() : '';
+
+      if (!rawName) continue;
+
+      const cleanType = removeVietnameseTones(rawType).toLowerCase();
+      const cleanUser = removeVietnameseTones(rawUser).toLowerCase();
+
+      // Kiểm tra có phải là nhân viên không
+      let isEmployee = false;
+      if (cleanType.includes('nhan vien') || cleanType === 'nv') {
+        isEmployee = true;
+      } else if (cleanType.includes('nguoi than') || cleanType === 'nt' || cleanType.includes('pg')) {
+        isEmployee = false;
+      } else {
+        // Suy luận từ cột USER: nếu là số MSNV và không chứa từ quan hệ -> Nhân viên
+        const hasDigit = /\d{3,}/.test(rawUser);
+        const hasRelation = /vo|chong|con|ba|me|bo|chau/i.test(cleanUser);
+        if (hasDigit && !hasRelation) {
+          isEmployee = true;
+        } else if (!hasRelation && !cleanUser.includes('pg')) {
+          isEmployee = true;
+        }
+      }
+
+      if (isEmployee) {
+        let gender: 'M' | 'F' = 'M';
+        const cleanGender = removeVietnameseTones(rawGender).toLowerCase();
+        if (cleanGender.includes('nu') || cleanGender === 'f') {
+          gender = 'F';
+        } else if (cleanGender.includes('nam') || cleanGender === 'm') {
+          gender = 'M';
+        } else {
+          gender = inferGender(rawName);
+        }
+
+        const person: Person = {
+          id: `emp_${rawUser || Date.now()}_${i}`,
+          code: rawUser || `NV${String(i + 1).padStart(4, '0')}`,
+          name: rawName,
+          nameUnsigned: removeVietnameseTones(rawName),
+          store: rawStore || 'Văn phòng chính',
+          type: 'EMPLOYEE',
+          relation: null,
+          gender,
+          ownerId: null,
+          slot: 1,
+          roomId: null,
+          phone: rawPhone || undefined
+        };
+
+        parsedPeople.push(person);
+
+        const storeKey = person.store;
+        if (!empByStore[storeKey]) empByStore[storeKey] = [];
+        empByStore[storeKey].push(person);
+      }
+    }
+
+    // Vòng 2: Xử lý Người thân và PG
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+      const rawUser = String(row[colUser] !== undefined ? row[colUser] : '').trim();
+      const rawName = String(row[colName] !== undefined ? row[colName] : '').trim();
+      const rawStore = String(row[colStore] !== undefined ? row[colStore] : '').trim();
+      const rawType = colType >= 0 ? String(row[colType] !== undefined ? row[colType] : '').trim() : '';
+      const rawGender = colGender >= 0 ? String(row[colGender] !== undefined ? row[colGender] : '').trim() : '';
+      const rawPhone = colPhone >= 0 ? String(row[colPhone] !== undefined ? row[colPhone] : '').trim() : '';
+
+      if (!rawName) continue;
+
+      const cleanType = removeVietnameseTones(rawType).toLowerCase();
+      const cleanUser = removeVietnameseTones(rawUser).toLowerCase();
+
+      let isEmployee = false;
+      if (cleanType.includes('nhan vien') || cleanType === 'nv') {
+        isEmployee = true;
+      } else if (cleanType.includes('nguoi than') || cleanType === 'nt' || cleanType.includes('pg')) {
+        isEmployee = false;
+      } else {
+        const hasDigit = /\d{3,}/.test(rawUser);
+        const hasRelation = /vo|chong|con|ba|me|bo|chau/i.test(cleanUser);
+        if (hasDigit && !hasRelation) {
+          isEmployee = true;
+        } else if (!hasRelation && !cleanUser.includes('pg')) {
+          isEmployee = true;
+        }
+      }
+
+      if (!isEmployee) {
+        const isPG = cleanType.includes('pg') || cleanUser.includes('pg');
+        let pType: 'PG' | 'RELATIVE' = isPG ? 'PG' : 'RELATIVE';
+        let relation: Person['relation'] = 'OTHER';
+        let slot = 1;
+
+        const relCombined = `${cleanUser} ${cleanType}`;
+        if (relCombined.includes('vo') || relCombined.includes('chong')) {
+          relation = 'SPOUSE';
+          slot = 1;
+        } else if (relCombined.includes('ba') || relCombined.includes('me') || relCombined.includes('bo')) {
+          relation = 'PARENT';
+          slot = 1;
+        } else if (relCombined.includes('duoi 5') || relCombined.includes('< 5') || relCombined.includes('<5')) {
+          relation = 'CHILD_U5';
+          slot = 0; // Trẻ em dưới 11 tuổi: 0 suất (ở cùng người thân)
+        } else if (relCombined.includes('5-11') || relCombined.includes('5 - 11') || relCombined.includes('5–11')) {
+          relation = 'CHILD_5_11';
+          slot = 0; // Trẻ em dưới 11 tuổi: 0 suất (ở cùng người thân)
+        } else if (relCombined.includes('12') || relCombined.includes('lon hon 11')) {
+          relation = 'CHILD_12P';
+          slot = 1;
+        } else if (relCombined.includes('con')) {
+          relation = 'CHILD_5_11';
+          slot = 0; // Mặc định bé là con đi cùng: 0 suất
+        } else if (isPG) {
+          relation = 'PG';
+          slot = 1;
+        }
+
+        // Tự động gán nếu siêu thị có đúng 1 nhân viên
+        let ownerId: string | null = null;
+        let employeeGender: 'M' | 'F' | undefined = undefined;
+
+        if (pType !== 'PG') {
+          const matchingEmps = empByStore[rawStore] || [];
+          if (matchingEmps.length === 1) {
+            ownerId = matchingEmps[0].code;
+            employeeGender = matchingEmps[0].gender;
+          } else if (matchingEmps.length > 1) {
+            warnings.push(`Dòng ${i + 2}: Người thân "${rawName}" tại "${rawStore}" có ${matchingEmps.length} nhân viên cùng siêu thị. Nhân viên có thể tự nhận hoặc Admin gán thủ công.`);
+          }
+        }
+
+        // Suy luận giới tính
+        let gender: 'M' | 'F' = 'M';
+        const cleanGender = removeVietnameseTones(rawGender).toLowerCase();
+        if (cleanGender.includes('nu') || cleanGender === 'f') {
+          gender = 'F';
+        } else if (cleanGender.includes('nam') || cleanGender === 'm') {
+          gender = 'M';
+        } else {
+          gender = inferGender(rawName, relation, employeeGender);
+        }
+
+        const personCode = ownerId ? `${ownerId}-NT${ntCounter}` : `NT${String(ntCounter).padStart(3, '0')}`;
+        ntCounter++;
+
+        const person: Person = {
+          id: `rel_${rawUser || Date.now()}_${i}`,
+          code: personCode,
+          name: rawName,
+          nameUnsigned: removeVietnameseTones(rawName),
+          store: rawStore || 'Văn phòng chính',
+          type: pType,
+          relation,
+          gender,
+          ownerId,
+          slot,
+          roomId: null,
+          phone: rawPhone || undefined
+        };
+
+        parsedPeople.push(person);
+      }
+    }
+
+    if (parsedPeople.length === 0) {
+      return {
+        success: false,
+        people: [],
+        errors: ['Không tìm thấy dữ liệu nhân sự hợp lệ trong trang tính. Vui lòng kiểm tra lại file hoặc xuất file mẫu chuẩn.'],
+        warnings
+      };
+    }
+
+    return {
+      success: true,
+      people: parsedPeople,
+      errors,
+      warnings
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      people: [],
+      errors: [`Lỗi xử lý file Excel: ${err?.message || 'Định dạng file không được hỗ trợ.'}`],
+      warnings: []
+    };
+  }
 }
 
 /**

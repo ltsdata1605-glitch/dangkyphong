@@ -1,4 +1,4 @@
-import { Person, Room, Trip, AuditLog, RelationType } from '../types';
+import { Person, Room, Trip, AuditLog, RelationType, BedType } from '../types';
 import seedPeople from '../data_sample.json';
 import { db } from './firebase';
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
@@ -387,6 +387,10 @@ export function addLog(tripId: string, log: AuditLog): void {
 
 /**
  * Gán / Nhận người thân vào nhân viên bảo trợ (cho phép chọn mối quan hệ)
+ * TỰ ĐỘNG TẠO PHÒNG VỚI NGƯỜI THÂN:
+ * - Nếu là Vợ/Chồng, Con -> Mặc định tạo phòng 2 người (capacity = 2).
+ *   Riêng đối với con < 11 tuổi (CHILD_U5, CHILD_5_11) thì ở cùng người thân, slot = 0 (không tính là 1 người).
+ * - Nếu nhân viên đã có phòng: Tự động thêm người thân vào phòng hiện tại.
  */
 export function claimRelative(
   tripId: string, 
@@ -394,24 +398,27 @@ export function claimRelative(
   relativeId: string, 
   employeeName?: string,
   relation?: RelationType
-): boolean {
+): { success: boolean; roomCode?: string; isNewRoom?: boolean; message?: string } {
   const people = getPeople(tripId);
   const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
   const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
 
-  if (!employee || !relative) return false;
+  if (!employee || !relative) {
+    return { success: false, message: 'Không tìm thấy thông tin nhân viên hoặc người thân.' };
+  }
 
+  // 1. Gán người thân cho nhân viên
   relative.ownerId = employee.code;
   if (relation) {
     relative.relation = relation;
-    // Quy tắc: Nếu bé < 11 tuổi (CHILD_U5 hoặc CHILD_5_11) -> 0 suất
-    if (relation === 'CHILD_U5' || relation === 'CHILD_5_11') {
-      relative.slot = 0;
-    } else {
-      relative.slot = 1;
-    }
   }
-  savePeople(tripId, people);
+
+  // Quy tắc: Nếu là con < 11 tuổi (CHILD_U5 hoặc CHILD_5_11) -> 0 suất (ở cùng người thân)
+  if (relative.relation === 'CHILD_U5' || relative.relation === 'CHILD_5_11') {
+    relative.slot = 0;
+  } else {
+    relative.slot = 1;
+  }
 
   let relLabel = relative.relation || 'Người thân';
   if (relative.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
@@ -420,17 +427,118 @@ export function claimRelative(
   else if (relative.relation === 'CHILD_12P') relLabel = 'Con ≥ 12 tuổi (1 suất)';
   else if (relative.relation === 'PARENT') relLabel = 'Ba / Mẹ (1 suất)';
 
+  const rooms = getRooms(tripId);
+  let roomCode = '';
+  let isNewRoom = false;
+
+  // 2. Tự động tạo phòng hoặc thêm vào phòng hiện tại của nhân viên
+  let targetRoom = employee.roomId ? rooms.find(r => r.id === employee.roomId) : null;
+
+  if (targetRoom) {
+    // Trường hợp A: Nhân viên đã có phòng -> Thêm người thân vào phòng hiện tại
+    if (!targetRoom.memberIds.includes(relative.id)) {
+      targetRoom.memberIds.push(relative.id);
+    }
+    relative.roomId = targetRoom.id;
+
+    // Lấy lại danh sách thành viên đầy đủ
+    const currentMembers = targetRoom.memberIds
+      .map(id => (id === relative.id ? relative : people.find(p => p.id === id)!))
+      .filter(Boolean);
+
+    targetRoom.usedSlots = currentMembers.reduce((sum, m) => sum + (m.slot ?? 1), 0);
+    targetRoom.childCount = currentMembers.filter(m => m.slot === 0).length;
+
+    // Tự động nâng sức chứa phòng nếu người lớn vượt quá loại phòng hiện tại (tối đa 6)
+    if (targetRoom.usedSlots > targetRoom.capacity && targetRoom.capacity < 6) {
+      targetRoom.capacity = Math.min(6, targetRoom.usedSlots);
+    }
+
+    // Cập nhật loại giường thích hợp
+    const hasSpouse = currentMembers.some(m => m.relation === 'SPOUSE');
+    const hasChild = targetRoom.childCount > 0;
+    if (hasSpouse) {
+      targetRoom.bedType = 'DOUBLE';
+    } else if (hasChild) {
+      targetRoom.bedType = 'FAMILY';
+    }
+
+    targetRoom.status = targetRoom.usedSlots >= targetRoom.capacity ? 'FULL' : 'UNDER';
+    targetRoom.updatedAt = new Date().toISOString();
+    targetRoom.updatedBy = employee.name;
+    roomCode = targetRoom.code;
+    isNewRoom = false;
+  } else {
+    // Trường hợp B: Nhân viên chưa có phòng -> TỰ ĐỘNG TẠO PHÒNG 2 NGƯỜI
+    isNewRoom = true;
+    const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    // Tìm số phòng P.X tiếp theo bắt đầu từ 1
+    const existingNums = rooms
+      .map(r => {
+        const match = r.code.match(/^P\.(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+    const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+    roomCode = `P.${nextNum}`;
+
+    const isChildUnder11 = relative.slot === 0;
+    const usedSlots = 1 + (relative.slot ?? 1); // Nhân viên (1) + người thân (1 hoặc 0 nếu bé < 11 tuổi)
+    const childCount = isChildUnder11 ? 1 : 0;
+
+    let bedType: BedType = 'TWIN';
+    if (relative.relation === 'SPOUSE') {
+      bedType = 'DOUBLE';
+    } else if (isChildUnder11 || relative.relation === 'CHILD_12P') {
+      bedType = 'FAMILY';
+    } else {
+      bedType = 'DOUBLE';
+    }
+
+    const newRoom: Room = {
+      id: roomId,
+      tripId,
+      code: roomCode,
+      capacity: 2, // Mặc định phòng 2 người theo yêu cầu
+      leaderId: employee.id,
+      memberIds: [employee.id, relative.id],
+      usedSlots,
+      childCount,
+      status: usedSlots >= 2 ? 'FULL' : 'UNDER',
+      bedType,
+      adminOverride: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      updatedBy: employee.name
+    };
+
+    employee.roomId = roomId;
+    relative.roomId = roomId;
+    rooms.push(newRoom);
+  }
+
+  saveRooms(tripId, rooms);
+  savePeople(tripId, people);
+
   addLog(tripId, {
     id: `log_${Date.now()}`,
     tripId,
-    action: 'ASSIGN_RELATIVE',
+    action: isNewRoom ? 'CREATE_ROOM' : 'UPDATE_ROOM',
     actor: employee.code,
     actorName: employee.name,
-    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relLabel})`,
+    details: `${employee.name} (${employee.code}) đã nhận người thân "${relative.name}" (${relLabel}) và ${isNewRoom ? `hệ thống tự động tạo phòng ${roomCode} (2 người)` : `thêm vào phòng ${roomCode}`}`,
     timestamp: new Date().toISOString()
   });
 
-  return true;
+  return {
+    success: true,
+    roomCode,
+    isNewRoom,
+    message: isNewRoom 
+      ? `Đã nhận người thân và tự động tạo phòng ${roomCode} (Phòng 2 người)` 
+      : `Đã nhận người thân và thêm vào phòng ${roomCode}`
+  };
 }
 
 /**
@@ -442,14 +550,23 @@ export function unclaimRelative(tripId: string, employeeCode: string, relativeId
   if (!relative) return false;
 
   relative.ownerId = null;
-  if (relative.roomId) {
+  const relRoomId = relative.roomId;
+  relative.roomId = null;
+
+  if (relRoomId) {
     const rooms = getRooms(tripId);
-    const room = rooms.find(r => r.id === relative.roomId);
+    const room = rooms.find(r => r.id === relRoomId);
     if (room) {
       room.memberIds = room.memberIds.filter(id => id !== relativeId);
+      const remainingMembers = room.memberIds
+        .map(id => people.find(p => p.id === id)!)
+        .filter(Boolean);
+      room.usedSlots = remainingMembers.reduce((sum, m) => sum + (m.slot ?? 1), 0);
+      room.childCount = remainingMembers.filter(m => m.slot === 0).length;
+      room.status = room.usedSlots >= room.capacity ? 'FULL' : 'UNDER';
+      room.updatedAt = new Date().toISOString();
       saveRooms(tripId, rooms);
     }
-    relative.roomId = null;
   }
   savePeople(tripId, people);
   return true;

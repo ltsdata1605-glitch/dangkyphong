@@ -514,6 +514,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                     ref={fileInputRef}
                     accept=".xlsx, .xls"
                     style={{ display: 'none' }}
+                    onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
                     onChange={handleModalFileImport}
                   />
 
@@ -668,6 +669,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
             } else {
               savePeople(importingTrip.id, people);
             }
+            alert(`✓ Đã nạp thành công ${people.length} nhân sự vào chuyến đi "${importingTrip.name}"!`);
             setImportingTrip(null);
           }}
         />

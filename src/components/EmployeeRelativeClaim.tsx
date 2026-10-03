@@ -413,9 +413,9 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               </div>
             </div>
 
-            {/* Note about Child < 11 years old */}
+            {/* Note about Auto Room Creation & Child < 11 years old */}
             <div style={{
-              padding: '10px 14px',
+              padding: '12px 14px',
               borderRadius: 'var(--radius-md)',
               background: 'rgba(245, 158, 11, 0.12)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -425,8 +425,9 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               gap: 8
             }}>
               <Info size={16} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: '0.8rem', color: '#b45309', lineHeight: 1.45 }}>
-                <strong>Ghi chú:</strong> Nếu bé &lt; 11 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).
+              <div style={{ fontSize: '0.8rem', color: '#b45309', lineHeight: 1.5 }}>
+                <div>✨ <strong>Tự động tạo phòng:</strong> Hệ thống sẽ <strong>tự động tạo phòng 2 người</strong> với người thân này (hoặc tự thêm vào phòng hiện tại nếu bạn đã có phòng).</div>
+                <div style={{ marginTop: 4 }}>👶 <strong>Trẻ em:</strong> Riêng đối với bé &lt; 11 tuổi (dưới 5 tuổi hoặc 5–11 tuổi) sẽ ở cùng phòng người thân và <strong>không tính là 1 người</strong> (0 suất người lớn).</div>
               </div>
             </div>
 

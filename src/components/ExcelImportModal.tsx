@@ -124,6 +124,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               id="excelFileInput"
               type="file"
               accept=".xlsx, .xls"
+              onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
