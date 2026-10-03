@@ -11,7 +11,9 @@ import {
   AlertCircle,
   Crown,
   Filter,
-  UserCheck
+  UserCheck,
+  LayoutList,
+  LayoutGrid
 } from 'lucide-react';
 
 interface AllRoomsDirectoryModalProps {
@@ -36,6 +38,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
   const [capacityFilter, setCapacityFilter] = useState<number | 'ALL'>('ALL');
   const [storeFilter, setStoreFilter] = useState<string>('ALL');
   const [genderFilter, setGenderFilter] = useState<'ALL' | 'M' | 'F' | 'FAMILY'>('ALL');
+  const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
 
   const peopleMap = useMemo(() => {
     return new Map<string, Person>(people.map(p => [p.id, p]));
@@ -264,8 +267,63 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
               </button>
             </div>
 
-            {/* Right Dropdown Filters */}
+            {/* Right Dropdown Filters & View Mode Toggle */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* View Mode Toggle */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'var(--bg-muted)',
+                padding: 2,
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('LIST')}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '0.75rem',
+                    background: viewMode === 'LIST' ? 'var(--bg-card-solid)' : 'transparent',
+                    color: viewMode === 'LIST' ? 'var(--primary-600)' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    boxShadow: viewMode === 'LIST' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    fontWeight: viewMode === 'LIST' ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                  title="Xem dạng danh sách gọn"
+                >
+                  <LayoutList size={14} />
+                  Danh sách gọn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('GRID')}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '0.75rem',
+                    background: viewMode === 'GRID' ? 'var(--bg-card-solid)' : 'transparent',
+                    color: viewMode === 'GRID' ? 'var(--primary-600)' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    boxShadow: viewMode === 'GRID' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    fontWeight: viewMode === 'GRID' ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                  title="Xem dạng thẻ chi tiết"
+                >
+                  <LayoutGrid size={14} />
+                  Dạng thẻ
+                </button>
+              </div>
+
               {/* Capacity Filter */}
               <select
                 value={capacityFilter}
@@ -356,6 +414,163 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
               >
                 Đặt lại tất cả bộ lọc
               </button>
+            </div>
+          ) : viewMode === 'LIST' ? (
+            /* Dạng Danh Sách Gọn & Tiết Kiệm Không Gian */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {filteredRooms.map(room => {
+                const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+                const isMyRoom = currentEmployee && room.memberIds.includes(currentEmployee.id);
+                const hasMale = members.some(m => m.gender === 'M');
+                const hasFemale = members.some(m => m.gender === 'F');
+                const isFamilyMixed = hasMale && hasFemale;
+
+                return (
+                  <div
+                    key={room.id}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isMyRoom ? 'rgba(37, 99, 235, 0.05)' : 'var(--bg-card-solid)',
+                      border: isMyRoom ? '1.5px solid var(--primary-500)' : '1px solid var(--border-subtle)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    {/* Left: Thông tin phòng gọn gàng */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <span style={{
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: 'var(--text-main)',
+                        minWidth: 40
+                      }}>
+                        {room.code}
+                      </span>
+
+                      {isMyRoom && (
+                        <span className="badge badge-primary" style={{ fontSize: '0.66rem', padding: '1px 6px', fontWeight: 700 }}>
+                          Phòng bạn
+                        </span>
+                      )}
+
+                      <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
+                        {room.capacity} người
+                      </span>
+
+                      {room.status === 'FULL' ? (
+                        <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                          ✓ Đủ {room.usedSlots}/{room.capacity}
+                        </span>
+                      ) : (
+                        <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                          ⏳ Còn {room.capacity - room.usedSlots}
+                        </span>
+                      )}
+
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <Bed size={12} style={{ color: 'var(--primary-500)' }} />
+                        {room.bedType}
+                      </span>
+
+                      {isFamilyMixed ? (
+                        <span style={{ fontSize: '0.72rem', color: '#ea580c', fontWeight: 700 }}>Gia đình</span>
+                      ) : hasFemale ? (
+                        <span style={{ fontSize: '0.72rem', color: '#db2777', fontWeight: 600 }}>Nữ</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>Nam</span>
+                      )}
+                    </div>
+
+                    {/* Right: Thành viên trong phòng nằm ngang dạng chips */}
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 240, justifyContent: 'flex-start' }}>
+                      {members.map(member => {
+                        const isLeader = member.id === room.leaderId;
+                        const isCurrent = currentEmployee && member.id === currentEmployee.id;
+
+                        let roleLabel = member.type === 'EMPLOYEE' ? '' : (member.relation || 'Người thân');
+                        if (member.relation === 'SPOUSE') roleLabel = 'Vợ/Chồng';
+                        else if (member.relation === 'PARENT') roleLabel = 'Ba/Mẹ';
+                        else if (member.relation === 'CHILD_U5') roleLabel = 'Con <5t';
+                        else if (member.relation === 'CHILD_5_11') roleLabel = 'Con 5-11t';
+                        else if (member.relation === 'CHILD_12P') roleLabel = 'Con ≥12t';
+                        else if (member.type === 'PG') roleLabel = 'PG';
+
+                        return (
+                          <div
+                            key={member.id}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: isCurrent ? 'rgba(37, 99, 235, 0.12)' : 'var(--bg-muted)',
+                              border: isCurrent ? '1px solid var(--primary-500)' : '1px solid var(--border-subtle)',
+                              fontSize: '0.78rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={`${member.name} (${member.code}) - ${member.store}`}
+                          >
+                            <span style={{
+                              width: 15,
+                              height: 15,
+                              borderRadius: '50%',
+                              background: member.gender === 'M' ? '#2563eb' : '#db2777',
+                              color: '#fff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.58rem',
+                              fontWeight: 800,
+                              flexShrink: 0
+                            }}>
+                              {member.gender === 'M' ? 'N' : 'F'}
+                            </span>
+
+                            <strong style={{ color: isCurrent ? 'var(--primary-600)' : 'var(--text-main)', fontSize: '0.8rem' }}>
+                              {member.name}
+                            </strong>
+
+                            {isLeader && (
+                              <span title="Trưởng phòng" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                <Crown size={11} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                              </span>
+                            )}
+
+                            {roleLabel ? (
+                              <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0 4px', lineHeight: 1.3 }}>
+                                {roleLabel}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                {member.code}
+                              </span>
+                            )}
+
+                            {member.store && (
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)', maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                • {member.store.split('-')[0].trim()}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {room.capacity > room.usedSlots && (
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontStyle: 'italic', paddingLeft: 4 }}>
+                          +{room.capacity - room.usedSlots} chỗ trống
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div style={{
