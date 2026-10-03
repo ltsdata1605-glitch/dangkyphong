@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Trip } from '../types';
-import { Hotel, User, ShieldCheck, Sun, Moon, Calendar, ChevronDown, Clock, Lock } from 'lucide-react';
-import { formatRemainingTime } from '../utils/textUtils';
+import { Hotel, User, ShieldCheck, Sun, Moon, Calendar, ChevronDown } from 'lucide-react';
 
 interface NavbarProps {
   currentTrip?: Trip | null;
@@ -26,18 +25,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   loggedInEmployeeName,
   onLogoutEmployee
 }) => {
-  const [timeLeft, setTimeLeft] = useState(() => formatRemainingTime(currentTrip?.deadline || ''));
-
-  useEffect(() => {
-    setTimeLeft(formatRemainingTime(currentTrip?.deadline || ''));
-    const interval = setInterval(() => {
-      setTimeLeft(formatRemainingTime(currentTrip?.deadline || ''));
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [currentTrip?.deadline]);
-
-  const isLocked = currentTrip?.isLocked || timeLeft.isExpired;
-
   return (
     <header className="navbar-header" style={{
       position: 'sticky',
@@ -96,82 +83,46 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
 
-            {/* Trip Dropdown Selector & Countdown Deadline */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Calendar size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <select
-                    value={currentTrip?.id || ''}
-                    onChange={(e) => onSelectTrip(e.target.value)}
-                    className="navbar-trip-select"
-                    style={{
-                      appearance: 'none',
-                      background: 'transparent',
-                      border: 'none',
-                      fontFamily: 'var(--font-heading)',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      color: 'var(--text-main)',
-                      cursor: 'pointer',
-                      paddingRight: 16,
-                      outline: 'none',
-                      maxWidth: 'min(420px, 55vw)',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden'
-                    }}
-                    title="Chọn đợt / chuyến du lịch"
-                  >
-                    {trips.length === 0 ? (
-                      <option value="" disabled style={{ background: 'var(--bg-card-solid)', color: 'var(--text-muted)' }}>
-                        Chưa có chuyến đi
-                      </option>
-                    ) : (
-                      trips.map(t => (
-                        <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)', color: 'var(--text-main)' }}>
-                          {t.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <ChevronDown size={11} style={{ position: 'absolute', right: 1, top: 4, pointerEvents: 'none', color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-
-              {/* Hạn chót đăng ký - Nằm bên phải tên tour theo đúng yêu cầu */}
-              {currentTrip && (
-                <div
-                  className="navbar-deadline-box"
+            {/* Trip Dropdown Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+              <Calendar size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <select
+                  value={currentTrip?.id || ''}
+                  onChange={(e) => onSelectTrip(e.target.value)}
+                  className="navbar-trip-select"
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: isLocked ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.08)',
-                    border: isLocked ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(37, 99, 235, 0.25)',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap'
-                  }}
-                  title={currentTrip.isLocked ? 'BTC đã khóa đăng ký' : `Hạn chót đăng ký: ${currentTrip.deadline || 'Chưa thiết lập'}`}
-                >
-                  {isLocked ? (
-                    <Lock size={12} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
-                  ) : (
-                    <Clock size={12} style={{ color: 'var(--primary-500)', flexShrink: 0 }} />
-                  )}
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', textTransform: 'uppercase' }}>Hạn chót:</span>
-                  <strong style={{
-                    color: isLocked ? 'var(--color-danger)' : 'var(--primary-600)',
+                    appearance: 'none',
+                    background: 'transparent',
+                    border: 'none',
                     fontFamily: 'var(--font-heading)',
-                    fontWeight: 800
-                  }}>
-                    {currentTrip.isLocked ? 'Đã khóa' : timeLeft.text}
-                  </strong>
-                </div>
-              )}
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    paddingRight: 16,
+                    outline: 'none',
+                    maxWidth: 'min(450px, 65vw)',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden'
+                  }}
+                  title="Chọn đợt / chuyến du lịch"
+                >
+                  {trips.length === 0 ? (
+                    <option value="" disabled style={{ background: 'var(--bg-card-solid)', color: 'var(--text-muted)' }}>
+                      Chưa có chuyến đi
+                    </option>
+                  ) : (
+                    trips.map(t => (
+                      <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)', color: 'var(--text-main)' }}>
+                        {t.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <ChevronDown size={11} style={{ position: 'absolute', right: 1, top: 4, pointerEvents: 'none', color: 'var(--text-muted)' }} />
+              </div>
             </div>
           </div>
         </div>

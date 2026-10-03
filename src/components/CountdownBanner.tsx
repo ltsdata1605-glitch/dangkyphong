@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Trip, Room } from '../types';
-import { formatRemainingTime } from '../utils/textUtils';
-import { Clock, Lock, CheckCircle2, MapPin, Building2, CalendarDays, Bed } from 'lucide-react';
+import { formatRemainingTime, formatTourDates } from '../utils/textUtils';
+import { Clock, Lock, CheckCircle2, Building2, CalendarDays, Bed } from 'lucide-react';
 
 interface CountdownBannerProps {
   trip: Trip;
@@ -43,36 +43,81 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
         overflow: 'hidden'
       }}>
         {/* Trip Overview */}
-        <div style={{ flex: '1 1 auto', minWidth: 260 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <h2 className="countdown-trip-title">
-              {trip.name}
-            </h2>
-            {isLocked ? (
-              <span className="badge badge-danger" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                <Lock size={11} /> Đã khóa đăng ký
-              </span>
-            ) : (
-              <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                <CheckCircle2 size={11} /> Đang mở đăng ký
-              </span>
-            )}
+        <div style={{ flex: '1 1 auto', minWidth: 260, width: '100%' }}>
+          {/* Hàng 1: Tiêu đề Tour bên trái + Hạn chót đăng ký bên phải */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h2 className="countdown-trip-title">
+                {trip.name}
+              </h2>
+              {isLocked ? (
+                <span className="badge badge-danger" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                  <Lock size={11} /> Đã khóa đăng ký
+                </span>
+              ) : (
+                <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                  <CheckCircle2 size={11} /> Đang mở đăng ký
+                </span>
+              )}
+            </div>
+
+            {/* Hạn chót đăng ký - Nằm cùng dòng bên phải tên tour theo yêu cầu */}
+            <div
+              className="countdown-deadline-box"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '3px 10px',
+                borderRadius: 'var(--radius-sm)',
+                background: isLocked ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.08)',
+                border: isLocked ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(37, 99, 235, 0.25)',
+                whiteSpace: 'nowrap'
+              }}
+              title={trip.isLocked ? 'BTC đã khóa đăng ký' : `Hạn chót đăng ký: ${trip.deadline || 'Chưa thiết lập'}`}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: isLocked ? 'rgba(239, 68, 68, 0.15)' : 'rgba(37, 99, 235, 0.12)',
+                flexShrink: 0
+              }}>
+                {isLocked ? (
+                  <Lock size={13} style={{ color: 'var(--color-danger)' }} />
+                ) : (
+                  <Clock size={13} style={{ color: 'var(--primary-600)' }} />
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.2px' }}>
+                  Hạn chót đăng ký
+                </span>
+                <strong style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  color: isLocked ? 'var(--color-danger)' : 'var(--primary-600)'
+                }}>
+                  {trip.isLocked ? 'BTC đã khóa' : timeLeft.text}
+                </strong>
+              </div>
+            </div>
           </div>
 
-          <div className="countdown-trip-details">
+          {/* Hàng 2: Khách sạn và Ngày đi định dạng lại (đã loại bỏ địa chỉ cụ thể) */}
+          <div className="countdown-trip-details" style={{ marginTop: 4 }}>
             {trip.hotelName && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Building2 size={13} style={{ color: 'var(--primary-500)' }} /> {trip.hotelName}
               </span>
             )}
-            {trip.location && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={13} style={{ color: 'var(--color-danger)' }} /> {trip.location}
-              </span>
-            )}
             {trip.startDate && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <CalendarDays size={13} style={{ color: 'var(--color-warning)' }} /> {trip.startDate} - {trip.endDate}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                <CalendarDays size={13} style={{ color: 'var(--color-warning)' }} /> {formatTourDates(trip.startDate, trip.endDate)}
               </span>
             )}
           </div>

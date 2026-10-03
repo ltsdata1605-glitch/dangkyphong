@@ -73,3 +73,45 @@ export function formatRemainingTime(deadlineIso: string): { text: string; isExpi
 export function generateId(prefix = 'id'): string {
   return `${prefix}_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
 }
+
+/**
+ * Định dạng ngày tour: ví dụ 2026-10-06 - 2026-10-09 => Ngày 6 - 9/10/2026
+ */
+export function formatTourDates(startDate?: string, endDate?: string): string {
+  if (!startDate) return '';
+  if (!endDate || startDate === endDate) {
+    const sParts = startDate.split('-');
+    if (sParts.length === 3) {
+      return `Ngày ${parseInt(sParts[2], 10)}/${parseInt(sParts[1], 10)}/${sParts[0]}`;
+    }
+    return `Ngày ${startDate}`;
+  }
+
+  const sParts = startDate.split('-');
+  const eParts = endDate.split('-');
+
+  if (sParts.length === 3 && eParts.length === 3) {
+    const sYear = sParts[0];
+    const sMonth = parseInt(sParts[1], 10);
+    const sDay = parseInt(sParts[2], 10);
+
+    const eYear = eParts[0];
+    const eMonth = parseInt(eParts[1], 10);
+    const eDay = parseInt(eParts[2], 10);
+
+    // Cùng năm và cùng tháng: "Ngày 6 - 9/10/2026"
+    if (sYear === eYear && sMonth === eMonth) {
+      return `Ngày ${sDay} - ${eDay}/${sMonth}/${sYear}`;
+    }
+
+    // Cùng năm, khác tháng: "Ngày 28/9 - 2/10/2026"
+    if (sYear === eYear) {
+      return `Ngày ${sDay}/${sMonth} - ${eDay}/${eMonth}/${sYear}`;
+    }
+
+    // Khác năm: "Ngày 28/12/2025 - 2/1/2026"
+    return `Ngày ${sDay}/${sMonth}/${sYear} - ${eDay}/${eMonth}/${eYear}`;
+  }
+
+  return `Ngày ${startDate} - ${endDate}`;
+}
