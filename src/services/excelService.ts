@@ -579,8 +579,6 @@ export async function parseUploadedExcel(file: File): Promise<{
           if (matchingEmps.length === 1) {
             ownerId = matchingEmps[0].code;
             employeeGender = matchingEmps[0].gender;
-          } else if (matchingEmps.length > 1) {
-            warnings.push(`Dòng ${i + 2}: Người thân "${rawName}" tại "${rawStore}" có ${matchingEmps.length} nhân viên cùng siêu thị. Nhân viên có thể tự nhận hoặc Admin gán thủ công.`);
           }
         }
 

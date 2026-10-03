@@ -439,7 +439,16 @@ export const App: React.FC = () => {
       const existing = getPeople(tripId);
       const merged = [...existing];
       newPeople.forEach(np => {
-        if (!merged.some(p => p.code === np.code && p.name === np.name)) {
+        const idx = merged.findIndex(p => p.code === np.code && p.type === np.type);
+        if (idx >= 0) {
+          // Cập nhật thông tin mới nhất từ file Excel (giữ lại phòng và người nhận nếu đã có)
+          merged[idx] = {
+            ...np,
+            id: merged[idx].id,
+            roomId: merged[idx].roomId,
+            ownerId: merged[idx].ownerId || np.ownerId
+          };
+        } else {
           merged.push(np);
         }
       });
