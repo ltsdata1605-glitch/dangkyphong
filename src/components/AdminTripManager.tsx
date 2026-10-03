@@ -280,34 +280,40 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
 
                 {/* Dòng thông tin số người đã nhập chuyển xuống nằm dưới tiêu đề */}
                 {importInfo && (
-                  <div style={{ marginBottom: 14 }}>
-                    <span
-                      className="badge"
+                  <div style={{ marginBottom: 12, maxWidth: '100%' }}>
+                    <div
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
+                        flexWrap: 'wrap',
                         gap: 6,
-                        fontSize: '0.78rem',
+                        fontSize: '0.76rem',
                         background: 'rgba(16, 185, 129, 0.08)',
                         border: '1px solid rgba(16, 185, 129, 0.28)',
                         color: 'var(--text-main)',
-                        padding: '4px 10px',
-                        borderRadius: 6
+                        padding: '5px 10px',
+                        borderRadius: 6,
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        lineHeight: 1.45,
+                        wordBreak: 'break-word'
                       }}
                       title={`Thời gian nạp danh sách: ${formatImportTime(importInfo.importedAt)}`}
                     >
-                      <FileSpreadsheet size={13} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                      <span>
-                        Đã nhập: <strong style={{ color: 'var(--color-success)' }}>{importInfo.count.toLocaleString('vi-VN')} người</strong>
+                      <FileSpreadsheet size={14} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                      <div style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '3px 6px', maxWidth: '100%' }}>
+                        <span>
+                          Đã nhập: <strong style={{ color: 'var(--color-success)' }}>{importInfo.count.toLocaleString('vi-VN')} người</strong>
+                        </span>
                         {tripPeople.length > 0 && (
-                          <span style={{ color: 'var(--primary-600)', fontWeight: 600, marginLeft: 4 }}>
+                          <span style={{ color: 'var(--primary-600)', fontWeight: 600 }}>
                             ({empCount} Nhân viên, {relCount} Người thân{pgCount > 0 ? `, ${pgCount} PG` : ''})
                           </span>
                         )}
-                        <span style={{ margin: '0 5px', opacity: 0.4 }}>•</span>
+                        <span style={{ opacity: 0.4 }}>•</span>
                         <span style={{ color: 'var(--text-muted)' }}>Lúc {formatImportTime(importInfo.importedAt)}</span>
-                      </span>
-                    </span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
