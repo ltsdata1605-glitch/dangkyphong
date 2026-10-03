@@ -316,3 +316,29 @@ h1, h2, h3, h4, h5, h6 {
     min-height: 48px;
   }
 }
+
+/* Grid 4 Cột hiển thị người thân */
+.relative-claim-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 1280px) {
+  .relative-claim-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .relative-claim-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 580px) {
+  .relative-claim-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+

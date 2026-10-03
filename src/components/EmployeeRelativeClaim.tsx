@@ -70,25 +70,19 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
     setClaimingRelative(null);
   };
 
-  const getRelationBadge = (relation: RelationType | null, slot: number, type?: PersonType) => {
+  const getRelationBadge = (relation: RelationType | null, _slot?: number, type?: PersonType) => {
     let label = type === 'EMPLOYEE' ? 'Nhân viên' : 'Người thân';
-    let isChild = false;
 
     if (relation === 'SPOUSE') label = 'Vợ / Chồng';
     else if (relation === 'PARENT') label = 'Ba / Mẹ';
-    else if (relation === 'CHILD_U5') { label = 'Con < 5 tuổi'; isChild = true; }
-    else if (relation === 'CHILD_5_11') { label = 'Con 5–11 tuổi'; isChild = true; }
+    else if (relation === 'CHILD_U5') label = 'Con < 5 tuổi';
+    else if (relation === 'CHILD_5_11') label = 'Con 5–11 tuổi';
     else if (relation === 'CHILD_12P') label = 'Con ≥ 12 tuổi';
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: 4, flexShrink: 0 }}>
-        <span className={`badge ${type === 'EMPLOYEE' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
-          {label}
-        </span>
-        <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
-          {slot === 0 || isChild ? '0 suất' : '1 suất'}
-        </span>
-      </div>
+      <span className={`badge ${type === 'EMPLOYEE' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.66rem', padding: '1px 5px', lineHeight: 1.25, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {label}
+      </span>
     );
   };
 
@@ -283,13 +277,9 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
         )
       )}
 
-      {/* 2. Danh sách người thân cùng siêu thị (NẰM GỌN TRÊN 1 DÒNG DUY NHẤT) */}
+      {/* 2. Danh sách người thân cùng siêu thị (GRID 4 CỘT - 1 DÒNG 4 NGƯỜI) */}
       {hasStoreRelatives && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 8
-        }}>
+        <div className="relative-claim-grid-4">
           {unclaimedRelativesInStore.map(rel => (
             <div
               key={rel.id}
@@ -297,21 +287,21 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '5px 10px',
+                padding: '5px 8px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--bg-card-solid)',
                 border: '1px solid var(--border-subtle)',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                gap: 8,
+                gap: 6,
                 whiteSpace: 'nowrap',
-                minHeight: 36
+                minHeight: 34
               }}
             >
-              {/* Toàn bộ thông tin: Tên + Badge quan hệ + Suất nằm thẳng hàng trên 1 dòng duy nhất */}
+              {/* Tên + Badge quan hệ (không hiển thị suất) */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 minWidth: 0,
                 flex: 1,
                 overflow: 'hidden'
@@ -319,18 +309,18 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
                 <span
                   style={{
                     fontWeight: 700,
-                    fontSize: '0.84rem',
+                    fontSize: '0.82rem',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     color: 'var(--text-main)',
-                    maxWidth: 130
+                    maxWidth: 110
                   }}
                   title={rel.name}
                 >
                   {rel.name}
                 </span>
-                {getRelationBadge(rel.relation, rel.slot)}
+                {getRelationBadge(rel.relation, rel.slot, rel.type)}
               </div>
 
               <button
@@ -339,15 +329,15 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
                 className="btn btn-sm btn-primary"
                 style={{
                   fontSize: '0.74rem',
-                  padding: '3px 8px',
-                  height: 25,
+                  padding: '2px 7px',
+                  height: 24,
                   flexShrink: 0,
                   borderRadius: 'var(--radius-sm)',
                   gap: 3
                 }}
                 title="Xác nhận đây là người thân của tôi"
               >
-                <UserPlus size={12} />
+                <UserPlus size={11} />
                 Nhận
               </button>
             </div>
