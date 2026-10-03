@@ -29,6 +29,11 @@ export function validateRoom(
   const usedSlots = adults.length;
   const childCount = children.length;
 
+  // Giới hạn cứng: Mỗi phòng chỉ tối đa 6 người
+  if (members.length > 6 || usedSlots > 6) {
+    errors.push(`Số lượng người (${members.length}) vượt quá giới hạn tối đa 6 người/phòng.`);
+  }
+
   // R7: Tổng suất người lớn không vượt quá loại phòng đã chọn
   if (usedSlots > capacity) {
     errors.push(`Tổng số suất người lớn (${usedSlots}) vượt quá sức chứa phòng ${capacity} người.`);
@@ -144,9 +149,18 @@ export function canAddPersonToRoom(
     return { allowed: false, reason: 'Đã có trong phòng này' };
   }
 
+  // Giới hạn cứng: Mỗi phòng chỉ tối đa 6 người
+  if (currentMembers.length >= 6) {
+    return { allowed: false, reason: 'Phòng đã đủ tối đa 6 người' };
+  }
+
   // Giả lập thử thêm vào và kiểm tra
   const updatedMembers = [...currentMembers, targetPerson];
-  const validation = validateRoom(updatedMembers, capacity, 2, false);
+  const newAdultSlots = updatedMembers.filter(m => m.slot > 0).length;
+  // Sức chứa dự kiến tự động đổi nếu vượt quá sức chứa ban đầu, tối đa 6
+  const effectiveCapacity = Math.min(6, Math.max(capacity, newAdultSlots));
+
+  const validation = validateRoom(updatedMembers, effectiveCapacity, 2, false);
 
   if (!validation.valid) {
     return { allowed: false, reason: validation.errors[0] };

@@ -1,7 +1,8 @@
-import { Person, Room, Trip, AuditLog, RelationType, BedType } from '../types';
+import { Person, Room, RoomStatus, Trip, AuditLog, RelationType, BedType } from '../types';
 import seedPeople from '../data_sample.json';
 import { db } from './firebase';
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { validateRoom } from './roomingEngine';
 
 const STORAGE_KEYS = {
   TRIPS: 'rooming_trips_v1',
@@ -357,16 +358,78 @@ export function migrateRoomCodes(rooms: Room[]): { rooms: Room[], migrated: bool
   return { rooms, migrated: false };
 }
 
+/**
+ * Chuẩn hóa số lượng thành viên tối đa 6 người/phòng và tự động cập nhật loại phòng phù hợp nếu vượt quá ban đầu
+ */
+export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[]): { rooms: Room[], modified: boolean } {
+  if (!rooms || rooms.length === 0) return { rooms, modified: false };
+  let modified = false;
+  const people = getPeople(tripId);
+  const peopleMap = new Map(people.map(p => [p.id, p]));
+
+  const updatedRooms = rooms.map(room => {
+    let roomModified = false;
+    let memberIds = [...room.memberIds];
+
+    // 1. Giới hạn tối đa 6 người/phòng: Nếu vượt quá 6 người, tách các thành viên dư ra ngoài
+    if (memberIds.length > 6) {
+      const extraMemberIds = memberIds.slice(6);
+      memberIds = memberIds.slice(0, 6);
+      extraMemberIds.forEach(mId => {
+        const p = peopleMap.get(mId) || people.find(item => item.code === mId);
+        if (p) {
+          p.roomId = null;
+        }
+      });
+      roomModified = true;
+      modified = true;
+    }
+
+    // 2. Tự động đổi loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6)
+    const members = memberIds.map(mId => peopleMap.get(mId) || people.find(item => item.code === mId)).filter(Boolean) as Person[];
+    const adultSlots = members.filter(m => m.slot > 0).length;
+    let capacity = room.capacity;
+    if (adultSlots > capacity) {
+      capacity = Math.min(6, adultSlots);
+      roomModified = true;
+      modified = true;
+    }
+
+    if (roomModified) {
+      const validation = validateRoom(members, capacity, 2, room.adminOverride);
+      return {
+        ...room,
+        memberIds,
+        capacity,
+        usedSlots: validation.usedSlots,
+        childCount: validation.childCount,
+        status: (validation.usedSlots === capacity ? 'FULL' : (validation.usedSlots < capacity ? 'UNDER' : 'WARNING')) as RoomStatus,
+        bedType: validation.bedType,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    return room;
+  });
+
+  if (modified) {
+    savePeople(tripId, people);
+  }
+
+  return { rooms: updatedRooms, modified };
+}
+
 export function getRooms(tripId: string): Room[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`);
     const rooms: Room[] = raw ? JSON.parse(raw) : [];
-    const { rooms: normalized, migrated } = migrateRoomCodes(rooms);
-    if (migrated) {
-      localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(normalized));
-      syncRoomsToFirebase(tripId, normalized);
+    const { rooms: normalizedCodes, migrated: migratedCodes } = migrateRoomCodes(rooms);
+    const { rooms: finalRooms, modified: modifiedLimits } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes);
+    if (migratedCodes || modifiedLimits) {
+      localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
+      syncRoomsToFirebase(tripId, finalRooms);
     }
-    return normalized;
+    return finalRooms;
   } catch {
     return [];
   }

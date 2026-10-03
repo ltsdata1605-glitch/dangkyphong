@@ -334,14 +334,24 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <button
                     onClick={() => {
+                      if (room.memberIds.length >= 6) {
+                        alert('Phòng này đã đạt tối đa 6 người/phòng, không thể thêm tiếp!');
+                        return;
+                      }
                       setAddingToRoom(room);
                       setPersonSearch('');
                     }}
+                    disabled={room.memberIds.length >= 6}
                     className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.74rem', padding: '3px 8px' }}
-                    title="Thêm thành viên vào phòng"
+                    style={{
+                      fontSize: '0.74rem',
+                      padding: '3px 8px',
+                      opacity: room.memberIds.length >= 6 ? 0.45 : 1,
+                      cursor: room.memberIds.length >= 6 ? 'not-allowed' : 'pointer'
+                    }}
+                    title={room.memberIds.length >= 6 ? 'Phòng đã đủ tối đa 6 người' : 'Thêm thành viên vào phòng (Tự động đổi loại phòng nếu vượt sức chứa)'}
                   >
-                    <UserPlus size={12} /> Thêm
+                    <UserPlus size={12} /> {room.memberIds.length >= 6 ? 'Đủ 6ng' : 'Thêm'}
                   </button>
                   <button
                     onClick={() => handleOpenOverride(room)}
@@ -496,13 +506,24 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                   </span>
                   <button
                     onClick={() => {
+                      if (room.memberIds.length >= 6) {
+                        alert('Phòng này đã đạt tối đa 6 người/phòng, không thể thêm tiếp!');
+                        return;
+                      }
                       setAddingToRoom(room);
                       setPersonSearch('');
                     }}
+                    disabled={room.memberIds.length >= 6}
                     className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.78rem', padding: '4px 8px' }}
+                    style={{
+                      fontSize: '0.78rem',
+                      padding: '4px 8px',
+                      opacity: room.memberIds.length >= 6 ? 0.45 : 1,
+                      cursor: room.memberIds.length >= 6 ? 'not-allowed' : 'pointer'
+                    }}
+                    title={room.memberIds.length >= 6 ? 'Phòng đã đủ tối đa 6 người' : 'Thêm thành viên vào phòng (Tự động đổi loại phòng nếu vượt sức chứa)'}
                   >
-                    <UserPlus size={13} /> Thêm người
+                    <UserPlus size={13} /> {room.memberIds.length >= 6 ? 'Đủ 6 người' : 'Thêm người'}
                   </button>
                 </div>
               </div>
@@ -514,11 +535,21 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
       {/* Modal Thêm người vào phòng */}
       {addingToRoom && (
         <div className="modal-overlay" onClick={() => setAddingToRoom(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
-                Thêm Thành Viên Vào {addingToRoom.code}
-              </h3>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                  Thêm Thành Viên Vào {addingToRoom.code}
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Hiện có: <strong>{addingToRoom.memberIds.length}/6 người</strong> • Loại phòng: <strong>{addingToRoom.capacity} người</strong>
+                  {addingToRoom.memberIds.length >= addingToRoom.capacity && addingToRoom.memberIds.length < 6 && (
+                    <span style={{ color: 'var(--primary-600)', fontWeight: 600, marginLeft: 6 }}>
+                      (Tự động đổi sang phòng {Math.min(6, addingToRoom.memberIds.length + 1)} người)
+                    </span>
+                  )}
+                </p>
+              </div>
               <button onClick={() => setAddingToRoom(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>✕</button>
             </div>
 
@@ -564,9 +595,14 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                       </div>
                       <button
                         onClick={() => {
+                          if (addingToRoom.memberIds.length >= 6) {
+                            alert('Phòng đã đạt tối đa 6 người, không thể thêm tiếp.');
+                            return;
+                          }
                           onAddMember(addingToRoom.id, p.id);
                           setAddingToRoom(null);
                         }}
+                        disabled={addingToRoom.memberIds.length >= 6}
                         className="btn btn-primary btn-sm"
                         style={{ fontSize: '0.78rem', padding: '5px 10px' }}
                       >

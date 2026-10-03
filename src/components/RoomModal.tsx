@@ -140,7 +140,20 @@ export const RoomModal: React.FC<RoomModalProps> = ({
 
   // Thêm một thành viên vào phòng
   const handleAddMember = (person: Person) => {
-    setSelectedMemberIds(prev => [...prev, person.id]);
+    if (selectedMemberIds.length >= 6) {
+      alert('Một phòng chỉ được tối đa 6 người. Không thể thêm tiếp!');
+      return;
+    }
+
+    const nextMemberIds = [...selectedMemberIds, person.id];
+    setSelectedMemberIds(nextMemberIds);
+
+    // Tự động nâng loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6 người)
+    const nextMembers = nextMemberIds.map(id => allPeople.find(p => p.id === id)!).filter(Boolean);
+    const nextAdults = nextMembers.filter(m => m.slot > 0).length;
+    if (nextAdults > capacity) {
+      setCapacity(Math.min(6, nextAdults));
+    }
   };
 
   // Xóa một thành viên ra khỏi phòng (không cho xóa bản thân nếu là người tạo)

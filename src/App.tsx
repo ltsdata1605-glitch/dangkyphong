@@ -517,16 +517,31 @@ export const App: React.FC = () => {
 
     if (!room || !person) return;
 
-    room.memberIds.push(person.id);
+    if (room.memberIds.length >= 6) {
+      alert('Phòng đã đạt giới hạn tối đa 6 người/phòng. Không thể thêm tiếp!');
+      return;
+    }
+
+    if (!room.memberIds.includes(person.id)) {
+      room.memberIds.push(person.id);
+    }
     person.roomId = room.id;
 
+    // Tự động nâng loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6 người)
     const members = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
+    const adultSlots = members.filter(m => m.slot > 0).length;
+    if (adultSlots > room.capacity) {
+      room.capacity = Math.min(6, adultSlots);
+    }
+
     const validation = validateRoom(members, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride);
 
     room.usedSlots = validation.usedSlots;
     room.childCount = validation.childCount;
     room.status = validation.usedSlots === room.capacity ? 'FULL' : 'UNDER';
     room.bedType = validation.bedType;
+    room.updatedAt = new Date().toISOString();
+    room.updatedBy = 'Admin BTC';
 
     saveRooms(currentTrip.id, currentRooms);
     savePeople(currentTrip.id, currentPeople);
@@ -551,7 +566,14 @@ export const App: React.FC = () => {
     const currentRooms = getRooms(currentTrip.id);
     const members = memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
 
-    const validation = validateRoom(members, capacity, currentTrip.maxChildrenPerRoom, true);
+    // Tự động nâng loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6)
+    const adultSlots = members.filter(m => m.slot > 0).length;
+    let actualCapacity = capacity;
+    if (adultSlots > actualCapacity) {
+      actualCapacity = Math.min(6, adultSlots);
+    }
+
+    const validation = validateRoom(members, actualCapacity, currentTrip.maxChildrenPerRoom, true);
     if (!validation.valid) {
       alert(validation.errors.join('\n'));
       return;
@@ -569,11 +591,11 @@ export const App: React.FC = () => {
             p.roomId = null;
           }
         });
-        existing.capacity = capacity;
+        existing.capacity = actualCapacity;
         existing.memberIds = memberIds;
         existing.usedSlots = validation.usedSlots;
         existing.childCount = validation.childCount;
-        existing.status = validation.usedSlots === capacity ? 'FULL' : 'UNDER';
+        existing.status = validation.usedSlots === actualCapacity ? 'FULL' : 'UNDER';
         existing.bedType = validation.bedType;
         existing.updatedAt = new Date().toISOString();
         existing.updatedBy = 'Admin BTC';
@@ -593,12 +615,12 @@ export const App: React.FC = () => {
         id: roomId,
         tripId: currentTrip.id,
         code: roomCode,
-        capacity,
+        capacity: actualCapacity,
         leaderId: memberIds[0] || 'admin',
         memberIds,
         usedSlots: validation.usedSlots,
         childCount: validation.childCount,
-        status: validation.usedSlots === capacity ? 'FULL' : 'UNDER',
+        status: validation.usedSlots === actualCapacity ? 'FULL' : 'UNDER',
         bedType: validation.bedType,
         adminOverride: false,
         createdAt: new Date().toISOString(),
