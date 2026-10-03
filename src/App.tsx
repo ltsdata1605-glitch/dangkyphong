@@ -817,13 +817,13 @@ export const App: React.FC = () => {
             trip={currentTrip}
             totalRoomsCount={rooms.length}
             rooms={rooms}
-            onOpenAllRooms={() => {
+            onOpenAllRooms={(activeRole === 'ADMIN' || !!currentEmployee) ? () => {
               if (activeRole === 'ADMIN') {
                 setAdminTab('rooms');
               } else {
                 setEmployeeTab('all_rooms');
               }
-            }}
+            } : undefined}
           />
         )}
 
