@@ -428,7 +428,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
             Bạn chưa đăng ký người thân nào đi cùng chuyến du lịch này.
           </p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
             {myRelatives.map(rel => {
               const relRoom = allRooms.find(r => r.id === rel.roomId);
 
@@ -436,58 +436,70 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 <div
                   key={rel.id}
                   style={{
-                    padding: '7px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '5px 10px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-muted)',
-                    border: '1px solid var(--border-subtle)'
+                    border: '1px solid var(--border-subtle)',
+                    gap: 8,
+                    whiteSpace: 'nowrap',
+                    minHeight: 36
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: '0.84rem', lineHeight: 1.25 }}>
-                    {rel.name}
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span>{rel.relation || 'Người thân'}</span>
-                    <span>•</span>
-                    <span>{rel.gender === 'M' ? 'Nam' : 'Nữ'}</span>
-                    <span>•</span>
-                    <span>{rel.slot === 0 ? '0 suất' : '1 suất'}</span>
-                  </div>
-                  <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    minWidth: 0,
+                    flex: 1,
+                    overflow: 'hidden'
+                  }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }} title={rel.name}>
+                      {rel.name}
+                    </span>
+                    <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25 }}>
+                      {rel.relation === 'SPOUSE' ? 'Vợ/Chồng' : (rel.relation || 'Người thân')}
+                    </span>
+                    <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25 }}>
+                      {rel.slot === 0 ? '0s' : '1s'}
+                    </span>
                     {relRoom ? (
                       <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
                         Ở {relRoom.code}
                       </span>
                     ) : (
                       <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
-                        Chưa có phòng
+                        Chưa phòng
                       </span>
                     )}
-
-                    {onUnclaimRelative && (
-                      <button
-                        type="button"
-                        onClick={() => setUnclaimingRelative(rel)}
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.08)',
-                          border: '1px solid rgba(239, 68, 68, 0.25)',
-                          color: 'var(--color-danger)',
-                          cursor: 'pointer',
-                          padding: '2px 7px',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.72rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          fontWeight: 600,
-                          transition: 'all 0.15s ease'
-                        }}
-                        title="Hủy nhận người thân này"
-                      >
-                        <Trash2 size={11} />
-                        Hủy nhận
-                      </button>
-                    )}
                   </div>
+
+                  {onUnclaimRelative && (
+                    <button
+                      type="button"
+                      onClick={() => setUnclaimingRelative(rel)}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        color: 'var(--color-danger)',
+                        cursor: 'pointer',
+                        padding: '2px 7px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.72rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontWeight: 600,
+                        flexShrink: 0
+                      }}
+                      title="Hủy nhận người thân này"
+                    >
+                      <Trash2 size={11} />
+                      Hủy
+                    </button>
+                  )}
                 </div>
               );
             })}

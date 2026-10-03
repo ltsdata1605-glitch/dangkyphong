@@ -1,5 +1,5 @@
-import React from 'react';
-import { HeartHandshake, PlusCircle, Users, Info, Sparkles, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { HeartHandshake, PlusCircle, Users, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface RoomingProcessGuideProps {
   onOpenCreateRoom?: () => void;
@@ -10,177 +10,133 @@ export const RoomingProcessGuide: React.FC<RoomingProcessGuideProps> = ({
   onOpenCreateRoom,
   hasRoom = false
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <div style={{
-      marginBottom: 20,
-      padding: '20px 24px',
-      borderRadius: 'var(--radius-lg)',
-      background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(245, 158, 11, 0.05) 100%)',
-      border: '1px solid rgba(37, 99, 235, 0.18)',
-      boxShadow: 'var(--shadow-sm)'
+      marginBottom: 14,
+      borderRadius: 'var(--radius-md)',
+      background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%)',
+      border: '1px solid rgba(37, 99, 235, 0.2)',
+      boxShadow: 'var(--shadow-sm)',
+      overflow: 'hidden'
     }}>
-      {/* Title */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: 'var(--primary-gradient)',
+      {/* Thanh Tóm Tắt Siêu Gọn (1 Dòng) */}
+      <div style={{
+        padding: '7px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8,
+        fontSize: '0.82rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+          <span className="badge badge-primary" style={{ fontSize: '0.72rem', padding: '2px 8px', fontWeight: 700, flexShrink: 0 }}>
+            3 Bước Đăng Ký
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', color: 'var(--text-main)', fontSize: '0.82rem' }}>
+            <span><strong>1.</strong> Nhận người thân</span>
+            <span style={{ color: 'var(--primary-600)', fontWeight: 800 }}>→</span>
+            <span><strong>2.</strong> Tự tạo phòng 2 người</span>
+            <span style={{ color: 'var(--primary-600)', fontWeight: 800 }}>→</span>
+            <span><strong>3.</strong> Ghép thêm người</span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: '0.74rem',
+              color: '#b45309',
+              background: 'rgba(245, 158, 11, 0.15)',
+              padding: '1px 7px',
+              borderRadius: 4,
+              marginLeft: 4,
+              fontWeight: 600
+            }}>
+              📌 Bé &lt; 11t: 0 suất (ở cùng)
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--primary-600)',
+            cursor: 'pointer',
+            fontSize: '0.75rem',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff'
+            gap: 3,
+            padding: '2px 6px',
+            fontWeight: 600,
+            flexShrink: 0
+          }}
+        >
+          {isExpanded ? (
+            <>Thu gọn <ChevronUp size={14} /></>
+          ) : (
+            <>Xem chi tiết <ChevronDown size={14} /></>
+          )}
+        </button>
+      </div>
+
+      {/* Chi tiết 3 bước (Chỉ hiển thị khi bấm Xem chi tiết) */}
+      {isExpanded && (
+        <div style={{
+          padding: '12px 14px 14px 14px',
+          borderTop: '1px solid rgba(37, 99, 235, 0.12)',
+          background: 'rgba(255, 255, 255, 0.6)'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+            gap: 10,
+            marginBottom: 10
           }}>
-            <Sparkles size={18} />
+            {/* Step 1 */}
+            <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-card-solid)', border: '1px solid rgba(245, 158, 11, 0.25)', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4, color: 'var(--text-main)' }}>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#f59e0b', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>1</span>
+                <HeartHandshake size={14} style={{ color: '#f59e0b' }} />
+                Chọn Người Thân
+              </div>
+              <div style={{ color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                Bấm <strong>"Nhận"</strong> → Chọn mối quan hệ (Vợ/Chồng, Con, Ba/Mẹ...).
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-card-solid)', border: '1px solid rgba(37, 99, 235, 0.25)', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4, color: 'var(--text-main)' }}>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--primary-500)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>2</span>
+                <PlusCircle size={14} style={{ color: 'var(--primary-500)' }} />
+                Tự Động Tạo Phòng
+              </div>
+              <div style={{ color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                Hệ thống <strong>tự động tạo ngay phòng 2 người</strong> với người thân.
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-card-solid)', border: '1px solid rgba(16, 185, 129, 0.25)', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4, color: 'var(--text-main)' }}>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--color-success)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>3</span>
+                <Users size={14} style={{ color: 'var(--color-success)' }} />
+                Ghép Thêm Người Ở Cùng
+              </div>
+              <div style={{ color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                Nếu đi theo nhóm cần phòng lớn hơn (3–6 người), bấm <strong>"Sửa Phòng"</strong> để thêm đồng nghiệp.
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
-              Hướng Dẫn Đăng Ký Phòng (3 Bước Đơn Giản)
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Quy trình chuẩn giúp bạn tự xếp phòng và ghép người thân nhanh chóng
-            </p>
+
+          <div style={{ fontSize: '0.76rem', color: '#b45309', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 10px', borderRadius: 'var(--radius-sm)' }}>
+            📌 <strong>Ghi chú quan trọng:</strong> Bé &lt; 11 tuổi (dưới 5 tuổi hoặc 5–11 tuổi) ở cùng người thân, <strong>không tính vào số lượng người trong phòng</strong> (0 suất).
           </div>
         </div>
-
-        <span className="badge badge-primary" style={{ fontSize: '0.72rem', padding: '4px 10px' }}>
-          3 Bước Tự Đăng Ký
-        </span>
-      </div>
-
-      {/* 3 Step Cards Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: 12,
-        marginBottom: 16
-      }}>
-        {/* Step 1 */}
-        <div style={{
-          padding: '14px 16px',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-card-solid)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: '#f59e0b',
-              color: '#fff',
-              fontSize: '0.8rem',
-              fontWeight: 800
-            }}>
-              1
-            </span>
-            <HeartHandshake size={18} style={{ color: '#f59e0b' }} />
-            <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>
-              Chọn Người Thân
-            </strong>
-          </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            Bấm <strong>"Nhận"</strong> người thân của bạn (cùng siêu thị hoặc nhập tìm ở siêu thị khác) $\to$ <strong>Chọn mối quan hệ</strong> khi thêm (Vợ/Chồng, Con, Ba/Mẹ...).
-          </div>
-        </div>
-
-        {/* Step 2 */}
-        <div style={{
-          padding: '14px 16px',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-card-solid)',
-          border: '1px solid rgba(37, 99, 235, 0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: 'var(--primary-500)',
-              color: '#fff',
-              fontSize: '0.8rem',
-              fontWeight: 800
-            }}>
-              2
-            </span>
-            <PlusCircle size={18} style={{ color: 'var(--primary-500)' }} />
-            <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>
-              Tự Động Tạo Phòng
-            </strong>
-          </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            Khi nhận người thân, hệ thống sẽ <strong>tự động tạo ngay phòng 2 người</strong> với người thân (hoặc bấm <em>"Tạo Phòng Mới"</em> nếu ở cùng đồng nghiệp).
-          </div>
-        </div>
-
-        {/* Step 3 */}
-        <div style={{
-          padding: '14px 16px',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-card-solid)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: 'var(--color-success)',
-              color: '#fff',
-              fontSize: '0.8rem',
-              fontWeight: 800
-            }}>
-              3
-            </span>
-            <Users size={18} style={{ color: 'var(--color-success)' }} />
-            <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>
-              Ghép Thêm Người Ở Cùng
-            </strong>
-          </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            Phòng đã có bạn và người thân. Nếu đi theo nhóm cần phòng lớn hơn (3–6 người), bạn có thể bấm <strong>"Sửa Phòng"</strong> để chọn thêm đồng nghiệp.
-          </div>
-        </div>
-      </div>
-
-      {/* Crucial Note Box Requested by User */}
-      <div style={{
-        padding: '12px 16px',
-        borderRadius: 'var(--radius-md)',
-        background: 'rgba(245, 158, 11, 0.12)',
-        border: '1px solid rgba(245, 158, 11, 0.35)',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10
-      }}>
-        <Info size={18} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-          <strong style={{ color: '#b45309' }}>📌 Ghi chú quan trọng:</strong>{' '}
-          <strong>Nếu bé &lt; 11 tuổi</strong> (Con dưới 5 tuổi hoặc Con 5–11 tuổi) sẽ <strong>không tính vào số lượng người trong phòng</strong> (ngủ cùng người thân/bố mẹ).
-        </div>
-      </div>
+      )}
     </div>
   );
 };
