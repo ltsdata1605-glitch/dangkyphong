@@ -197,14 +197,14 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 }}
               >
                 {/* 1. Header Dòng: Tên chuyến đi, Badges & Các nút hành động */}
+                {/* 1. Header: Tiêu đề tour & Các nút chức năng trên cùng 1 hàng */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: 12,
-                  borderBottom: '1px solid var(--border-subtle)',
-                  paddingBottom: 14
+                  marginBottom: importInfo ? 10 : 14
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                     <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
@@ -226,40 +226,9 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                         Đang mở đăng ký
                       </span>
                     )}
-
-                    {/* Hiển thị thời gian nhập và chi tiết số người đã nhập (nhân viên, người thân) */}
-                    {importInfo && (
-                      <span
-                        className="badge"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: '0.78rem',
-                          background: 'rgba(16, 185, 129, 0.08)',
-                          border: '1px solid rgba(16, 185, 129, 0.28)',
-                          color: 'var(--text-main)',
-                          padding: '4px 10px',
-                          borderRadius: 6
-                        }}
-                        title={`Thời gian nạp danh sách: ${formatImportTime(importInfo.importedAt)}`}
-                      >
-                        <FileSpreadsheet size={13} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                        <span>
-                          Đã nhập: <strong style={{ color: 'var(--color-success)' }}>{importInfo.count.toLocaleString('vi-VN')} người</strong>
-                          {tripPeople.length > 0 && (
-                            <span style={{ color: 'var(--primary-600)', fontWeight: 600, marginLeft: 4 }}>
-                              ({empCount} Nhân viên, {relCount} Người thân{pgCount > 0 ? `, ${pgCount} PG` : ''})
-                            </span>
-                          )}
-                          <span style={{ margin: '0 5px', opacity: 0.4 }}>•</span>
-                          <span style={{ color: 'var(--text-muted)' }}>Lúc {formatImportTime(importInfo.importedAt)}</span>
-                        </span>
-                      </span>
-                    )}
                   </div>
 
-                  {/* Actions buttons */}
+                  {/* Actions buttons nằm cùng hàng với tiêu đề tour */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {!isActive && (
                       <button
@@ -308,6 +277,39 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Dòng thông tin số người đã nhập chuyển xuống nằm dưới tiêu đề */}
+                {importInfo && (
+                  <div style={{ marginBottom: 14 }}>
+                    <span
+                      className="badge"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: '0.78rem',
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.28)',
+                        color: 'var(--text-main)',
+                        padding: '4px 10px',
+                        borderRadius: 6
+                      }}
+                      title={`Thời gian nạp danh sách: ${formatImportTime(importInfo.importedAt)}`}
+                    >
+                      <FileSpreadsheet size={13} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                      <span>
+                        Đã nhập: <strong style={{ color: 'var(--color-success)' }}>{importInfo.count.toLocaleString('vi-VN')} người</strong>
+                        {tripPeople.length > 0 && (
+                          <span style={{ color: 'var(--primary-600)', fontWeight: 600, marginLeft: 4 }}>
+                            ({empCount} Nhân viên, {relCount} Người thân{pgCount > 0 ? `, ${pgCount} PG` : ''})
+                          </span>
+                        )}
+                        <span style={{ margin: '0 5px', opacity: 0.4 }}>•</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Lúc {formatImportTime(importInfo.importedAt)}</span>
+                      </span>
+                    </span>
+                  </div>
+                )}
 
                 {/* 2. Thông tin chi tiết chuyến đi (Dạng dòng ngang rộng rãi, không bị tràn) */}
                 <div style={{
