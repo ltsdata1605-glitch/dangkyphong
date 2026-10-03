@@ -1,6 +1,6 @@
 import { Person, Room, RoomStatus, Trip, AuditLog, RelationType, BedType } from '../types';
 import { db } from './firebase';
-import { doc, setDoc, deleteDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { validateRoom } from './roomingEngine';
 
 const STORAGE_KEYS = {
@@ -158,12 +158,42 @@ export function setupFirestoreListeners(tripId: string): void {
 }
 
 /**
- * Đẩy dữ liệu nhân sự lên Firebase
+ * Đẩy dữ liệu nhân sự lên Firebase (merge an toàn với Firestore để tránh ghi đè dữ liệu người khác)
  */
 export async function syncPeopleToFirebase(tripId: string, people: Person[]): Promise<void> {
   try {
-    await setDoc(doc(db, 'trips', tripId, 'data', 'people'), {
-      people,
+    const peopleDocRef = doc(db, 'trips', tripId, 'data', 'people');
+    let finalPeople = people;
+    try {
+      const snap = await getDoc(peopleDocRef);
+      if (snap.exists()) {
+        const remoteData = snap.data();
+        if (remoteData && Array.isArray(remoteData.people)) {
+          const peopleMap = new Map<string, Person>();
+          remoteData.people.forEach((p: Person) => peopleMap.set(p.id, p));
+          people.forEach(p => {
+            const remote = peopleMap.get(p.id);
+            if (remote) {
+              peopleMap.set(p.id, {
+                ...remote,
+                ...p,
+                ownerId: p.ownerId !== undefined ? p.ownerId : remote.ownerId,
+                relation: p.relation !== undefined ? p.relation : remote.relation,
+                roomId: p.roomId !== undefined ? p.roomId : remote.roomId
+              });
+            } else {
+              peopleMap.set(p.id, p);
+            }
+          });
+          finalPeople = Array.from(peopleMap.values());
+        }
+      }
+    } catch (e) {
+      console.warn('[Firebase] Lỗi đọc people trước khi merge:', e);
+    }
+
+    await setDoc(peopleDocRef, {
+      people: finalPeople,
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -172,12 +202,43 @@ export async function syncPeopleToFirebase(tripId: string, people: Person[]): Pr
 }
 
 /**
- * Đẩy dữ liệu phòng lên Firebase
+ * Đẩy dữ liệu phòng lên Firebase (merge an toàn với Firestore)
  */
-export async function syncRoomsToFirebase(tripId: string, rooms: Room[]): Promise<void> {
+export async function syncRoomsToFirebase(tripId: string, rooms: Room[], isExplicitDeletion = false): Promise<void> {
   try {
-    await setDoc(doc(db, 'trips', tripId, 'data', 'rooms'), {
-      rooms,
+    const roomDocRef = doc(db, 'trips', tripId, 'data', 'rooms');
+    let finalRooms = rooms;
+
+    if (!isExplicitDeletion) {
+      try {
+        const snap = await getDoc(roomDocRef);
+        if (snap.exists()) {
+          const remoteData = snap.data();
+          if (remoteData && Array.isArray(remoteData.rooms)) {
+            const roomMap = new Map<string, Room>();
+            remoteData.rooms.forEach((r: Room) => roomMap.set(r.id, r));
+            rooms.forEach(r => roomMap.set(r.id, r));
+            finalRooms = Array.from(roomMap.values());
+          }
+        }
+      } catch (e) {
+        console.warn('[Firebase] Lỗi đọc rooms trước khi merge:', e);
+      }
+    }
+
+    // Đảm bảo không trùng mã phòng và chuẩn hóa số phòng P.1, P.2, P.3...
+    const usedCodes = new Set<string>();
+    finalRooms.forEach((r, idx) => {
+      if (!r.code || usedCodes.has(r.code)) {
+        let n = idx + 1;
+        while (usedCodes.has(`P.${n}`)) n++;
+        r.code = `P.${n}`;
+      }
+      usedCodes.add(r.code);
+    });
+
+    await setDoc(roomDocRef, {
+      rooms: finalRooms,
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -377,83 +438,83 @@ export function migrateRoomCodes(rooms: Room[]): { rooms: Room[], migrated: bool
 
 /**
  * Tự động hàn gắn và đồng bộ 2 chiều giữa Rooms và People:
- * - Nếu person.roomId trỏ tới phòng không tồn tại hoặc phòng không chứa người này -> person.roomId = null
- * - Nếu room.memberIds chứa người mà người đó có person.roomId !== room.id hoặc null -> gỡ khỏi memberIds
- * - Nếu phòng không còn ai hoặc không còn nhân viên -> giải tán phòng
+ * - Phòng (rooms) là nguồn dữ liệu chuẩn về việc ai ở phòng nào (memberIds).
+ * - Tự động cập nhật person.roomId cho các thành viên trong phòng.
+ * - Chỉ gỡ thành viên nếu thành viên đó không tồn tại trong danh sách people.
+ * - Tuyệt đối KHÔNG xóa phòng nếu phòng vẫn còn thành viên hợp lệ.
  */
 export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: Person[]): { rooms: Room[], people: Person[], modified: boolean } {
   let modified = false;
+  if (!rooms) rooms = [];
+  if (!people) people = [];
+
   const peopleMap = new Map<string, Person>();
   people.forEach(p => {
     peopleMap.set(p.id, p);
     peopleMap.set(p.code, p);
   });
 
-  const validRoomIds = new Set(rooms.map(r => r.id));
-
-  // 1. Chuẩn hóa People: Nếu roomId trỏ tới phòng không có hoặc phòng không chứa người này
-  people.forEach(p => {
-    if (p.roomId) {
-      if (!validRoomIds.has(p.roomId)) {
-        p.roomId = null;
-        modified = true;
-      } else {
-        const room = rooms.find(r => r.id === p.roomId);
-        if (room && !room.memberIds.includes(p.id) && !room.memberIds.includes(p.code)) {
-          p.roomId = null;
-          modified = true;
-        }
-      }
-    }
-  });
-
-  // 2. Chuẩn hóa Rooms: Loại bỏ các thành viên đã rời khỏi phòng (p.roomId === null hoặc khác room.id)
   const updatedRooms: Room[] = [];
+  const assignedPersonIds = new Set<string>();
+
+  // 1. Duyệt qua tất cả các phòng hiện có:
   rooms.forEach(room => {
-    const originalCount = room.memberIds.length;
-    const cleanMemberIds = room.memberIds.filter(mId => {
+    // Lấy danh sách thành viên thực tế có trong danh sách nhân sự
+    const validMembers: Person[] = [];
+    room.memberIds.forEach(mId => {
       const p = peopleMap.get(mId);
-      if (!p) return false;
-      // Thành viên phải có p.roomId trỏ chính xác vào phòng này!
-      if (!p.roomId || p.roomId !== room.id) return false;
-      return true;
+      if (p && !validMembers.some(vm => vm.id === p.id)) {
+        validMembers.push(p);
+      }
     });
 
-    if (cleanMemberIds.length !== originalCount) {
+    // Nếu phòng hoàn toàn không có thành viên nào -> bỏ qua phòng trống này
+    if (validMembers.length === 0) {
+      modified = true;
+      return;
+    }
+
+    const cleanMemberIds = validMembers.map(m => m.id);
+    cleanMemberIds.forEach(id => assignedPersonIds.add(id));
+
+    // Đảm bảo tất cả thành viên trong phòng có roomId trỏ đúng về phòng này
+    validMembers.forEach(p => {
+      if (p.roomId !== room.id) {
+        p.roomId = room.id;
+        modified = true;
+      }
+    });
+
+    const usedSlots = validMembers.reduce((sum, m) => sum + (m.slot ?? 1), 0);
+    const childCount = validMembers.filter(m => m.slot === 0).length;
+
+    let leaderId = room.leaderId;
+    if (!cleanMemberIds.includes(leaderId)) {
+      const emp = validMembers.find(m => m.type === 'EMPLOYEE');
+      leaderId = emp ? emp.id : cleanMemberIds[0];
       modified = true;
     }
 
-    const members = cleanMemberIds.map(mId => peopleMap.get(mId)!).filter(Boolean);
-    const hasEmployee = members.some(m => m.type === 'EMPLOYEE');
+    updatedRooms.push({
+      ...room,
+      memberIds: cleanMemberIds,
+      leaderId,
+      usedSlots,
+      childCount,
+      status: (usedSlots >= room.capacity ? 'FULL' : 'UNDER') as RoomStatus
+    });
+  });
 
-    if (cleanMemberIds.length > 0 && hasEmployee) {
-      const usedSlots = members.reduce((sum, m) => sum + (m.slot || 0), 0);
-      const childCount = members.filter(m => m.slot === 0).length;
-      let leaderId = room.leaderId;
-      if (!cleanMemberIds.includes(leaderId)) {
-        const nextEmp = members.find(m => m.type === 'EMPLOYEE');
-        leaderId = nextEmp ? nextEmp.id : cleanMemberIds[0];
+  const validRoomIds = new Set(updatedRooms.map(r => r.id));
+
+  // 2. Chuẩn hóa People:
+  // Nếu một người có p.roomId trỏ đến phòng không tồn tại hoặc không nằm trong danh sách phòng hợp lệ -> gỡ roomId
+  people.forEach(p => {
+    if (p.roomId) {
+      if (!validRoomIds.has(p.roomId) || !assignedPersonIds.has(p.id)) {
+        p.roomId = null;
         modified = true;
       }
-
-      updatedRooms.push({
-        ...room,
-        memberIds: cleanMemberIds,
-        leaderId,
-        usedSlots,
-        childCount,
-        status: (usedSlots === room.capacity ? 'FULL' : (usedSlots < room.capacity ? 'UNDER' : 'WARNING')) as RoomStatus
-      });
-    } else {
-      // Giải tán phòng nếu trống hoặc không còn nhân viên
-      cleanMemberIds.forEach(mId => {
-        const p = peopleMap.get(mId);
-        if (p) {
-          p.roomId = null;
-          modified = true;
-        }
-      });
-      modified = true;
     }
   });
 
@@ -545,12 +606,12 @@ export function getRooms(tripId: string): Room[] {
   }
 }
 
-export async function saveRooms(tripId: string, rooms: Room[]): Promise<void> {
+export async function saveRooms(tripId: string, rooms: Room[], isExplicitDeletion = false): Promise<void> {
   const { rooms: normalizedCodes } = migrateRoomCodes(rooms);
   const { rooms: finalRooms } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, true);
   localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
   notifyStateChange();
-  await syncRoomsToFirebase(tripId, finalRooms);
+  await syncRoomsToFirebase(tripId, finalRooms, isExplicitDeletion);
 }
 
 export function getLogs(tripId: string): AuditLog[] {
@@ -984,7 +1045,7 @@ export async function leaveRoom(
     notifyStateChange();
 
     await Promise.all([
-      syncRoomsToFirebase(tripId, cleanRooms),
+      syncRoomsToFirebase(tripId, cleanRooms, true),
       syncPeopleToFirebase(tripId, cleanPeople)
     ]);
 
@@ -1017,7 +1078,7 @@ export async function leaveRoom(
     notifyStateChange();
 
     await Promise.all([
-      syncRoomsToFirebase(tripId, cleanRooms),
+      syncRoomsToFirebase(tripId, cleanRooms, true),
       syncPeopleToFirebase(tripId, cleanPeople)
     ]);
     return { success: true, message: 'Đã giải tán phòng.' };
@@ -1082,7 +1143,7 @@ export async function deleteRoom(tripId: string, roomId: string, actorId: string
   notifyStateChange();
 
   await Promise.all([
-    syncRoomsToFirebase(tripId, cleanRooms),
+    syncRoomsToFirebase(tripId, cleanRooms, true),
     syncPeopleToFirebase(tripId, cleanPeople)
   ]);
 
@@ -1113,7 +1174,7 @@ export async function deleteAllRooms(tripId: string, actorId: string, actorName:
   notifyStateChange();
 
   await Promise.all([
-    syncRoomsToFirebase(tripId, []),
+    syncRoomsToFirebase(tripId, [], true),
     syncPeopleToFirebase(tripId, people)
   ]);
 
@@ -1140,7 +1201,7 @@ export async function resetDefaultData(tripId: string): Promise<void> {
     roomId: null
   }));
   await savePeople(tripId, resetPeople);
-  await saveRooms(tripId, []);
+  await saveRooms(tripId, [], true);
   addLog(tripId, {
     id: `log_${Date.now()}`,
     tripId,
