@@ -63,6 +63,9 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
   // Lọc danh sách phòng
   const filteredRooms = useMemo(() => {
     return rooms.filter(room => {
+      // Bỏ qua phòng rác không có thành viên
+      if (!room.memberIds || room.memberIds.length === 0) return false;
+
       // Filter status
       if (statusFilter === 'FULL' && room.status !== 'FULL') return false;
       if (statusFilter === 'UNDER' && room.status !== 'UNDER') return false;

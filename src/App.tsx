@@ -210,7 +210,7 @@ export const App: React.FC = () => {
     if (currentTrip.roomLimits) {
       const counts: Record<number, number> = {};
       currentRooms.forEach(r => {
-        if (!editingRoomId || r.id !== editingRoomId) {
+        if ((!editingRoomId || r.id !== editingRoomId) && r.memberIds && r.memberIds.length > 0) {
           counts[r.capacity] = (counts[r.capacity] || 0) + 1;
         }
       });
@@ -657,7 +657,7 @@ export const App: React.FC = () => {
     if (currentTrip.roomLimits) {
       const counts: Record<number, number> = {};
       currentRooms.forEach(r => {
-        if (!editingRoomId || r.id !== editingRoomId) {
+        if ((!editingRoomId || r.id !== editingRoomId) && r.memberIds && r.memberIds.length > 0) {
           counts[r.capacity] = (counts[r.capacity] || 0) + 1;
         }
       });

@@ -68,7 +68,9 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
     const cleanSearch = removeVietnameseTones(searchTerm.trim());
 
     return rooms.filter(room => {
+      if (!room.memberIds || room.memberIds.length === 0) return false;
       const members = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+      if (members.length === 0) return false;
 
       // 1. Lọc theo Trạng thái (Đủ / Thiếu)
       if (statusFilter === 'FULL' && room.status !== 'FULL') return false;

@@ -371,7 +371,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                   <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức phòng:</span>
                   {[2, 3, 4, 5, 6].map(cap => {
                     const tripRooms = (currentTrip && trip.id === currentTrip.id && rooms) ? rooms : getRooms(trip.id);
-                    const arrangedCount = tripRooms.filter(r => r.capacity === cap).length;
+                    const arrangedCount = tripRooms.filter(r => r.capacity === cap && r.memberIds && r.memberIds.length > 0).length;
                     const limit = trip.roomLimits?.[cap];
                     const isExceeded = limit !== undefined && arrangedCount > limit;
                     return (

@@ -46,7 +46,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
     const counts: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     if (!allRooms || !currentTrip) return counts;
     allRooms.forEach(r => {
-      if (r.tripId === currentTrip.id && (!editingRoom || r.id !== editingRoom.id)) {
+      if (r.tripId === currentTrip.id && (!editingRoom || r.id !== editingRoom.id) && r.memberIds && r.memberIds.length > 0) {
         counts[r.capacity] = (counts[r.capacity] || 0) + 1;
       }
     });

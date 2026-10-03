@@ -105,7 +105,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
               {[2, 3, 4, 5, 6].map(cap => {
                 const limit = trip.roomLimits?.[cap];
                 if (limit === undefined) return null;
-                const count = (rooms || []).filter(r => r.tripId === trip.id && r.capacity === cap).length;
+                const count = (rooms || []).filter(r => r.tripId === trip.id && r.capacity === cap && r.memberIds && r.memberIds.length > 0).length;
                 const isFull = count >= limit;
                 const remaining = Math.max(0, limit - count);
 

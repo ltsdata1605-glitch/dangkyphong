@@ -52,6 +52,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   let underRoomsCount = 0;
 
   rooms.forEach(r => {
+    if (!r.memberIds || r.memberIds.length === 0) return;
     if (capacityCounts[r.capacity] !== undefined) {
       capacityCounts[r.capacity]++;
     }

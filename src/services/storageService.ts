@@ -240,6 +240,9 @@ export async function syncRoomsToFirebase(tripId: string, rooms: Room[], isExpli
       console.warn('[Firebase] Lỗi đọc rooms trước khi merge:', e);
     }
 
+    // Tự động loại bỏ triệt để phòng rác (0 thành viên) không cho lưu vào Firestore
+    finalRooms = finalRooms.filter(r => r.memberIds && r.memberIds.length > 0);
+
     // Đảm bảo không trùng mã phòng và chuẩn hóa số phòng P.1, P.2, P.3...
     const usedCodes = new Set<string>();
     finalRooms.forEach((r, idx) => {
@@ -569,16 +572,10 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
       }
     });
 
-    // TUYỆT ĐỐI KHÔNG XÓA PHÒNG: Nếu phòng tạm thời chưa match được thành viên trong people, vẫn giữ nguyên phòng
+    // Tự động loại bỏ phòng trống (0 thành viên) để không chiếm định mức ảo
     if (validMembers.length === 0) {
-      updatedRooms.push({
-        ...room,
-        memberIds: room.memberIds || [],
-        usedSlots: 0,
-        childCount: 0,
-        status: 'UNDER'
-      });
-      return;
+      modified = true;
+      return; // Loại bỏ phòng trống, không đưa vào updatedRooms
     }
 
     const cleanMemberIds = validMembers.map(m => m.id);
@@ -678,7 +675,7 @@ export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[], 
       if (adultSlots > capacity) {
         const trip = getTrips().find(t => t.id === tripId);
         const targetCap = Math.min(6, adultSlots);
-        const currentCount = rooms.filter(r => r.id !== room.id && r.capacity === targetCap).length;
+        const currentCount = rooms.filter(r => r.id !== room.id && r.capacity === targetCap && r.memberIds && r.memberIds.length > 0).length;
         const limit = trip?.roomLimits?.[targetCap];
 
         if (limit === undefined || currentCount < limit) {
@@ -734,17 +731,19 @@ export function getRooms(tripId: string): Room[] {
     const rooms: Room[] = raw ? JSON.parse(raw) : [];
     const { rooms: normalizedCodes, migrated: migratedCodes } = migrateRoomCodes(rooms);
     const { rooms: finalRooms, modified: modifiedLimits } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, false);
-    if (migratedCodes || modifiedLimits) {
-      localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
+    const activeRooms = finalRooms.filter(r => r.memberIds && r.memberIds.length > 0);
+    if (migratedCodes || modifiedLimits || activeRooms.length !== finalRooms.length) {
+      localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(activeRooms));
     }
-    return finalRooms;
+    return activeRooms;
   } catch {
     return [];
   }
 }
 
 export async function saveRooms(tripId: string, rooms: Room[], isExplicitDeletion = false, deletedRoomIds: string[] = []): Promise<void> {
-  const { rooms: normalizedCodes } = migrateRoomCodes(rooms);
+  const activeRooms = rooms.filter(r => r.memberIds && r.memberIds.length > 0);
+  const { rooms: normalizedCodes } = migrateRoomCodes(activeRooms);
   const { rooms: finalRooms } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, true);
   localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
   notifyStateChange();
@@ -862,7 +861,7 @@ export async function claimRelative(
       if (currentTrip?.roomLimits) {
         const counts: Record<number, number> = {};
         rooms.forEach(r => {
-          if (r.id !== targetRoom.id) counts[r.capacity] = (counts[r.capacity] || 0) + 1;
+          if (r.id !== targetRoom.id && r.memberIds && r.memberIds.length > 0) counts[r.capacity] = (counts[r.capacity] || 0) + 1;
         });
         const lim = currentTrip.roomLimits[newCap];
         if (lim !== undefined && (counts[newCap] || 0) >= lim) {
@@ -902,7 +901,9 @@ export async function claimRelative(
     if (currentTrip?.roomLimits) {
       const counts: Record<number, number> = {};
       rooms.forEach(r => {
-        counts[r.capacity] = (counts[r.capacity] || 0) + 1;
+        if (r.memberIds && r.memberIds.length > 0) {
+          counts[r.capacity] = (counts[r.capacity] || 0) + 1;
+        }
       });
       const lim = currentTrip.roomLimits[2];
       if (lim !== undefined && (counts[2] || 0) >= lim) {
