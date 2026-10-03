@@ -36,7 +36,7 @@ const formatImportTime = (isoString?: string) => {
 };
 
 interface AdminTripManagerProps {
-  currentTrip: Trip;
+  currentTrip?: Trip | null;
   trips: Trip[];
   rooms?: Room[];
   onSelectTrip: (tripId: string) => void;
@@ -175,7 +175,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
           </div>
         ) : (
           trips.map(trip => {
-            const isActive = trip.id === currentTrip.id;
+            const isActive = currentTrip ? trip.id === currentTrip.id : false;
             const importInfo = getTripImportInfo(trip);
             const tripPeople = getPeople(trip.id);
             const empCount = tripPeople.filter(p => p.type === 'EMPLOYEE').length;
@@ -370,7 +370,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 }}>
                   <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức phòng:</span>
                   {[2, 3, 4, 5, 6].map(cap => {
-                    const tripRooms = (trip.id === currentTrip.id && rooms) ? rooms : getRooms(trip.id);
+                    const tripRooms = (currentTrip && trip.id === currentTrip.id && rooms) ? rooms : getRooms(trip.id);
                     const arrangedCount = tripRooms.filter(r => r.capacity === cap).length;
                     const limit = trip.roomLimits?.[cap];
                     const isExceeded = limit !== undefined && arrangedCount > limit;
@@ -713,7 +713,7 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
             </h3>
 
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-              Thao tác này sẽ giải tán toàn bộ phòng hiện có và khôi phục danh sách 550 nhân sự của chuyến đi <strong>"{currentTrip.name}"</strong> về trạng thái mặc định chưa ghép phòng.
+              Thao tác này sẽ giải tán toàn bộ phòng hiện có và khôi phục danh sách 550 nhân sự của chuyến đi <strong>"{currentTrip?.name || ''}"</strong> về trạng thái mặc định chưa ghép phòng.
             </p>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -730,7 +730,9 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 className="btn btn-warning"
                 style={{ flex: 1.4, fontWeight: 700, color: '#fff', background: 'var(--color-warning)' }}
                 onClick={() => {
-                  onResetData(currentTrip.id);
+                  if (currentTrip) {
+                    onResetData(currentTrip.id);
+                  }
                   setIsResetModalOpen(false);
                 }}
               >

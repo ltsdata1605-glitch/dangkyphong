@@ -3,7 +3,7 @@ import { Trip } from '../types';
 import { Hotel, User, ShieldCheck, Sun, Moon, Calendar, ChevronDown } from 'lucide-react';
 
 interface NavbarProps {
-  currentTrip: Trip;
+  currentTrip?: Trip | null;
   trips: Trip[];
   onSelectTrip: (tripId: string) => void;
   activeRole: 'EMPLOYEE' | 'ADMIN';
@@ -87,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Calendar size={13} style={{ color: 'var(--text-muted)' }} />
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <select
-                  value={currentTrip.id}
+                  value={currentTrip?.id || ''}
                   onChange={(e) => onSelectTrip(e.target.value)}
                   style={{
                     appearance: 'none',
@@ -107,11 +107,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   title="Chọn đợt / chuyến du lịch"
                 >
-                  {trips.map(t => (
-                    <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)', color: 'var(--text-main)' }}>
-                      {t.name}
+                  {trips.length === 0 ? (
+                    <option value="" disabled style={{ background: 'var(--bg-card-solid)', color: 'var(--text-muted)' }}>
+                      Chưa có chuyến đi
                     </option>
-                  ))}
+                  ) : (
+                    trips.map(t => (
+                      <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)', color: 'var(--text-main)' }}>
+                        {t.name}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <ChevronDown size={12} style={{ position: 'absolute', right: 2, top: 4, pointerEvents: 'none', color: 'var(--text-muted)' }} />
               </div>

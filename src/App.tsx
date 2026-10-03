@@ -62,7 +62,7 @@ export const App: React.FC = () => {
 
   // Trip & Data States
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [currentTrip, setCurrentTrip] = useState<Trip>(getActiveTrip());
+  const [currentTrip, setCurrentTrip] = useState<Trip | null>(getActiveTrip());
   const [people, setPeople] = useState<Person[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -71,9 +71,9 @@ export const App: React.FC = () => {
   const refreshData = useCallback(() => {
     const loadedTrips = getTrips();
     const active = getActiveTrip();
-    const loadedPeople = getPeople(active.id);
-    const loadedRooms = getRooms(active.id);
-    const loadedLogs = getLogs(active.id);
+    const loadedPeople = active ? getPeople(active.id) : [];
+    const loadedRooms = active ? getRooms(active.id) : [];
+    const loadedLogs = active ? getLogs(active.id) : [];
 
     setTrips(loadedTrips);
     setCurrentTrip(active);
@@ -176,7 +176,7 @@ export const App: React.FC = () => {
 
   // Tạo hoặc Sửa phòng
   const handleSaveRoom = async (capacity: number, memberIds: string[], editingRoomId?: string) => {
-    if (!currentEmployee) return;
+    if (!currentEmployee || !currentTrip) return;
 
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
@@ -303,6 +303,7 @@ export const App: React.FC = () => {
 
   // Rời phòng
   const handleLeaveRoom = async (personId: string) => {
+    if (!currentTrip) return;
     const actorId = currentEmployee ? currentEmployee.code : 'admin';
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
     const res = await leaveRoom(currentTrip.id, personId, actorId, actorName);
@@ -330,6 +331,7 @@ export const App: React.FC = () => {
 
   // Xóa / Hủy phòng
   const handleDeleteRoom = async (roomId: string) => {
+    if (!currentTrip) return;
     const actorId = currentEmployee ? currentEmployee.code : 'admin';
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
     await deleteRoom(currentTrip.id, roomId, actorId, actorName);
@@ -346,6 +348,7 @@ export const App: React.FC = () => {
 
   // Xóa toàn bộ phòng
   const handleDeleteAllRooms = async () => {
+    if (!currentTrip) return;
     const actorId = currentEmployee ? currentEmployee.code : 'admin';
     const actorName = currentEmployee ? currentEmployee.name : 'Ban Tổ Chức';
     await deleteAllRooms(currentTrip.id, actorId, actorName);
@@ -362,7 +365,7 @@ export const App: React.FC = () => {
 
   // Nhận người thân (chọn mối quan hệ) -> Tự động tạo phòng 2 người hoặc thêm vào phòng hiện tại
   const handleClaimRelative = async (relativeId: string, relation?: RelationType) => {
-    if (!currentEmployee) return;
+    if (!currentEmployee || !currentTrip) return;
     const res = await claimRelative(currentTrip.id, currentEmployee.code, relativeId, currentEmployee.name, relation);
     if (res.success) {
       // Cập nhật ngay currentEmployee với roomId mới từ storage để UI chuyển ngay lập tức
@@ -407,6 +410,7 @@ export const App: React.FC = () => {
 
   // Ghép phòng tự động
   const handleAutoMatch = async () => {
+    if (!currentTrip) return;
     const res = autoMatchRooms(people, rooms, currentTrip.id, currentTrip.roomLimits);
     if (res.assignedCount === 0) {
       alert('Không còn nhân sự trống nào có thể tự động ghép.');
@@ -469,11 +473,13 @@ export const App: React.FC = () => {
 
   // Xuất Excel Rooming List
   const handleExportExcel = () => {
+    if (!currentTrip) return;
     exportRoomingListExcel(currentTrip, people, rooms);
   };
 
   // Khóa / Mở đăng ký
   const handleToggleLock = async () => {
+    if (!currentTrip) return;
     const updatedTrip: Trip = {
       ...currentTrip,
       isLocked: !currentTrip.isLocked
@@ -493,7 +499,8 @@ export const App: React.FC = () => {
 
   // Admin nạp file Excel cho một chuyến đi cụ thể
   const handleConfirmImport = async (targetTripId: string, newPeople: Person[], mode: 'OVERWRITE' | 'APPEND') => {
-    const tripId = targetTripId || currentTrip.id;
+    const tripId = targetTripId || currentTrip?.id;
+    if (!tripId) return;
     let finalCount = 0;
     if (mode === 'OVERWRITE') {
       await savePeople(tripId, newPeople);
@@ -546,6 +553,7 @@ export const App: React.FC = () => {
 
   // Admin đổi nhanh giới tính
   const handleToggleGender = async (personId: string) => {
+    if (!currentTrip) return;
     const currentPeople = getPeople(currentTrip.id);
     const p = currentPeople.find(cp => cp.id === personId);
     if (p) {
@@ -557,6 +565,7 @@ export const App: React.FC = () => {
 
   // Admin gán người thân cho nhân viên
   const handleAdminAssignRelative = async (relativeId: string, employeeCode: string) => {
+    if (!currentTrip) return;
     const res = await claimRelative(currentTrip.id, employeeCode, relativeId, 'Ban Tổ Chức');
     refreshData();
     if (res.success && res.roomCode) {
@@ -566,6 +575,7 @@ export const App: React.FC = () => {
 
   // Admin thêm người vào phòng
   const handleAdminAddMember = async (roomId: string, personId: string) => {
+    if (!currentTrip) return;
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
@@ -606,6 +616,7 @@ export const App: React.FC = () => {
 
   // Admin gỡ người khỏi phòng (hoặc xóa phòng hoàn toàn nếu chỉ còn người này)
   const handleAdminRemoveMember = async (roomId: string, personId: string) => {
+    if (!currentTrip) return;
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
     if (room && (room.memberIds.length <= 1 || room.memberIds.every(id => id === personId))) {
@@ -618,6 +629,7 @@ export const App: React.FC = () => {
 
   // Admin tạo hoặc sửa phòng cho nhân sự
   const handleAdminSaveRoom = async (capacity: number, memberIds: string[], editingRoomId?: string) => {
+    if (!currentTrip) return;
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
     const members = memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
@@ -746,6 +758,7 @@ export const App: React.FC = () => {
 
   // Admin duyệt đặc cách
   const handleAdminSaveOverride = async (roomId: string, note: string) => {
+    if (!currentTrip) return;
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
     if (room) {
@@ -783,18 +796,20 @@ export const App: React.FC = () => {
       {/* Page Content Container - Perfectly aligns CountdownBanner with Admin and Employee views */}
       <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '0 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* 2. Countdown Banner & Trip Overview */}
-        <CountdownBanner
-          trip={currentTrip}
-          totalRoomsCount={rooms.length}
-          rooms={rooms}
-          onOpenAllRooms={() => {
-            if (activeRole === 'ADMIN') {
-              setAdminTab('rooms');
-            } else {
-              setEmployeeTab('all_rooms');
-            }
-          }}
-        />
+        {currentTrip && (
+          <CountdownBanner
+            trip={currentTrip}
+            totalRoomsCount={rooms.length}
+            rooms={rooms}
+            onOpenAllRooms={() => {
+              if (activeRole === 'ADMIN') {
+                setAdminTab('rooms');
+              } else {
+                setEmployeeTab('all_rooms');
+              }
+            }}
+          />
+        )}
 
         {/* 3. Main Views */}
         <main style={{ flex: 1, paddingBottom: 60, width: '100%' }}>
@@ -835,27 +850,35 @@ export const App: React.FC = () => {
                 </div>
 
                 {employeeTab === 'all_rooms' ? (
-                  <AllRoomsDirectoryModal
-                    isInline={true}
-                    trip={currentTrip}
-                    rooms={rooms}
-                    people={people}
-                    currentEmployee={currentEmployee}
-                    onClose={() => setEmployeeTab('my_room')}
-                  />
+                  currentTrip ? (
+                    <AllRoomsDirectoryModal
+                      isInline={true}
+                      trip={currentTrip}
+                      rooms={rooms}
+                      people={people}
+                      currentEmployee={currentEmployee}
+                      onClose={() => setEmployeeTab('my_room')}
+                    />
+                  ) : null
                 ) : (
-                  <EmployeeRoomView
-                    currentEmployee={currentEmployee}
-                    currentTrip={currentTrip}
-                    allPeople={people}
-                    allRooms={rooms}
-                    onSaveRoom={handleSaveRoom}
-                    onLeaveRoom={handleLeaveRoom}
-                    onDeleteRoom={handleDeleteRoom}
-                    onClaimRelative={handleClaimRelative}
-                    onUnclaimRelative={handleUnclaimRelative}
-                    onOpenAllRooms={() => setEmployeeTab('all_rooms')}
-                  />
+                  currentTrip ? (
+                    <EmployeeRoomView
+                      currentEmployee={currentEmployee}
+                      currentTrip={currentTrip}
+                      allPeople={people}
+                      allRooms={rooms}
+                      onSaveRoom={handleSaveRoom}
+                      onLeaveRoom={handleLeaveRoom}
+                      onDeleteRoom={handleDeleteRoom}
+                      onClaimRelative={handleClaimRelative}
+                      onUnclaimRelative={handleUnclaimRelative}
+                      onOpenAllRooms={() => setEmployeeTab('all_rooms')}
+                    />
+                  ) : (
+                    <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      Chưa có chuyến đi nào được mở đăng ký. Vui lòng liên hệ Ban Tổ Chức.
+                    </div>
+                  )
                 )}
               </div>
             )
@@ -875,7 +898,7 @@ export const App: React.FC = () => {
               onExportExcel={handleExportExcel}
               onAutoMatch={handleAutoMatch}
               onToggleLock={handleToggleLock}
-              onConfirmImport={(newPeople, mode) => handleConfirmImport(currentTrip.id, newPeople, mode)}
+              onConfirmImport={(newPeople, mode) => currentTrip && handleConfirmImport(currentTrip.id, newPeople, mode)}
               onImportPeopleForTrip={handleConfirmImport}
               onDeleteRoom={handleDeleteRoom}
               onDeleteAllRooms={handleDeleteAllRooms}

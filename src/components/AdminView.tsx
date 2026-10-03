@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 interface AdminViewProps {
-  currentTrip: Trip;
+  currentTrip: Trip | null;
   trips: Trip[];
   people: Person[];
   rooms: Room[];
@@ -142,15 +142,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Tab Contents */}
       {activeTab === 'dashboard' && (
-        <AdminDashboard
-          currentTrip={currentTrip}
-          people={people}
-          rooms={rooms}
-          onExportExcel={onExportExcel}
-          onAutoMatch={onAutoMatch}
-          onToggleLock={onToggleLock}
-          onNavigateTab={setActiveTab}
-        />
+        currentTrip ? (
+          <AdminDashboard
+            currentTrip={currentTrip}
+            people={people}
+            rooms={rooms}
+            onExportExcel={onExportExcel}
+            onAutoMatch={onAutoMatch}
+            onToggleLock={onToggleLock}
+            onNavigateTab={setActiveTab}
+          />
+        ) : (
+          <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            Chưa có tour nào được chọn hoặc tạo. Vui lòng vào tab <strong>Quản Lý Tours</strong> để thêm tour mới.
+          </div>
+        )
       )}
 
       {activeTab === 'rooms' && (
@@ -169,7 +175,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <AdminPeopleManager
           people={people}
           rooms={rooms}
-          currentTrip={currentTrip}
+          currentTrip={currentTrip || undefined}
           onToggleGender={onToggleGender}
           onAssignRelative={onAssignRelative}
           onAddMemberToRoom={onAddMember}

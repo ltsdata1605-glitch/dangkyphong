@@ -1,6 +1,6 @@
 import { Person, Room, RoomStatus, Trip, AuditLog, RelationType, BedType } from '../types';
 import { db } from './firebase';
-import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { validateRoom } from './roomingEngine';
 
 const STORAGE_KEYS = {
@@ -51,14 +51,13 @@ export function setupFirestoreListeners(tripId: string): void {
   if (!tripsListUnsub) {
     try {
       tripsListUnsub = onSnapshot(doc(db, 'system', 'trips'), (snapshot) => {
+        if (snapshot.metadata.hasPendingWrites) return;
         if (snapshot.exists()) {
           const data = snapshot.data();
-          if (data && Array.isArray(data.trips) && data.trips.length > 0) {
+          if (data && Array.isArray(data.trips)) {
             localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(data.trips));
             notifyStateChange();
           }
-        } else {
-          syncTripsToFirebase();
         }
       }, (err) => {
         console.warn('[Firebase Firestore] trips sync warning (offline or permissions):', err);
@@ -67,6 +66,8 @@ export function setupFirestoreListeners(tripId: string): void {
       console.warn('[Firebase] Init trips listener error:', err);
     }
   }
+
+  if (!tripId) return;
 
   // 2. Lắng nghe danh sách nhân sự của chuyến đi hiện tại
   try {
@@ -204,9 +205,10 @@ export async function syncLogsToFirebase(tripId: string): Promise<void> {
  * Khởi tạo dữ liệu mặc định và kích hoạt Firebase Realtime Sync
  */
 export function initializeStorage(): void {
-  // 1. Kiểm tra danh sách chuyến đi
+  // Chỉ chèn DEFAULT_TRIP nếu key TRIPS chưa từng tồn tại trong localStorage (lần đầu truy cập app mới)
+  const tripsRaw = localStorage.getItem(STORAGE_KEYS.TRIPS);
   let trips = getTrips();
-  if (trips.length === 0) {
+  if (tripsRaw === null && trips.length === 0) {
     trips = [DEFAULT_TRIP];
     localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
   }
@@ -214,14 +216,19 @@ export function initializeStorage(): void {
   // 2. Kiểm tra chuyến đi active
   let activeTripId = getActiveTripId();
   if (!activeTripId || !trips.some(t => t.id === activeTripId)) {
-    activeTripId = trips[0].id;
-    setActiveTripId(activeTripId);
+    if (trips.length > 0) {
+      activeTripId = trips[0].id;
+      setActiveTripId(activeTripId);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_TRIP);
+      activeTripId = '';
+    }
   }
 
   // KHÔNG tự động nạp dữ liệu mẫu. Hệ thống hoàn toàn làm việc trên dữ liệu thực tế do Admin thiết lập hoặc đồng bộ từ Firebase.
 
   // 3. Kích hoạt Firebase Realtime Listener
-  setupFirestoreListeners(activeTripId);
+  setupFirestoreListeners(activeTripId || '');
 
   // 4. Chuẩn hóa số phòng bắt đầu từ 1 cho tất cả các chuyến đi
   trips.forEach(t => {
@@ -264,20 +271,34 @@ export async function deleteTrip(tripId: string): Promise<void> {
   localStorage.removeItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`);
   localStorage.removeItem(`${STORAGE_KEYS.LOGS_PREFIX}${tripId}`);
 
+  // Cập nhật danh sách chuyến đi lên Firebase
   await syncTripsToFirebase();
+
+  // Xóa sạch các tài liệu con của trip này trên Firestore
+  try {
+    await deleteDoc(doc(db, 'trips', tripId, 'data', 'people'));
+    await deleteDoc(doc(db, 'trips', tripId, 'data', 'rooms'));
+    await deleteDoc(doc(db, 'trips', tripId, 'data', 'logs'));
+    await deleteDoc(doc(db, 'trips', tripId));
+  } catch (err) {
+    console.warn('[Firebase] Lỗi xóa dữ liệu Firestore của chuyến đi:', err);
+  }
 
   if (getActiveTripId() === tripId) {
     if (trips.length > 0) {
       setActiveTripId(trips[0].id);
     } else {
-      initializeStorage();
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_TRIP);
     }
   }
   notifyStateChange();
 }
 
 export function getActiveTripId(): string {
-  return localStorage.getItem(STORAGE_KEYS.ACTIVE_TRIP) || DEFAULT_TRIP.id;
+  const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TRIP);
+  if (saved) return saved;
+  const trips = getTrips();
+  return trips.length > 0 ? trips[0].id : '';
 }
 
 export function setActiveTripId(tripId: string): void {
@@ -286,10 +307,13 @@ export function setActiveTripId(tripId: string): void {
   notifyStateChange();
 }
 
-export function getActiveTrip(): Trip {
+export function getActiveTrip(): Trip | null {
   const trips = getTrips();
   const activeId = getActiveTripId();
-  return trips.find(t => t.id === activeId) || trips[0] || DEFAULT_TRIP;
+  const found = trips.find(t => t.id === activeId);
+  if (found) return found;
+  if (trips.length > 0) return trips[0];
+  return null;
 }
 
 export function getPeople(tripId: string): Person[] {
