@@ -83,57 +83,64 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   return (
     <div style={{ width: '100%', margin: '20px 0' }}>
-      {/* Admin Tabs Bar */}
+      {/* Admin Tabs Bar - Trượt ngang không xuống dòng */}
       <div className="glass-card admin-tabs-bar" style={{
         padding: '8px 12px',
         marginBottom: 16,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 8
+        justifyContent: 'flex-start',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        gap: 8,
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`btn btn-sm admin-tab-btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <LayoutDashboard size={15} /> Tổng Quan
-          </button>
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`btn btn-sm admin-tab-btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          <LayoutDashboard size={15} /> Tổng Quan
+        </button>
 
-          <button
-            onClick={() => setActiveTab('rooms')}
-            className={`btn btn-sm admin-tab-btn ${activeTab === 'rooms' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <Bed size={15} /> Quản Lý Phòng ({rooms.length})
-          </button>
+        <button
+          onClick={() => setActiveTab('rooms')}
+          className={`btn btn-sm admin-tab-btn ${activeTab === 'rooms' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          <Bed size={15} /> Quản Lý Phòng ({rooms.length})
+        </button>
 
-          <button
-            onClick={() => setActiveTab('people')}
-            className={`btn btn-sm admin-tab-btn ${activeTab === 'people' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <Users size={15} /> Danh Sách Tham Gia ({people.length})
-          </button>
+        <button
+          onClick={() => setActiveTab('people')}
+          className={`btn btn-sm admin-tab-btn ${activeTab === 'people' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          <Users size={15} /> Danh Sách Tham Gia ({people.length})
+        </button>
 
-          <button
-            onClick={() => setActiveTab('trips')}
-            className={`btn btn-sm admin-tab-btn ${activeTab === 'trips' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <Compass size={15} /> Quản Lý Tours ({trips.length})
-          </button>
+        <button
+          onClick={() => setActiveTab('trips')}
+          className={`btn btn-sm admin-tab-btn ${activeTab === 'trips' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          <Compass size={15} /> Quản Lý Tours ({trips.length})
+        </button>
 
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`btn btn-sm admin-tab-btn ${activeTab === 'logs' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <History size={15} /> Nhật Ký
-          </button>
-        </div>
+        <button
+          onClick={() => setActiveTab('logs')}
+          className={`btn btn-sm admin-tab-btn ${activeTab === 'logs' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          <History size={15} /> Nhật Ký
+        </button>
 
         <button
           onClick={onLogoutAdmin}
           className="btn btn-secondary btn-sm admin-tab-btn"
-          style={{ color: 'var(--color-danger)' }}
+          style={{ color: 'var(--color-danger)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 'auto' }}
           title="Đăng xuất quyền Admin"
         >
           <LogOut size={14} /> Đăng Xuất Admin
