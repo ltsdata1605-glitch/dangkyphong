@@ -544,20 +544,40 @@ export function claimRelative(
 /**
  * Hủy nhận người thân
  */
-export function unclaimRelative(tripId: string, employeeCode: string, relativeId: string): boolean {
-  const people = getPeople(tripId);
-  const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE' && p.ownerId === employeeCode);
-  if (!relative) return false;
+export function unclaimRelative(
+  tripId: string, 
+  employeeCodeOrId: string, 
+  relativeId: string
+): { success: boolean; message: string } {
+  const targetTripId = tripId || getActiveTripId();
+  const people = getPeople(targetTripId);
 
+  // Tìm relative bằng ID hoặc Code (linh hoạt cả hai)
+  const relative = people.find(p => 
+    (p.id === relativeId || p.code === relativeId) && 
+    (p.type === 'RELATIVE' || p.type === 'PG')
+  );
+
+  if (!relative) {
+    return { success: false, message: 'Không tìm thấy người thân cần hủy nhận.' };
+  }
+
+  const relName = relative.name;
+
+  // Gỡ liên kết người thân
   relative.ownerId = null;
+  relative.relation = null;
+  relative.slot = 1;
+
+  // Nếu người thân đang ở trong phòng nào, tự động gỡ ra khỏi phòng đó
   const relRoomId = relative.roomId;
   relative.roomId = null;
 
   if (relRoomId) {
-    const rooms = getRooms(tripId);
+    const rooms = getRooms(targetTripId);
     const room = rooms.find(r => r.id === relRoomId);
     if (room) {
-      room.memberIds = room.memberIds.filter(id => id !== relativeId);
+      room.memberIds = room.memberIds.filter(id => id !== relative.id && id !== relativeId);
       const remainingMembers = room.memberIds
         .map(id => people.find(p => p.id === id)!)
         .filter(Boolean);
@@ -565,11 +585,23 @@ export function unclaimRelative(tripId: string, employeeCode: string, relativeId
       room.childCount = remainingMembers.filter(m => m.slot === 0).length;
       room.status = room.usedSlots >= room.capacity ? 'FULL' : 'UNDER';
       room.updatedAt = new Date().toISOString();
-      saveRooms(tripId, rooms);
+      saveRooms(targetTripId, rooms);
     }
   }
-  savePeople(tripId, people);
-  return true;
+
+  savePeople(targetTripId, people);
+
+  addLog(targetTripId, {
+    id: `log_${Date.now()}`,
+    tripId: targetTripId,
+    action: 'ASSIGN_RELATIVE',
+    actor: employeeCodeOrId,
+    actorName: employeeCodeOrId,
+    details: `Đã hủy nhận người thân "${relName}"`,
+    timestamp: new Date().toISOString()
+  });
+
+  return { success: true, message: `Đã hủy nhận người thân "${relName}" thành công.` };
 }
 
 /**

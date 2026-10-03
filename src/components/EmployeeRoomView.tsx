@@ -79,6 +79,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [unclaimingRelative, setUnclaimingRelative] = useState<Person | null>(null);
 
   const handleConfirmLeave = () => {
     setShowLeaveModal(true);
@@ -138,7 +139,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               Bạn Chưa Có Phòng Khách Sạn
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: 520, margin: '0 auto 16px auto', lineHeight: 1.5 }}>
-              Thực hiện theo 3 bước: <strong>1. Chọn người thân</strong> (chọn mối quan hệ) $\to$ <strong>2. Bấm Tạo phòng mới</strong> $\to$ <strong>3. Chọn người ở cùng</strong> (hoặc chờ đồng nghiệp chọn bạn vào phòng của họ).
+              Thực hiện theo 3 bước: <strong>1. Chọn người thân</strong> (chọn mối quan hệ) → <strong>2. Tự động tạo phòng 2 người</strong> → <strong>3. Ghép thêm người ở cùng</strong> (hoặc chờ đồng nghiệp chọn bạn vào phòng của họ).
             </p>
 
             <div style={{
@@ -462,29 +463,27 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       </span>
                     )}
 
-                    {!relRoom && onUnclaimRelative && (
+                    {onUnclaimRelative && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm(`Bạn có chắc muốn hủy nhận người thân "${rel.name}" không?`)) {
-                            onUnclaimRelative(rel.id);
-                          }
-                        }}
+                        onClick={() => setUnclaimingRelative(rel)}
                         style={{
-                          background: 'none',
-                          border: 'none',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
                           color: 'var(--color-danger)',
                           cursor: 'pointer',
-                          padding: '2px 6px',
-                          fontSize: '0.72rem',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.75rem',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 4,
-                          opacity: 0.8
+                          fontWeight: 600,
+                          transition: 'all 0.15s ease'
                         }}
                         title="Hủy nhận người thân này"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={13} />
                         Hủy nhận
                       </button>
                     )}
@@ -601,6 +600,61 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 onClick={executeLeave}
               >
                 Xác Nhận Rời Phòng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Xác Nhận Hủy Nhận Người Thân */}
+      {unclaimingRelative && (
+        <div className="modal-overlay" onClick={() => setUnclaimingRelative(null)} style={{ zIndex: 1200 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--color-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Trash2 size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Xác Nhận Hủy Nhận Người Thân?
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Bạn có chắc chắn muốn hủy nhận người thân <strong>"{unclaimingRelative.name}"</strong> không?
+              {unclaimingRelative.roomId ? ' Người thân cũng sẽ được đưa ra khỏi phòng hiện tại.' : ''} Sau khi hủy, người thân sẽ trở về danh sách chung và có thể được nhận lại.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setUnclaimingRelative(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1.3 }}
+                onClick={() => {
+                  if (onUnclaimRelative && unclaimingRelative) {
+                    onUnclaimRelative(unclaimingRelative.id);
+                  }
+                  setUnclaimingRelative(null);
+                }}
+              >
+                <Trash2 size={16} />
+                Xác Nhận Hủy
               </button>
             </div>
           </div>

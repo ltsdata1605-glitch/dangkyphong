@@ -4,6 +4,7 @@ import {
   initializeStorage,
   getTrips,
   getActiveTrip,
+  getActiveTripId,
   saveTrip,
   deleteTrip,
   setActiveTripId,
@@ -330,8 +331,23 @@ export const App: React.FC = () => {
   // Hủy nhận người thân
   const handleUnclaimRelative = (relativeId: string) => {
     if (!currentEmployee) return;
-    unclaimRelative(currentTrip.id, currentEmployee.code, relativeId);
+    const tripId = currentTrip?.id || getActiveTripId();
+    const res = unclaimRelative(tripId, currentEmployee.code, relativeId);
+    
+    // Đồng bộ lại currentEmployee nếu có thay đổi
+    const updatedPeople = getPeople(tripId);
+    const updatedEmp = updatedPeople.find(p => p.id === currentEmployee.id || p.code === currentEmployee.code);
+    if (updatedEmp) {
+      localStorage.setItem('rooming_current_employee', JSON.stringify(updatedEmp));
+      setCurrentEmployee(updatedEmp);
+    }
+    
     refreshData();
+    if (res.success) {
+      alert(res.message);
+    } else {
+      alert(res.message || 'Không thể hủy nhận người thân này.');
+    }
   };
 
   // Ghép phòng tự động
