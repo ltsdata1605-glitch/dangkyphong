@@ -261,34 +261,32 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
                   {/* Hàng 2: Thành viên hiện tại dạng chip siêu gọn */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-                    {members.map(m => {
-                      const storeCode = m.store ? m.store.split('-')[0].trim() : '';
-                      return (
-                        <span
-                          key={m.id}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 2,
-                            padding: '1px 4px',
-                            background: 'var(--bg-muted)',
-                            borderRadius: 3,
-                            fontSize: '0.65rem',
-                            border: '1px solid var(--border-subtle)',
-                            maxWidth: '100%',
-                            lineHeight: 1.2
-                          }}
-                          title={`${m.name} - ${m.store}`}
-                        >
-                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.55rem', padding: '0 2px' }}>
-                            {m.gender === 'M' ? 'Nam' : 'Nữ'}
-                          </span>
-                          <strong style={{ whiteSpace: 'nowrap' }}>{m.name}</strong>
-                          {storeCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem' }}>({storeCode})</span>}
-                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={9} style={{ color: '#d97706', flexShrink: 0 }} />}
+                    {members.map(m => (
+                      <span
+                        key={m.id}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          padding: '1px 4px',
+                          background: 'var(--bg-muted)',
+                          borderRadius: 3,
+                          fontSize: '0.65rem',
+                          border: '1px solid var(--border-subtle)',
+                          maxWidth: '100%',
+                          lineHeight: 1.2,
+                          flexWrap: 'wrap'
+                        }}
+                        title={`${m.name} - ${m.store}`}
+                      >
+                        <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.55rem', padding: '0 2px' }}>
+                          {m.gender === 'M' ? 'Nam' : 'Nữ'}
                         </span>
-                      );
-                    })}
+                        <strong style={{ whiteSpace: 'nowrap' }}>{m.name}</strong>
+                        {m.store && <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem', wordBreak: 'break-word' }}>({m.store})</span>}
+                        {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={9} style={{ color: '#d97706', flexShrink: 0 }} />}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
