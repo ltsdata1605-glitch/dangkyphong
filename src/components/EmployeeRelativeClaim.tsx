@@ -25,7 +25,6 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
 
   // Tìm kiếm người thân ở siêu thị khác
   const [searchOtherStore, setSearchOtherStore] = useState('');
-  const [showOtherStoreSearch, setShowOtherStoreSearch] = useState(false);
 
   // Modal chọn mối quan hệ khi thêm
   const [claimingRelative, setClaimingRelative] = useState<Person | null>(null);
@@ -107,158 +106,126 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
           </h3>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowOtherStoreSearch(!showOtherStoreSearch)}
-          className="btn btn-sm btn-outline"
-          style={{
-            fontSize: '0.8rem',
-            padding: '5px 12px',
-            borderColor: 'rgba(245, 158, 11, 0.4)',
-            color: '#b45309',
-            background: showOtherStoreSearch ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-card-solid)'
-          }}
-        >
-          <Search size={14} />
-          {showOtherStoreSearch ? 'Ẩn tìm siêu thị khác' : 'Tìm người thân ở siêu thị khác'}
-        </button>
+        {/* Dòng nhập tìm thông tin người thân trực tiếp ở vị trí nút trước đây */}
+        <div style={{ position: 'relative', width: '100%', maxWidth: 300, minWidth: 220 }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            className="input-field"
+            placeholder="Tìm người thân ở siêu thị khác..."
+            value={searchOtherStore}
+            onChange={e => setSearchOtherStore(e.target.value)}
+            style={{
+              paddingLeft: 30,
+              paddingRight: searchOtherStore ? 28 : 10,
+              paddingTop: '6px',
+              paddingBottom: '6px',
+              fontSize: '0.82rem',
+              height: 34,
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-card-solid)',
+              border: '1px solid rgba(245, 158, 11, 0.45)'
+            }}
+          />
+          {searchOtherStore && (
+            <button
+              type="button"
+              onClick={() => setSearchOtherStore('')}
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: 2,
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Xóa tìm kiếm"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* 1. Thanh tìm kiếm người thân ở siêu thị khác (HIỂN THỊ BÊN TRÊN KHI BẤM TÌM) */}
-      {(showOtherStoreSearch || !hasStoreRelatives) && (
+      {/* Kết quả tìm kiếm người thân ở siêu thị khác (HIỂN THỊ KHI NGƯỜI DÙNG NHẬP VÀO Ô TÌM KIẾM) */}
+      {searchOtherStore.trim() && (
         <div style={{
-          marginBottom: hasStoreRelatives ? 16 : 0,
-          padding: '16px 18px',
+          marginBottom: 14,
+          padding: '12px 14px',
           borderRadius: 'var(--radius-md)',
           background: 'var(--bg-card-solid)',
           border: '1px solid rgba(245, 158, 11, 0.4)',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b45309' }}>
-              <Building2 size={16} />
-              <strong style={{ fontSize: '0.9rem' }}>
-                Tìm Người Thân Đăng Ký Ở Siêu Thị / Đơn Vị Khác:
-              </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#b45309', fontSize: '0.84rem', fontWeight: 700 }}>
+              <Building2 size={15} />
+              <span>Kết quả tìm người thân ở siêu thị khác ({searchedOtherRelatives.length}):</span>
             </div>
-            {hasStoreRelatives && (
-              <button
-                type="button"
-                onClick={() => setShowOtherStoreSearch(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontSize: '0.78rem'
-                }}
-              >
-                <X size={14} /> Đóng tìm kiếm
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setSearchOtherStore('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: '0.76rem'
+              }}
+            >
+              <X size={13} /> Đóng tìm kiếm
+            </button>
           </div>
 
-          <div style={{ position: 'relative', marginBottom: 10 }}>
-            <Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Nhập họ tên, MSNV (ví dụ: 28683), số điện thoại hoặc tên siêu thị để tìm kiếm..."
-              value={searchOtherStore}
-              onChange={e => setSearchOtherStore(e.target.value)}
-              style={{ paddingLeft: 38, fontSize: '0.88rem', background: 'var(--bg-muted)' }}
-              autoFocus={showOtherStoreSearch}
-            />
-            {searchOtherStore && (
-              <button
-                type="button"
-                onClick={() => setSearchOtherStore('')}
-                style={{
-                  position: 'absolute',
-                  right: 10,
-                  top: 10,
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* Kết quả tìm kiếm siêu thị khác */}
-          {searchOtherStore.trim() && (
-            <div>
-              {searchedOtherRelatives.length === 0 ? (
-                <div style={{
-                  padding: '14px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.85rem'
-                }}>
-                  Không tìm thấy người thân nào khớp với từ khóa "{searchOtherStore}". Vui lòng kiểm tra lại họ tên hoặc siêu thị.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    Tìm thấy {searchedOtherRelatives.length} người thân ở siêu thị khác:
+          {searchedOtherRelatives.length === 0 ? (
+            <div style={{ padding: '10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+              Không tìm thấy người thân nào khớp với từ khóa "{searchOtherStore}". Vui lòng kiểm tra lại họ tên, MSNV hoặc tên siêu thị.
+            </div>
+          ) : (
+            <div className="relative-claim-grid-4">
+              {searchedOtherRelatives.map(rel => (
+                <div
+                  key={rel.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '5px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-muted)',
+                    border: '1px solid var(--border-subtle)',
+                    gap: 6,
+                    whiteSpace: 'nowrap',
+                    minHeight: 34
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }} title={rel.name}>
+                      {rel.name}
+                    </span>
+                    {getRelationBadge(rel.relation, rel.slot, rel.type)}
                   </div>
-                  {searchedOtherRelatives.map(rel => (
-                    <div
-                      key={rel.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '5px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-muted)',
-                        border: '1px solid var(--border-subtle)',
-                        gap: 8,
-                        whiteSpace: 'nowrap',
-                        minHeight: 36
-                      }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        minWidth: 0,
-                        flex: 1,
-                        overflow: 'hidden'
-                      }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
-                          {rel.name}
-                        </span>
-                        {rel.code && (
-                          <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25 }}>
-                            {rel.code}
-                          </span>
-                        )}
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
-                          🏢 {rel.store}
-                        </span>
-                        {getRelationBadge(rel.relation, rel.slot, rel.type)}
-                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleOpenClaimModal(rel)}
-                        className="btn btn-sm btn-primary"
-                        style={{ fontSize: '0.74rem', padding: '3px 8px', height: 25, flexShrink: 0, borderRadius: 'var(--radius-sm)' }}
-                      >
-                        <UserPlus size={12} />
-                        Nhận
-                      </button>
-                    </div>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenClaimModal(rel)}
+                    className="btn btn-sm btn-primary"
+                    style={{ fontSize: '0.74rem', padding: '2px 7px', height: 24, flexShrink: 0, borderRadius: 'var(--radius-sm)', gap: 3 }}
+                    title={`Nhận ${rel.name} (${rel.store})`}
+                  >
+                    <UserPlus size={11} />
+                    Nhận
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
@@ -270,9 +237,9 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
           Tại <strong>{currentEmployee.store}</strong> hiện có <strong>{unclaimedRelativesInStore.length}</strong> người thân đăng ký chưa gắn mã nhân viên. Nếu là người thân của bạn, hãy bấm xác nhận để được xếp chung phòng gia đình:
         </p>
       ) : (
-        !showOtherStoreSearch && (
+        !searchOtherStore.trim() && (
           <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-            Hiện không có người thân nào chưa gắn mã tại <strong>{currentEmployee.store}</strong>. Nếu người thân của bạn đăng ký ở siêu thị/đơn vị khác, hãy nhập tên bên trên để tìm và nhận người thân:
+            Hiện không có người thân nào chưa gắn mã tại <strong>{currentEmployee.store}</strong>. Nếu người thân của bạn đăng ký ở siêu thị/đơn vị khác, hãy nhập tên vào ô tìm kiếm ở góc trên bên phải để tìm và nhận người thân:
           </p>
         )
       )}
