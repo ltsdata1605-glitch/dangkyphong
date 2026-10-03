@@ -36,7 +36,7 @@ interface AdminViewProps {
   onDeleteRoom: (roomId: string) => void;
   onDeleteAllRooms: () => void;
   onRemoveMember: (roomId: string, personId: string) => void;
-  onAddMember: (roomId: string, personId: string) => void;
+  onAddMember: (roomId: string, personId: string) => Promise<boolean> | void;
   onCreateRoom?: (capacity: number, memberIds: string[]) => void;
   onSaveRoom?: (capacity: number, memberIds: string[], editingRoomId?: string) => void;
   onSaveOverride: (roomId: string, note: string) => void;
@@ -163,6 +163,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <AdminRoomManager
           rooms={rooms}
           people={people}
+          currentTrip={currentTrip}
           onDeleteRoom={onDeleteRoom}
           onDeleteAllRooms={onDeleteAllRooms}
           onRemoveMember={onRemoveMember}

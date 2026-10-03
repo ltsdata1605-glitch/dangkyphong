@@ -585,45 +585,50 @@ export const App: React.FC = () => {
   };
 
   // Admin thêm người vào phòng
-  const handleAdminAddMember = async (roomId: string, personId: string) => {
-    if (!currentTrip) return;
+  const handleAdminAddMember = async (roomId: string, personId: string): Promise<boolean> => {
+    if (!currentTrip) return false;
     const currentPeople = getPeople(currentTrip.id);
     const currentRooms = getRooms(currentTrip.id);
     const room = currentRooms.find(r => r.id === roomId);
     const person = currentPeople.find(p => p.id === personId);
 
-    if (!room || !person) return;
+    if (!room || !person) return false;
 
     if (room.memberIds.length >= 6) {
       alert('Phòng đã đạt giới hạn tối đa 6 người/phòng. Không thể thêm tiếp!');
-      return;
+      return false;
     }
 
-    if (!room.memberIds.includes(person.id)) {
-      room.memberIds.push(person.id);
+    if (room.memberIds.includes(person.id)) {
+      alert('Thành viên này đã có trong phòng!');
+      return false;
     }
-    person.roomId = room.id;
 
-    // Tự động nâng loại phòng nếu số người lớn vượt quá sức chứa ban đầu (tối đa 6 người)
+    // Tính toán số suất người lớn trước khi thêm
     const members = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
-    const adultSlots = members.filter(m => m.slot > 0).length;
-    if (adultSlots > room.capacity) {
-      const nextCapacity = Math.min(6, adultSlots);
+    const currentAdultSlots = members.filter(m => (m.slot ?? 1) > 0).length;
+    const personSlot = (person.slot ?? 1);
+    const projectedAdultSlots = currentAdultSlots + (personSlot > 0 ? 1 : 0);
+
+    // Chốt chặn định mức: Nếu thêm người khiến số người lớn vượt sức chứa cũ
+    if (projectedAdultSlots > room.capacity) {
+      const nextCapacity = Math.min(6, projectedAdultSlots);
       if (currentTrip.roomLimits) {
         const lim = currentTrip.roomLimits[nextCapacity];
-        const count = currentRooms.filter(r => r.capacity === nextCapacity && r.memberIds && r.memberIds.length > 0).length;
+        const count = currentRooms.filter(r => r.id !== room.id && r.capacity === nextCapacity && r.memberIds && r.memberIds.length > 0).length;
         if (lim !== undefined && count >= lim) {
-          // Hoàn tác
-          room.memberIds = room.memberIds.filter(id => id !== person.id);
-          person.roomId = null;
-          alert(`⚠️ Không thể thêm người vào phòng! Loại phòng ${nextCapacity} người đã đạt đủ số lượng quy định (${count}/${lim} phòng). Vui lòng chọn phòng khác.`);
-          return;
+          alert(`⚠️ KHÔNG THỂ THÊM THÀNH VIÊN VÀO PHÒNG ${room.code}!\n\nViệc thêm "${person.name}" khiến số người lớn (${projectedAdultSlots}) vượt sức chứa cũ (${room.capacity} người).\nTuy nhiên loại phòng ${nextCapacity} người đã đạt định mức tối đa (${count}/${lim} phòng).\n\nHệ thống từ chối và không cho phép nâng sức chứa phòng!`);
+          return false;
         }
       }
       room.capacity = nextCapacity;
     }
 
-    const validation = validateRoom(members, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride);
+    room.memberIds.push(person.id);
+    person.roomId = room.id;
+
+    const updatedMembers = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
+    const validation = validateRoom(updatedMembers, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride);
 
     room.usedSlots = validation.usedSlots;
     room.childCount = validation.childCount;
@@ -635,6 +640,7 @@ export const App: React.FC = () => {
     await saveRooms(currentTrip.id, currentRooms);
     await savePeople(currentTrip.id, currentPeople);
     refreshData();
+    return true;
   };
 
   // Admin gỡ người khỏi phòng (hoặc xóa phòng hoàn toàn nếu chỉ còn người này)

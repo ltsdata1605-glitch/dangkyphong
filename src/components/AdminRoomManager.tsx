@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Person, Room } from '../types';
+import { Person, Room, Trip } from '../types';
 import { removeVietnameseTones } from '../utils/textUtils';
 import { validateRoom } from '../services/roomingEngine';
 import {
@@ -23,16 +23,18 @@ import {
 interface AdminRoomManagerProps {
   rooms: Room[];
   people: Person[];
+  currentTrip?: Trip | null;
   onDeleteRoom: (roomId: string) => void;
   onDeleteAllRooms: () => void;
   onRemoveMember: (roomId: string, personId: string) => void;
-  onAddMember: (roomId: string, personId: string) => void;
+  onAddMember: (roomId: string, personId: string) => Promise<boolean> | void;
   onSaveOverride: (roomId: string, note: string) => void;
 }
 
 export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
   rooms,
   people,
+  currentTrip,
   onDeleteRoom,
   onDeleteAllRooms,
   onRemoveMember,
@@ -558,89 +560,168 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
       )}
 
       {/* Modal Thêm người vào phòng */}
-      {addingToRoom && (
-        <div className="modal-overlay" onClick={() => setAddingToRoom(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
-                  Thêm Thành Viên Vào {addingToRoom.code}
-                </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Hiện có: <strong>{addingToRoom.memberIds.length}/6 người</strong> • Loại phòng: <strong>{addingToRoom.capacity} người</strong>
-                  {addingToRoom.memberIds.length >= addingToRoom.capacity && addingToRoom.memberIds.length < 6 && (
-                    <span style={{ color: 'var(--primary-600)', fontWeight: 600, marginLeft: 6 }}>
-                      (Tự động đổi sang phòng {Math.min(6, addingToRoom.memberIds.length + 1)} người)
-                    </span>
-                  )}
-                </p>
+      {addingToRoom && (() => {
+        const addingRoomMembers = addingToRoom.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+        const currentAdultSlots = addingRoomMembers.filter(m => (m.slot ?? 1) > 0).length;
+        const currentChildren = addingRoomMembers.filter(m => m.slot === 0).length;
+        const isCurrentlyFull = currentAdultSlots >= addingToRoom.capacity;
+        const potentialNextCap = Math.min(6, addingToRoom.capacity + 1);
+
+        let isNextCapFull = false;
+        let nextCapCount = 0;
+        let nextCapLimit: number | undefined = undefined;
+        if (currentTrip?.roomLimits) {
+          nextCapLimit = currentTrip.roomLimits[potentialNextCap];
+          nextCapCount = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === potentialNextCap && r.memberIds && r.memberIds.length > 0).length;
+          if (nextCapLimit !== undefined && nextCapCount >= nextCapLimit) {
+            isNextCapFull = true;
+          }
+        }
+
+        return (
+          <div className="modal-overlay" onClick={() => setAddingToRoom(null)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                    Thêm Thành Viên Vào {addingToRoom.code}
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Hiện có: <strong>{addingToRoom.memberIds.length} người</strong> ({currentAdultSlots} người lớn{currentChildren > 0 ? `, ${currentChildren} trẻ em` : ''}) • Loại: <strong>Phòng {addingToRoom.capacity} người</strong>
+                  </p>
+                </div>
+                <button onClick={() => setAddingToRoom(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
               </div>
-              <button onClick={() => setAddingToRoom(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>✕</button>
-            </div>
 
-            <div style={{ padding: '16px 20px' }}>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Tìm người chưa có phòng..."
-                value={personSearch}
-                onChange={e => setPersonSearch(e.target.value)}
-                style={{ marginBottom: 12 }}
-                autoFocus
-              />
+              {isCurrentlyFull && (
+                <div style={{
+                  padding: '10px 16px',
+                  background: isNextCapFull ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                  borderBottom: `1px solid ${isNextCapFull ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                  fontSize: '0.8rem',
+                  lineHeight: 1.5,
+                  color: isNextCapFull ? 'var(--color-danger)' : '#b45309'
+                }}>
+                  {isNextCapFull ? (
+                    <>
+                      ⛔ <strong>Cảnh báo định mức:</strong> Phòng đã đủ {addingToRoom.capacity} người. Loại <strong>phòng {potentialNextCap} người</strong> đã đạt tối đa ({nextCapCount}/{nextCapLimit} phòng). <u>Không thể thêm người lớn để nâng sức chứa phòng này!</u>
+                    </>
+                  ) : (
+                    <>
+                      ⚠️ <strong>Lưu ý:</strong> Phòng đã đủ {addingToRoom.capacity} người. Nếu thêm 1 người lớn, hệ thống sẽ tự động nâng lên <strong>Phòng {potentialNextCap} người</strong> ({nextCapCount}/{nextCapLimit ?? '∞'} phòng đã dùng).
+                    </>
+                  )}
+                </div>
+              )}
 
-              <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {unassignedPeople.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    Không có nhân sự chưa xếp phòng nào phù hợp.
-                  </div>
-                ) : (
-                  unassignedPeople.map(p => (
-                    <div
-                      key={p.id}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>
-                          {p.name}
-                          <span className={`badge ${p.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ marginLeft: 6, fontSize: '0.65rem' }}>
-                            {p.gender === 'M' ? 'Nam' : 'Nữ'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {p.store} • {p.code}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (addingToRoom.memberIds.length >= 6) {
-                            alert('Phòng đã đạt tối đa 6 người, không thể thêm tiếp.');
-                            return;
-                          }
-                          onAddMember(addingToRoom.id, p.id);
-                          setAddingToRoom(null);
-                        }}
-                        disabled={addingToRoom.memberIds.length >= 6}
-                        className="btn btn-primary btn-sm"
-                        style={{ fontSize: '0.78rem', padding: '5px 10px' }}
-                      >
-                        Chọn vào phòng
-                      </button>
+              <div style={{ padding: '16px 20px' }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Tìm người chưa có phòng theo tên, MSNV, siêu thị..."
+                  value={personSearch}
+                  onChange={e => setPersonSearch(e.target.value)}
+                  style={{ marginBottom: 12 }}
+                  autoFocus
+                />
+
+                <div style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {unassignedPeople.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      Không có nhân sự chưa xếp phòng nào phù hợp.
                     </div>
-                  ))
-                )}
+                  ) : (
+                    unassignedPeople.map(p => {
+                      const personSlot = (p.slot ?? 1);
+                      const projectedAdultSlots = currentAdultSlots + (personSlot > 0 ? 1 : 0);
+                      const willUpgrade = projectedAdultSlots > addingToRoom.capacity;
+                      const nextCap = Math.min(6, projectedAdultSlots);
+
+                      let isBlocked = false;
+                      let blockedReason = '';
+                      if (willUpgrade && currentTrip?.roomLimits) {
+                        const lim = currentTrip.roomLimits[nextCap];
+                        const count = rooms.filter(r => r.id !== addingToRoom.id && r.capacity === nextCap && r.memberIds && r.memberIds.length > 0).length;
+                        if (lim !== undefined && count >= lim) {
+                          isBlocked = true;
+                          blockedReason = `Đã đủ định mức phòng ${nextCap} (${count}/${lim} phòng)`;
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isBlocked ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-muted)',
+                            border: isBlocked ? '1px dashed rgba(239, 68, 68, 0.3)' : '1px solid transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span>{p.name}</span>
+                              <span className={`badge ${p.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.65rem' }}>
+                                {p.gender === 'M' ? 'Nam' : 'Nữ'}
+                              </span>
+                              {p.slot === 0 && (
+                                <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
+                                  Trẻ em (0s)
+                                </span>
+                              )}
+                              {willUpgrade && (
+                                <span className={`badge ${isBlocked ? 'badge-danger' : 'badge-info'}`} style={{ fontSize: '0.65rem' }}>
+                                  {isBlocked ? `⛔ Nâng P.${nextCap} (Hết định mức)` : `Nâng lên P.${nextCap}`}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {p.store} • {p.code}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={async () => {
+                              if (addingToRoom.memberIds.length >= 6) {
+                                alert('Phòng đã đạt tối đa 6 người, không thể thêm tiếp.');
+                                return;
+                              }
+                              if (isBlocked) {
+                                alert(`⚠️ KHÔNG THỂ THÊM VÀO PHÒNG!\n\nViệc thêm "${p.name}" sẽ nâng phòng từ ${addingToRoom.capacity} người lên ${nextCap} người.\nTuy nhiên loại phòng ${nextCap} người đã đạt tối đa định mức (${blockedReason}).\n\nHệ thống từ chối và không cho nâng sức chứa phòng!`);
+                                return;
+                              }
+                              const res = await onAddMember(addingToRoom.id, p.id);
+                              if (res !== false) {
+                                setAddingToRoom(null);
+                              }
+                            }}
+                            disabled={addingToRoom.memberIds.length >= 6 || isBlocked}
+                            className={`btn ${isBlocked ? 'btn-secondary' : 'btn-primary'} btn-sm`}
+                            style={{
+                              fontSize: '0.78rem',
+                              padding: '5px 10px',
+                              whiteSpace: 'nowrap',
+                              opacity: isBlocked ? 0.6 : 1,
+                              cursor: isBlocked ? 'not-allowed' : 'pointer'
+                            }}
+                            title={isBlocked ? blockedReason : 'Chọn vào phòng'}
+                          >
+                            {isBlocked ? 'Hết định mức' : 'Chọn vào phòng'}
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Modal Duyệt Đặc Cách (Admin Override) */}
       {overrideModalRoom && (
