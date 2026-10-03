@@ -26,7 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogoutEmployee
 }) => {
   return (
-    <header style={{
+    <header className="navbar-header" style={{
       position: 'sticky',
       top: 0,
       zIndex: 100,
@@ -37,37 +37,38 @@ export const Navbar: React.FC<NavbarProps> = ({
       padding: '12px 16px',
       transition: 'all 0.2s ease'
     }}>
-      <div style={{
+      <div className="navbar-container" style={{
         maxWidth: 1200,
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 12
+        gap: 8
       }}>
         {/* Brand & Active Trip Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40,
-            height: 40,
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="navbar-brand-logo" style={{
+            width: 38,
+            height: 38,
             borderRadius: 'var(--radius-md)',
             background: 'var(--primary-gradient)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            boxShadow: '0 4px 10px rgba(37, 99, 235, 0.35)'
+            boxShadow: '0 4px 10px rgba(37, 99, 235, 0.35)',
+            flexShrink: 0
           }}>
-            <Hotel size={22} />
+            <Hotel size={20} />
           </div>
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
+              <span className="navbar-brand-title" style={{
                 fontFamily: 'var(--font-heading)',
                 fontWeight: 800,
-                fontSize: '1.15rem',
+                fontSize: '1.12rem',
                 letterSpacing: '-0.02em',
                 background: 'var(--primary-gradient)',
                 WebkitBackgroundClip: 'text',
@@ -75,32 +76,33 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}>
                 ĐĂNG KÝ PHÒNG
               </span>
-              <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>v1.0</span>
-              <span className="badge badge-success" style={{ fontSize: '0.62rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }} title="Dữ liệu đồng bộ thời gian thực qua Firebase Firestore">
+              <span className="badge badge-primary navbar-version-badge" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>v1.0</span>
+              <span className="badge badge-success navbar-live-badge" style={{ fontSize: '0.62rem', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }} title="Dữ liệu đồng bộ thời gian thực qua Firebase Firestore">
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
                 Firebase Live
               </span>
             </div>
 
             {/* Trip Dropdown Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-              <Calendar size={13} style={{ color: 'var(--text-muted)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+              <Calendar size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <select
                   value={currentTrip?.id || ''}
                   onChange={(e) => onSelectTrip(e.target.value)}
+                  className="navbar-trip-select"
                   style={{
                     appearance: 'none',
                     background: 'transparent',
                     border: 'none',
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '0.85rem',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
                     color: 'var(--text-main)',
                     cursor: 'pointer',
-                    paddingRight: 18,
+                    paddingRight: 16,
                     outline: 'none',
-                    maxWidth: 'min(500px, 80vw)',
+                    maxWidth: 'min(500px, 75vw)',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden'
@@ -119,34 +121,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ))
                   )}
                 </select>
-                <ChevronDown size={12} style={{ position: 'absolute', right: 2, top: 4, pointerEvents: 'none', color: 'var(--text-muted)' }} />
+                <ChevronDown size={11} style={{ position: 'absolute', right: 1, top: 4, pointerEvents: 'none', color: 'var(--text-muted)' }} />
               </div>
             </div>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Employee status if logged in */}
           {activeRole === 'EMPLOYEE' && loggedInEmployeeName && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '6px 12px',
+              gap: 5,
+              padding: '4px 10px',
               borderRadius: 'var(--radius-full)',
               background: 'var(--bg-muted)',
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 600
             }}>
               <span style={{
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
                 borderRadius: '50%',
                 background: 'var(--color-success)',
-                boxShadow: '0 0 8px var(--color-success)'
+                boxShadow: '0 0 6px var(--color-success)'
               }} />
-              <span style={{ color: 'var(--text-main)', maxWidth: 120, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'var(--text-main)', maxWidth: 100, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                 {loggedInEmployeeName}
               </span>
               <button
@@ -155,10 +157,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   border: 'none',
                   background: 'transparent',
                   color: 'var(--color-danger)',
-                  fontSize: '0.75rem',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  marginLeft: 4
+                  marginLeft: 2
                 }}
                 title="Đăng xuất"
               >
@@ -170,17 +172,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Role Toggle Button */}
           <button
             onClick={() => onSwitchRole(activeRole === 'EMPLOYEE' ? 'ADMIN' : 'EMPLOYEE')}
-            className={`btn btn-sm ${activeRole === 'ADMIN' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm navbar-role-btn ${activeRole === 'ADMIN' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ fontWeight: 700 }}
           >
             {activeRole === 'ADMIN' ? (
               <>
-                <ShieldCheck size={16} />
+                <ShieldCheck size={15} />
                 <span>Admin BTC</span>
               </>
             ) : (
               <>
-                <User size={16} />
+                <User size={15} />
                 <span>Nhân Viên</span>
               </>
             )}
@@ -189,11 +191,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
-            className="btn btn-secondary btn-sm"
-            style={{ padding: 8, borderRadius: 'var(--radius-full)' }}
+            className="btn btn-secondary btn-sm navbar-theme-btn"
+            style={{ padding: '6px 8px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             title={isDarkMode ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối'}
           >
-            {isDarkMode ? <Sun size={17} style={{ color: '#f59e0b' }} /> : <Moon size={17} style={{ color: '#64748b' }} />}
+            {isDarkMode ? <Sun size={15} style={{ color: '#f59e0b' }} /> : <Moon size={15} style={{ color: '#64748b' }} />}
           </button>
         </div>
       </div>

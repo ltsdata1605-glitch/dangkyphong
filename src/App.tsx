@@ -800,7 +800,7 @@ export const App: React.FC = () => {
       />
 
       {/* Page Content Container - Perfectly aligns CountdownBanner with Admin and Employee views */}
-      <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '0 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div className="app-main-container" style={{ maxWidth: 1200, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* 2. Countdown Banner & Trip Overview */}
         {currentTrip && (
           <CountdownBanner

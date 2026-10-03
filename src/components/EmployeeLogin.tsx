@@ -61,18 +61,18 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
         {/* Step 1: Select Employee */}
         {!selectedPerson ? (
           <div>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: 6 }}>
+            <label className="employee-login-label" style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', marginBottom: 6 }}>
               Nhập Họ tên (không dấu hoặc có dấu) hoặc Mã số NV:
             </label>
-            <div style={{ position: 'relative', marginBottom: 12 }}>
-              <Search size={18} style={{ position: 'absolute', left: 14, top: 15, color: 'var(--text-muted)' }} />
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
               <input
                 type="text"
-                className="input-field"
+                className="input-field employee-login-input"
                 placeholder="Ví dụ: nguyen van vu hoặc 20894..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: 42 }}
+                style={{ paddingLeft: 36 }}
                 autoFocus
               />
             </div>
@@ -80,14 +80,14 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
             {/* Results List */}
             {searchTerm.trim().length > 0 && (
               <div style={{
-                marginTop: 8,
+                marginTop: 6,
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-subtle)',
                 overflow: 'hidden',
                 background: 'var(--bg-card-solid)'
               }}>
                 {filteredEmployees.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  <div style={{ padding: '14px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                     Không tìm thấy nhân viên nào phù hợp với "{searchTerm}"
                   </div>
                 ) : (
@@ -96,30 +96,30 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
                       key={emp.id}
                       onClick={() => handleSelect(emp)}
                       style={{
-                        padding: '12px 14px',
+                        padding: '10px 12px',
                         borderBottom: '1px solid var(--border-subtle)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        gap: 10,
+                        gap: 8,
                         transition: 'background 0.15s ease'
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-muted)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                          {emp.name}
-                          <span className="badge badge-primary" style={{ marginLeft: 8, fontSize: '0.7rem' }}>
-                            MSNV: {emp.code}
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span>{emp.name}</span>
+                          <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
+                            {emp.code}
                           </span>
-                          <span className={`badge ${emp.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ marginLeft: 4, fontSize: '0.7rem' }}>
+                          <span className={`badge ${emp.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.65rem' }}>
                             {emp.gender === 'M' ? 'Nam' : 'Nữ'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Building size={12} /> {emp.store}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Building size={11} /> {emp.store}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -130,10 +130,10 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
                             e.stopPropagation();
                             onLogin(emp);
                           }}
-                          style={{ fontWeight: 700, fontSize: '0.8rem', padding: '6px 12px' }}
+                          style={{ fontWeight: 700, fontSize: '0.75rem', padding: '4px 10px', whiteSpace: 'nowrap' }}
                           title="Đăng nhập ngay"
                         >
-                          Vào ngay <ArrowRight size={14} style={{ marginLeft: 4 }} />
+                          Vào ngay <ArrowRight size={12} style={{ marginLeft: 3 }} />
                         </button>
                       </div>
                     </div>
@@ -143,20 +143,20 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
             )}
 
             {/* Hint Box */}
-            <div style={{
-              marginTop: 18,
-              padding: '12px 14px',
+            <div className="employee-login-hint" style={{
+              marginTop: 14,
+              padding: '10px 12px',
               borderRadius: 'var(--radius-sm)',
               background: 'var(--bg-muted)',
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 8
+              gap: 7
             }}>
-              <Sparkles size={16} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 2 }} />
+              <Sparkles size={14} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 2 }} />
               <div>
-                Hệ thống hỗ trợ gõ tìm kiếm tiếng Việt không dấu (vd: <i>tran van ngoan</i>) hoặc gõ trực tiếp 5-6 chữ số mã nhân viên.
+                Hệ thống hỗ trợ gõ tiếng Việt không dấu (vd: <i>tran van ngoan</i>) hoặc gõ trực tiếp 5-6 chữ số mã nhân viên.
               </div>
             </div>
           </div>

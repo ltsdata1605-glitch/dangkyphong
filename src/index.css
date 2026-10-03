@@ -308,16 +308,35 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Mobile & Touch Optimizations */
 @media (max-width: 640px) {
+  html {
+    font-size: 14.5px; /* Proportionally scales all rem-based typography and spacing */
+  }
+
+  .app-main-container {
+    padding: 0 8px !important;
+  }
+
   .btn:not(.btn-sm) {
-    min-height: 44px; /* Touch target standards */
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
   }
   .btn-sm {
-    min-height: 32px;
+    min-height: 30px !important;
+    padding: 4px 8px !important;
+    font-size: 0.74rem !important;
   }
   .input-field {
-    font-size: 16px; /* Avoid iOS zoom on focus */
-    min-height: 44px;
-    padding: 10px 14px;
+    font-size: 15px; /* Avoid iOS zoom on focus */
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  .modal-overlay {
+    padding: 8px !important;
+  }
+  .modal-content {
+    border-radius: var(--radius-md) !important;
+    max-height: 94vh !important;
   }
 }
 
@@ -406,31 +425,76 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Mobile responsive compact styling (<= 640px) */
 @media (max-width: 640px) {
+  /* Navbar */
+  .navbar-header {
+    padding: 6px 10px !important;
+  }
+  .navbar-brand-logo {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+  .navbar-brand-logo svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+  .navbar-brand-title {
+    font-size: 0.96rem !important;
+  }
+  .navbar-version-badge {
+    display: none !important;
+  }
+  .navbar-live-badge {
+    font-size: 0.58rem !important;
+    padding: 1px 4px !important;
+  }
+  .navbar-trip-select {
+    font-size: 0.78rem !important;
+    max-width: min(230px, 58vw) !important;
+  }
+  .navbar-role-btn {
+    padding: 4px 8px !important;
+    font-size: 0.74rem !important;
+    min-height: 30px !important;
+  }
+  .navbar-theme-btn {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+  }
+
+  /* Countdown Banner */
   .countdown-banner-card {
-    padding: 8px 10px !important;
-    gap: 8px !important;
-    margin: 4px 0 8px 0 !important;
+    padding: 6px 10px !important;
+    gap: 6px !important;
+    margin: 2px 0 6px 0 !important;
+    border-radius: 10px !important;
   }
 
   .countdown-trip-title {
-    font-size: 0.92rem !important;
+    font-size: 0.88rem !important;
+    line-height: 1.25 !important;
   }
 
   .countdown-trip-details {
-    gap: 8px !important;
-    font-size: 0.72rem !important;
-    margin-top: 2px !important;
+    gap: 6px !important;
+    font-size: 0.68rem !important;
+    margin-top: 1px !important;
+  }
+  .countdown-trip-details svg {
+    width: 11px !important;
+    height: 11px !important;
   }
 
   .countdown-room-limits {
-    gap: 4px !important;
-    font-size: 0.7rem !important;
-    margin-top: 5px !important;
-    padding-top: 5px !important;
+    gap: 3px !important;
+    font-size: 0.68rem !important;
+    margin-top: 4px !important;
+    padding-top: 4px !important;
   }
 
   .room-limit-heading {
-    font-size: 0.72rem !important;
+    font-size: 0.68rem !important;
     font-weight: 700 !important;
   }
 
@@ -444,20 +508,20 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .room-quota-chip {
-    padding: 2px 5px !important;
-    font-size: 0.7rem !important;
-    gap: 3px !important;
+    padding: 1px 5px !important;
+    font-size: 0.68rem !important;
+    gap: 2px !important;
     border-radius: 5px !important;
   }
 
   .quota-tag-full {
-    font-size: 0.6rem !important;
-    padding: 0 4px !important;
+    font-size: 0.58rem !important;
+    padding: 0 3px !important;
     border-radius: 3px !important;
   }
 
   .quota-tag-remaining {
-    font-size: 0.64rem !important;
+    font-size: 0.62rem !important;
   }
 
   .countdown-banner-actions {
@@ -467,38 +531,65 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .countdown-deadline-box {
-    padding: 3px 8px !important;
-    gap: 6px !important;
+    padding: 2px 6px !important;
+    gap: 4px !important;
+    border-radius: 6px !important;
+  }
+  .countdown-deadline-box svg {
+    width: 13px !important;
+    height: 13px !important;
   }
 
   .btn-view-rooms-badge {
-    padding: 4px 10px !important;
-    font-size: 0.72rem !important;
-    gap: 4px !important;
+    padding: 3px 8px !important;
+    font-size: 0.68rem !important;
+    gap: 3px !important;
   }
 
   /* Employee Login mobile card compactness */
   .employee-login-wrapper {
-    margin: 10px auto !important;
+    margin: 6px auto !important;
     padding: 0 4px !important;
+    max-width: 100% !important;
   }
   .employee-login-card {
-    padding: 18px 14px !important;
-    border-radius: var(--radius-md) !important;
+    padding: 14px 12px !important;
+    border-radius: 12px !important;
   }
   .employee-login-header {
-    margin-bottom: 16px !important;
+    margin-bottom: 10px !important;
   }
   .employee-login-avatar {
-    width: 42px !important;
-    height: 42px !important;
-    margin-bottom: 8px !important;
+    width: 36px !important;
+    height: 36px !important;
+    margin-bottom: 6px !important;
+  }
+  .employee-login-avatar svg {
+    width: 18px !important;
+    height: 18px !important;
   }
   .employee-login-title {
-    font-size: 1.15rem !important;
+    font-size: 1.05rem !important;
+    margin: 0 !important;
   }
   .employee-login-desc {
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
+    margin-top: 2px !important;
+  }
+  .employee-login-label {
+    font-size: 0.78rem !important;
+    margin-bottom: 4px !important;
+  }
+  .employee-login-input {
+    min-height: 38px !important;
+    font-size: 14px !important;
+    padding: 6px 10px 6px 32px !important;
+    border-radius: 8px !important;
+  }
+  .employee-login-hint {
+    margin-top: 8px !important;
+    padding: 6px 8px !important;
+    font-size: 0.7rem !important;
   }
 }
 
