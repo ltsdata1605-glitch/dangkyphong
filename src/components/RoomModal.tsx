@@ -370,7 +370,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                           </span>
                           {hasSameStore && <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>Cùng ST</span>}
                           <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                            {leader?.name} ({leader?.store})
+                            {leader?.code ? `${leader.code} - ` : ''}{leader?.name} ({leader?.store})
                           </span>
                         </div>
                         <button

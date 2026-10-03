@@ -277,12 +277,14 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                           lineHeight: 1.2,
                           flexWrap: 'wrap'
                         }}
-                        title={`${m.name} - ${m.store}`}
+                        title={`${m.code ? `${m.code} - ` : ''}${m.name} - ${m.store}`}
                       >
                         <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.55rem', padding: '0 2px' }}>
                           {m.gender === 'M' ? 'Nam' : 'Nữ'}
                         </span>
-                        <strong style={{ whiteSpace: 'nowrap' }}>{m.name}</strong>
+                        <strong style={{ whiteSpace: 'nowrap' }}>
+                          {m.code ? `${m.code} - ${m.name}` : m.name}
+                        </strong>
                         {m.store && <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem', wordBreak: 'break-word' }}>({m.store})</span>}
                         {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={9} style={{ color: '#d97706', flexShrink: 0 }} />}
                       </span>
