@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Trip, Person } from '../types';
+import { Trip, Person, Room } from '../types';
 import {
   Calendar,
   Building,
@@ -18,7 +18,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { exportTemplatePersonnelExcel, parseUploadedExcel } from '../services/excelService';
-import { getPeople, savePeople, getTripImportInfo } from '../services/storageService';
+import { getPeople, savePeople, getTripImportInfo, getRooms } from '../services/storageService';
 import { ExcelImportModal } from './ExcelImportModal';
 
 const formatImportTime = (isoString?: string) => {
@@ -38,6 +38,7 @@ const formatImportTime = (isoString?: string) => {
 interface AdminTripManagerProps {
   currentTrip: Trip;
   trips: Trip[];
+  rooms?: Room[];
   onSelectTrip: (tripId: string) => void;
   onSaveTrip: (trip: Trip, initialPeople?: Person[]) => void;
   onDeleteTrip: (tripId: string) => void;
@@ -48,6 +49,7 @@ interface AdminTripManagerProps {
 export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
   currentTrip,
   trips,
+  rooms,
   onSelectTrip,
   onSaveTrip,
   onDeleteTrip,
@@ -347,26 +349,45 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: 10,
+                  gap: 8,
                   fontSize: '0.82rem'
                 }}>
                   <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức phòng:</span>
-                  {[2, 3, 4, 5, 6].map(cap => (
-                    <span
-                      key={cap}
-                      style={{
-                        background: 'var(--bg-card-solid)',
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        border: '1px solid var(--border-subtle)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6
-                      }}
-                    >
-                      Phòng {cap} người: <strong style={{ color: 'var(--primary-600)' }}>{trip.roomLimits?.[cap] ?? '—'} phòng</strong>
-                    </span>
-                  ))}
+                  {[2, 3, 4, 5, 6].map(cap => {
+                    const tripRooms = (trip.id === currentTrip.id && rooms) ? rooms : getRooms(trip.id);
+                    const arrangedCount = tripRooms.filter(r => r.capacity === cap).length;
+                    const limit = trip.roomLimits?.[cap];
+                    const isExceeded = limit !== undefined && arrangedCount > limit;
+                    return (
+                      <span
+                        key={cap}
+                        style={{
+                          background: arrangedCount > 0 ? 'rgba(37, 99, 235, 0.06)' : 'var(--bg-card-solid)',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: isExceeded
+                            ? '1px solid var(--color-danger)'
+                            : arrangedCount > 0
+                              ? '1px solid rgba(37, 99, 235, 0.3)'
+                              : '1px solid var(--border-subtle)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        Phòng {cap} người:{' '}
+                        <strong style={{
+                          color: isExceeded
+                            ? 'var(--color-danger)'
+                            : arrangedCount > 0
+                              ? 'var(--primary-600)'
+                              : 'var(--text-muted)'
+                        }}>
+                          {limit !== undefined ? `${arrangedCount}/${limit}` : arrangedCount} phòng
+                        </strong>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             );

@@ -180,6 +180,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <AdminTripManager
           currentTrip={currentTrip}
           trips={trips}
+          rooms={rooms}
           onSelectTrip={onSelectTrip}
           onSaveTrip={onSaveTrip}
           onDeleteTrip={onDeleteTrip}

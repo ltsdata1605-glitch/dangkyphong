@@ -232,36 +232,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
-          {[2, 3, 4, 5, 6].map(cap => (
-            <div
-              key={cap}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-muted)',
-                border: '1px solid var(--border-subtle)',
-                textAlign: 'center'
-              }}
-            >
-              <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                Phòng {cap} Người
+          {[2, 3, 4, 5, 6].map(cap => {
+            const limit = currentTrip.roomLimits?.[cap];
+            const count = capacityCounts[cap];
+            return (
+              <div
+                key={cap}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 'var(--radius-md)',
+                  background: count > 0 ? 'rgba(37, 99, 235, 0.04)' : 'var(--bg-muted)',
+                  border: count > 0 ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid var(--border-subtle)',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Phòng {cap} Người
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, margin: '2px 0' }}>
+                  <span style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '1.35rem',
+                    fontWeight: 800,
+                    color: count > 0 ? 'var(--primary-500)' : 'var(--text-muted)',
+                    lineHeight: 1.1
+                  }}>
+                    {limit !== undefined ? `${count}/${limit}` : count}
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                    phòng
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, margin: '2px 0' }}>
-                <span style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: '1.35rem',
-                  fontWeight: 800,
-                  color: 'var(--primary-500)',
-                  lineHeight: 1.1
-                }}>
-                  {capacityCounts[cap]}
-                </span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                  phòng
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Children Info */}
