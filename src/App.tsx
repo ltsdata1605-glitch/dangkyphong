@@ -21,7 +21,8 @@ import {
   deleteRoom,
   deleteAllRooms,
   resetDefaultData,
-  subscribeToStateChanges
+  subscribeToStateChanges,
+  fetchTripDataFromFirebase
 } from './services/storageService';
 import { validateRoom, autoMatchRooms } from './services/roomingEngine';
 import { exportRoomingListExcel } from './services/excelService';
@@ -135,11 +136,13 @@ export const App: React.FC = () => {
     if (targetRole === 'ADMIN') {
       if (isAdminLoggedIn) {
         setActiveRole('ADMIN');
+        refreshData();
       } else {
         setIsAdminLoginModalOpen(true);
       }
     } else {
       setActiveRole('EMPLOYEE');
+      refreshData();
     }
   };
 
@@ -147,6 +150,7 @@ export const App: React.FC = () => {
     setIsAdminLoggedIn(true);
     sessionStorage.setItem('rooming_admin_auth', 'true');
     setActiveRole('ADMIN');
+    refreshData();
   };
 
   const handleAdminLogout = () => {
@@ -484,9 +488,33 @@ export const App: React.FC = () => {
   };
 
   // Xuất Excel Rooming List
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!currentTrip) return;
-    exportRoomingListExcel(currentTrip, people, rooms);
+    
+    // 1. Lấy dữ liệu mới nhất từ storage và cả React state
+    let exportPeople = getPeople(currentTrip.id);
+    let exportRooms = getRooms(currentTrip.id);
+
+    if (exportPeople.length === 0) exportPeople = people;
+    if (exportRooms.length === 0) exportRooms = rooms;
+
+    // 2. Nếu danh sách phòng vẫn rỗng (do browser cache chưa kịp nạp), tải trực tiếp từ Firebase
+    if (exportRooms.length === 0 || exportPeople.length === 0) {
+      try {
+        const remoteData = await fetchTripDataFromFirebase(currentTrip.id);
+        if (remoteData.rooms.length > 0) exportRooms = remoteData.rooms;
+        if (remoteData.people.length > 0) exportPeople = remoteData.people;
+      } catch (err) {
+        console.warn('Lỗi nạp bổ sung khi xuất Excel:', err);
+      }
+    }
+
+    if (exportRooms.length === 0) {
+      alert('Hiện chưa có dữ liệu phòng nào được lưu để xuất danh sách. Vui lòng kiểm tra lại!');
+      return;
+    }
+
+    exportRoomingListExcel(currentTrip, exportPeople, exportRooms);
   };
 
   // Khóa / Mở đăng ký

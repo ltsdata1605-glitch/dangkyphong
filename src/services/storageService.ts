@@ -82,24 +82,25 @@ export function setupFirestoreListeners(tripId: string): void {
   if (!tripId) return;
 
   // 2. Lắng nghe danh sách nhân sự của chuyến đi hiện tại
+  // 2. Lắng nghe danh sách nhân sự
   try {
     peopleUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'people'), (snapshot) => {
       if (snapshot.metadata.hasPendingWrites) return;
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.people)) {
+          // Lưu trực tiếp danh sách nhân sự từ Firebase vào localStorage trước
+          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(data.people));
+
           const currentRooms = getRooms(tripId);
-          const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, currentRooms, data.people);
-          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
-          if (modified) {
-            localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+          if (currentRooms.length > 0 && data.people.length > 0) {
+            const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, currentRooms, data.people);
+            localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+            if (modified) {
+              localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+            }
           }
           notifyStateChange();
-        }
-      } else {
-        const currentPeople = getPeople(tripId);
-        if (currentPeople.length > 0) {
-          syncPeopleToFirebase(tripId, currentPeople);
         }
       }
     }, (err) => {
@@ -116,17 +117,20 @@ export function setupFirestoreListeners(tripId: string): void {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.rooms)) {
-          const currentPeople = getPeople(tripId);
-          const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, data.rooms, currentPeople);
-          const { rooms: normalized } = migrateRoomCodes(cleanRooms);
+          // Lưu trực tiếp danh sách phòng chuẩn hóa từ Firebase vào localStorage trước
+          const { rooms: normalized } = migrateRoomCodes(data.rooms);
           localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(normalized));
-          if (modified) {
-            localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+
+          const currentPeople = getPeople(tripId);
+          if (normalized.length > 0 && currentPeople.length > 0) {
+            const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, normalized, currentPeople);
+            localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
+            if (modified) {
+              localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
+            }
           }
           notifyStateChange();
         }
-      } else {
-        syncRoomsToFirebase(tripId, getRooms(tripId));
       }
     }, (err) => {
       console.warn('[Firebase Firestore] rooms sync warning:', err);
@@ -332,10 +336,20 @@ export async function initializeStorageAsync(): Promise<void> {
           }
         }
 
-        if (remoteRooms.length > 0 || remotePeople.length > 0) {
-          const currentPeople = remotePeople.length > 0 ? remotePeople : getPeople(activeTripId);
-          const currentRooms = remoteRooms.length > 0 ? remoteRooms : getRooms(activeTripId);
-          const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(activeTripId, currentRooms, currentPeople);
+        // Luôn lưu dữ liệu tải từ Firestore trực tiếp trước
+        if (remoteRooms.length > 0) {
+          const { rooms: normalized } = migrateRoomCodes(remoteRooms);
+          localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${activeTripId}`, JSON.stringify(normalized));
+        }
+        if (remotePeople.length > 0) {
+          localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${activeTripId}`, JSON.stringify(remotePeople));
+        }
+
+        // Chỉ đối chiếu nếu cả hai danh sách đều có phần tử
+        const finalRooms = getRooms(activeTripId);
+        const finalPeople = getPeople(activeTripId);
+        if (finalRooms.length > 0 && finalPeople.length > 0) {
+          const { rooms: cleanRooms, people: cleanPeople } = reconcileRoomsAndPeople(activeTripId, finalRooms, finalPeople);
           const { rooms: normalized } = migrateRoomCodes(cleanRooms);
           localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${activeTripId}`, JSON.stringify(normalized));
           localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${activeTripId}`, JSON.stringify(cleanPeople));
@@ -520,6 +534,11 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
   if (!rooms) rooms = [];
   if (!people) people = [];
 
+  // BẢO VỆ TUYỆT ĐỐI: Nếu một trong hai mảng rỗng, KHÔNG ĐƯỢC PHÉP gỡ hay xóa mảng kia (tránh race condition)
+  if (rooms.length === 0 || people.length === 0) {
+    return { rooms, people, modified: false };
+  }
+
   const peopleMap = new Map<string, Person>();
   people.forEach(p => {
     peopleMap.set(p.id, p);
@@ -533,21 +552,31 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
   rooms.forEach(room => {
     // Lấy danh sách thành viên thực tế có trong danh sách nhân sự
     const validMembers: Person[] = [];
-    room.memberIds.forEach(mId => {
+    (room.memberIds || []).forEach(mId => {
       const p = peopleMap.get(mId);
       if (p && !validMembers.some(vm => vm.id === p.id)) {
         validMembers.push(p);
       }
     });
 
-    // Nếu phòng hoàn toàn không có thành viên nào -> bỏ qua phòng trống này
+    // TUYỆT ĐỐI KHÔNG XÓA PHÒNG: Nếu phòng tạm thời chưa match được thành viên trong people, vẫn giữ nguyên phòng
     if (validMembers.length === 0) {
-      modified = true;
+      updatedRooms.push({
+        ...room,
+        memberIds: room.memberIds || [],
+        usedSlots: 0,
+        childCount: 0,
+        status: 'UNDER'
+      });
       return;
     }
 
     const cleanMemberIds = validMembers.map(m => m.id);
-    cleanMemberIds.forEach(id => assignedPersonIds.add(id));
+    cleanMemberIds.forEach(id => {
+      assignedPersonIds.add(id);
+      const p = peopleMap.get(id);
+      if (p?.code) assignedPersonIds.add(p.code);
+    });
 
     // Đảm bảo tất cả thành viên trong phòng có roomId trỏ đúng về phòng này
     validMembers.forEach(p => {
@@ -580,10 +609,10 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
   const validRoomIds = new Set(updatedRooms.map(r => r.id));
 
   // 2. Chuẩn hóa People:
-  // Nếu một người có p.roomId trỏ đến phòng không tồn tại hoặc không nằm trong danh sách phòng hợp lệ -> gỡ roomId
+  // Chỉ gỡ roomId nếu phòng đó thực sự không tồn tại trong danh sách phòng hợp lệ
   people.forEach(p => {
     if (p.roomId) {
-      if (!validRoomIds.has(p.roomId) || !assignedPersonIds.has(p.id)) {
+      if (!validRoomIds.has(p.roomId)) {
         p.roomId = null;
         modified = true;
       }
@@ -670,7 +699,6 @@ export function getRooms(tripId: string): Room[] {
     const { rooms: finalRooms, modified: modifiedLimits } = normalizeRoomCapacitiesAndLimits(tripId, normalizedCodes, false);
     if (migratedCodes || modifiedLimits) {
       localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(finalRooms));
-      syncRoomsToFirebase(tripId, finalRooms);
     }
     return finalRooms;
   } catch {
@@ -1318,3 +1346,22 @@ function notifyStateChange(): void {
     }
   }
 }
+
+/**
+ * Tải trực tiếp danh sách phòng và người tham gia mới nhất từ Firestore (dùng cho xuất Excel hoặc khi cần kiểm tra chắc chắn)
+ */
+export async function fetchTripDataFromFirebase(tripId: string): Promise<{ rooms: Room[], people: Person[] }> {
+  try {
+    const [roomsSnap, peopleSnap] = await Promise.all([
+      getDoc(doc(db, 'trips', tripId, 'data', 'rooms')),
+      getDoc(doc(db, 'trips', tripId, 'data', 'people'))
+    ]);
+    const rooms = (roomsSnap.exists() && Array.isArray(roomsSnap.data().rooms)) ? roomsSnap.data().rooms : [];
+    const people = (peopleSnap.exists() && Array.isArray(peopleSnap.data().people)) ? peopleSnap.data().people : [];
+    return { rooms, people };
+  } catch (err) {
+    console.warn('[Firebase] fetchTripDataFromFirebase warning:', err);
+    return { rooms: [], people: [] };
+  }
+}
+
