@@ -799,6 +799,44 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.68rem !important;
     padding: 2px 5px !important;
   }
+
+  /* Audit Logs Mobile Optimization */
+  .audit-header-card {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+  .audit-title {
+    font-size: 0.85rem !important;
+  }
+  .audit-search-box {
+    width: 100% !important;
+  }
+  .audit-search-input {
+    height: 28px !important;
+    font-size: 0.74rem !important;
+    padding-left: 26px !important;
+  }
+  .audit-logs-table th,
+  .audit-logs-table td {
+    padding: 6px 5px !important;
+  }
+  .audit-col-time {
+    width: 75px !important;
+    min-width: 68px !important;
+    font-size: 0.68rem !important;
+  }
+  .audit-col-action {
+    width: 78px !important;
+    min-width: 70px !important;
+  }
+  .audit-col-actor {
+    width: 95px !important;
+    min-width: 82px !important;
+    font-size: 0.72rem !important;
+  }
+  .audit-col-details {
+    font-size: 0.72rem !important;
+  }
 }
 
 /* Grid 4 Cột hiển thị người thân */
