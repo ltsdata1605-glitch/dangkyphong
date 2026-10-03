@@ -49,8 +49,10 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Tìm phòng hiện tại của nhân viên (kiểm tra cả roomId và danh sách memberIds)
-  const myRoom = allRooms.find(r => r.id === currentEmployee.roomId || r.memberIds.includes(currentEmployee.id) || r.memberIds.includes(currentEmployee.code));
+  // Tìm phòng hiện tại của nhân viên (chỉ khi nhân viên có roomId và phòng đó chứa nhân viên)
+  const myRoom = currentEmployee.roomId
+    ? allRooms.find(r => r.id === currentEmployee.roomId && (r.memberIds.includes(currentEmployee.id) || r.memberIds.includes(currentEmployee.code)))
+    : null;
   const isLeader = myRoom ? (myRoom.leaderId === currentEmployee.id || myRoom.leaderId === currentEmployee.code) : false;
 
   // Thành viên trong phòng hiện tại

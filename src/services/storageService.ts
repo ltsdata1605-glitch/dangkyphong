@@ -72,6 +72,7 @@ export function setupFirestoreListeners(tripId: string): void {
   // 2. Lắng nghe danh sách nhân sự của chuyến đi hiện tại
   try {
     peopleUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'people'), (snapshot) => {
+      if (snapshot.metadata.hasPendingWrites) return;
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.people)) {
@@ -80,8 +81,6 @@ export function setupFirestoreListeners(tripId: string): void {
           localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
           if (modified) {
             localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(cleanRooms));
-            syncRoomsToFirebase(tripId, cleanRooms);
-            syncPeopleToFirebase(tripId, cleanPeople);
           }
           notifyStateChange();
         }
@@ -101,19 +100,16 @@ export function setupFirestoreListeners(tripId: string): void {
   // 3. Lắng nghe danh sách phòng của chuyến đi hiện tại
   try {
     roomsUnsub = onSnapshot(doc(db, 'trips', tripId, 'data', 'rooms'), (snapshot) => {
+      if (snapshot.metadata.hasPendingWrites) return;
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.rooms)) {
           const currentPeople = getPeople(tripId);
           const { rooms: cleanRooms, people: cleanPeople, modified } = reconcileRoomsAndPeople(tripId, data.rooms, currentPeople);
-          const { rooms: normalized, migrated } = migrateRoomCodes(cleanRooms);
+          const { rooms: normalized } = migrateRoomCodes(cleanRooms);
           localStorage.setItem(`${STORAGE_KEYS.ROOMS_PREFIX}${tripId}`, JSON.stringify(normalized));
           if (modified) {
             localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(cleanPeople));
-          }
-          if (migrated || modified) {
-            syncRoomsToFirebase(tripId, normalized);
-            if (modified) syncPeopleToFirebase(tripId, cleanPeople);
           }
           notifyStateChange();
         }
@@ -410,9 +406,8 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
     const cleanMemberIds = room.memberIds.filter(mId => {
       const p = peopleMap.get(mId);
       if (!p) return false;
-      // Nếu p.roomId rõ ràng là null hoặc trỏ sang phòng khác -> không còn trong phòng này
-      if (p.roomId && p.roomId !== room.id) return false;
-      if (p.roomId === null) return false;
+      // Thành viên phải có p.roomId trỏ chính xác vào phòng này!
+      if (!p.roomId || p.roomId !== room.id) return false;
       return true;
     });
 
