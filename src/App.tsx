@@ -470,17 +470,20 @@ export const App: React.FC = () => {
   // Ghép phòng tự động
   const handleAutoMatch = async () => {
     if (!currentTrip) return;
-    const res = autoMatchRooms(people, rooms, currentTrip.id, currentTrip.roomLimits);
+    const latestPeople = getPeople(currentTrip.id);
+    const latestRooms = getRooms(currentTrip.id);
+    const res = autoMatchRooms(latestPeople, latestRooms, currentTrip.id, currentTrip.roomLimits);
     if (res.assignedCount === 0) {
       alert('Không còn nhân sự trống nào có thể tự động ghép.');
       return;
     }
 
-    const updatedRooms = [...rooms];
+    const updatedRooms = [...latestRooms];
     // Cập nhật các phòng đã có
     res.updatedRooms.forEach(ur => {
       const idx = updatedRooms.findIndex(r => r.id === ur.id);
       if (idx >= 0) updatedRooms[idx] = ur;
+      else updatedRooms.push(ur);
     });
     // Thêm các phòng mới
     updatedRooms.push(...res.newRooms);
@@ -509,7 +512,7 @@ export const App: React.FC = () => {
       action: 'AUTO_MATCH',
       actor: 'admin',
       actorName: 'Ban Tổ Chức',
-      details: `Hệ thống đã tự động ghép ${res.assignedCount} người (Cùng siêu thị: ${res.sameStoreCount || 0} người, Khác siêu thị: ${res.crossStoreCount || 0} người)`,
+      details: `Hệ thống đã tự động ghép ${res.assignedCount} người (Cùng siêu thị: ${res.sameStoreCount || 0} người, Khác siêu thị: ${res.crossStoreCount || 0} người, Lấp suất trống: ${res.updatedRooms.length} phòng, Tạo mới: ${res.newRooms.length} phòng)`,
       timestamp: new Date().toISOString()
     });
 
@@ -523,6 +526,12 @@ export const App: React.FC = () => {
     let alertMsg = `🎉 Đã tự động ghép thành công ${res.assignedCount} người vào các phòng theo đúng định mức!\n\n` +
       `🏢 Ghép cùng siêu thị: ${res.sameStoreCount || 0} người\n` +
       `🌐 Ghép khác siêu thị: ${res.crossStoreCount || 0} người`;
+    if (res.updatedRooms.length > 0) {
+      alertMsg += `\n🛋️ Lấp đầy suất phòng trống: ${res.updatedRooms.length} phòng`;
+    }
+    if (res.newRooms.length > 0) {
+      alertMsg += `\n🚪 Phòng mới tạo thêm: ${res.newRooms.length} phòng`;
+    }
     if (totalRemaining > 0) {
       alertMsg += `\n\n⚠️ Lưu ý: Còn ${totalRemaining} người chưa thể ghép phòng do tất cả các loại phòng định mức của khách sạn đã đạt giới hạn tối đa!`;
     }

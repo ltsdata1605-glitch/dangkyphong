@@ -1,4 +1,4 @@
-import { Person, Room, RuleValidationResult, BedType } from '../types';
+import { Person, Room, RuleValidationResult, BedType, Gender } from '../types';
 
 /**
  * Kiểm tra tính hợp lệ của một phòng theo tất cả các Business Rules (R1 -> R9)
@@ -227,6 +227,14 @@ export function autoMatchRooms(
     return null; // Đã hết định mức tất cả các loại phòng
   };
 
+  // Danh sách các loại phòng còn định mức (mặc định ưu tiên 2 -> 3 -> 4 -> 5 -> 6)
+  const getAvailableCapacities = (preferredOrder = [2, 3, 4, 5, 6]): number[] => {
+    return preferredOrder.filter(c => {
+      const maxLim = limits[c];
+      return maxLim === undefined || (roomCounts[c] || 0) < maxLim;
+    });
+  };
+
   const getNextRoomCode = () => {
     const allCurrentRooms = Array.from(roomsMap.values()).concat(newRooms);
     const existingNums = allCurrentRooms
@@ -290,235 +298,248 @@ export function autoMatchRooms(
   }
 
   // ==============================================================
-  // HÀM GHÉP THEO GIỚI TÍNH (NAM RIÊNG, NỮ RIÊNG)
-  // Ưu tiên 1: Cùng siêu thị
-  // Sau khi hết cùng siêu thị -> Ưu tiên 2: Khác siêu thị
+  // BƯỚC 2: TÌM SUẤT PHÒNG TRỐNG TRONG CÁC PHÒNG ĐÃ CÓ ĐỂ GHÉP ĐẦY TRƯỚC TIÊN
+  // (Ưu tiên cùng siêu thị, cùng giới tính; sau đó khác siêu thị, cùng giới tính)
   // ==============================================================
-  const matchGenderPool = (gender: 'M' | 'F') => {
-    // Lấy những người chưa có phòng, cùng giới tính
-    const pool = Array.from(peopleMap.values()).filter(p => !p.roomId && p.slot > 0 && p.gender === gender);
+  for (const room of roomsMap.values()) {
+    if (room.adminOverride) continue;
+    const currentMembers = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+    const usedAdultSlots = currentMembers.filter(m => m.slot > 0).length;
+    let emptySlots = room.capacity - usedAdultSlots;
+    if (emptySlots <= 0 || room.memberIds.length >= 6) continue;
 
-    // Nhóm theo siêu thị
-    const storeMap = new Map<string, Person[]>();
-    for (const p of pool) {
-      const storeKey = (p.store || '').trim();
-      if (!storeMap.has(storeKey)) {
-        storeMap.set(storeKey, []);
-      }
-      storeMap.get(storeKey)!.push(p);
+    // Xác định giới tính của phòng
+    const maleAdults = currentMembers.filter(m => m.gender === 'M' && m.slot > 0);
+    const femaleAdults = currentMembers.filter(m => m.gender === 'F' && m.slot > 0);
+    if (maleAdults.length > 0 && femaleAdults.length > 0) {
+      // Phòng gia đình hỗn hợp nam nữ (vợ chồng) -> không tự ý nhét nhân viên khác vào
+      continue;
     }
+    const targetGender: Gender = maleAdults.length > 0 ? 'M' : femaleAdults.length > 0 ? 'F' : 'M';
+    const roomStores = new Set(currentMembers.map(m => (m.store || '').trim()).filter(Boolean));
 
-    const leftovers: Person[] = [];
+    // Lọc ứng viên chưa có phòng, cùng giới tính
+    const getCandidates = (sameStoreOnly: boolean) => {
+      return Array.from(peopleMap.values()).filter(p => {
+        if (p.roomId || p.slot <= 0 || p.gender !== targetGender) return false;
+        const pStore = (p.store || '').trim();
+        return sameStoreOnly ? roomStores.has(pStore) : !roomStores.has(pStore);
+      });
+    };
 
-    // ------------------------------------------------------------
-    // GIAI ĐOẠN A: GHÉP NHÂN VIÊN CÙNG SIÊU THỊ TRƯỚC
-    // ------------------------------------------------------------
-    for (const [storeName, membersInStore] of storeMap.entries()) {
-      // A.1: Thử lấp vào các phòng UNDER hiện có của cùng siêu thị này
-      for (const room of roomsMap.values()) {
-        if (membersInStore.length === 0) break;
-        if (room.status === 'UNDER' && !room.adminOverride && room.memberIds.length < 6) {
-          const roomMembers = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
-          if (roomMembers.length > 0 && roomMembers[0].gender === gender && (roomMembers[0].store || '').trim() === storeName) {
-            while (membersInStore.length > 0 && room.usedSlots < room.capacity && room.memberIds.length < 6) {
-              const person = membersInStore.shift()!;
-              const testMembers = [...room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean), person];
-              const testValidation = validateRoom(testMembers, room.capacity, 2, false);
-              if (testValidation.valid) {
-                room.memberIds.push(person.id);
-                room.usedSlots = testValidation.usedSlots;
-                room.childCount = testValidation.childCount;
-                room.status = testValidation.usedSlots === room.capacity ? 'FULL' : 'UNDER';
-                room.bedType = testValidation.bedType;
-                person.roomId = room.id;
-                assignedCount++;
-                sameStoreCount++;
-                if (!updatedRooms.some(r => r.id === room.id)) {
-                  updatedRooms.push(room);
-                }
-              } else {
-                membersInStore.unshift(person);
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      // A.2: Ghép nhân viên cùng siêu thị vào phòng mới (tự động chuyển sang loại phòng còn định mức)
-      while (membersInStore.length >= 2) {
-        const targetCap = getNextAvailableCapacity(2);
-        if (targetCap === null) {
-          // Khách sạn đã hết sạch mọi loại phòng
-          break;
-        }
-
-        const takeCount = Math.min(targetCap, membersInStore.length);
-        if (takeCount < 2) break;
-
-        const chunk = membersInStore.splice(0, takeCount);
-        const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const roomCode = getNextRoomCode();
-        const p1 = chunk[0];
-
-        const isFull = chunk.length === targetCap;
-        const newRoom: Room = {
-          id: roomId,
-          tripId,
-          code: roomCode,
-          capacity: targetCap,
-          leaderId: p1.id,
-          memberIds: chunk.map(p => p.id),
-          usedSlots: chunk.length,
-          childCount: 0,
-          status: isFull ? 'FULL' : 'UNDER',
-          bedType: targetCap === 2 ? 'TWIN' : 'DOUBLE',
-          adminOverride: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          updatedBy: 'Ghép tự động (Cùng siêu thị)'
-        };
-
-        chunk.forEach(p => { p.roomId = roomId; });
-        newRooms.push(newRoom);
-        roomsMap.set(roomId, newRoom);
-        roomCounts[targetCap] = (roomCounts[targetCap] || 0) + 1;
-        assignedCount += chunk.length;
-        sameStoreCount += chunk.length;
-      }
-
-      // Mỗi siêu thị nếu còn người -> đưa vào danh sách chờ ghép khác siêu thị
-      if (membersInStore.length > 0) {
-        leftovers.push(...membersInStore);
-      }
-    }
-
-    // ------------------------------------------------------------
-    // GIAI ĐOẠN B: SAU KHI ĐÃ GHÉP HẾT SIÊU THỊ, TIẾN HÀNH GHÉP KHÁC SIÊU THỊ
-    // ------------------------------------------------------------
-    // B.1: Thử lấp đầy vào các phòng UNDER còn thiếu chỗ
-    for (const room of roomsMap.values()) {
-      if (leftovers.length === 0) break;
-      if (room.status === 'UNDER' && !room.adminOverride && room.memberIds.length < 6) {
-        const roomMembers = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
-        if (roomMembers.length > 0 && roomMembers[0].gender === gender && roomMembers[0].type !== 'RELATIVE') {
-          while (leftovers.length > 0 && room.usedSlots < room.capacity && room.memberIds.length < 6) {
-            const person = leftovers.shift()!;
-            const testMembers = [...room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean), person];
-            const testValidation = validateRoom(testMembers, room.capacity, 2, false);
-            if (testValidation.valid) {
-              room.memberIds.push(person.id);
-              room.usedSlots = testValidation.usedSlots;
-              room.childCount = testValidation.childCount;
-              room.status = testValidation.usedSlots === room.capacity ? 'FULL' : 'UNDER';
-              room.bedType = testValidation.bedType;
-              person.roomId = room.id;
-              assignedCount++;
-              crossStoreCount++;
-              if (!updatedRooms.some(r => r.id === room.id) && !newRooms.some(r => r.id === room.id)) {
-                updatedRooms.push(room);
-              }
-            } else {
-              leftovers.unshift(person);
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    // B.2: Ghép các người còn lại khác siêu thị thành các phòng mới (tự động chuyển loại phòng theo định mức)
-    while (leftovers.length >= 2) {
-      const targetCap = getNextAvailableCapacity(2);
-      if (targetCap === null) {
-        // Khách sạn đã hết sạch mọi loại phòng
+    // Vòng 2.1: Lấp bằng người cùng siêu thị
+    let sameStoreCandidates = getCandidates(true);
+    while (emptySlots > 0 && sameStoreCandidates.length > 0 && room.memberIds.length < 6) {
+      const p = sameStoreCandidates.shift()!;
+      const testMembers = [...room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean), p];
+      const validation = validateRoom(testMembers, room.capacity, 2, false);
+      if (validation.valid) {
+        room.memberIds.push(p.id);
+        room.usedSlots = validation.usedSlots;
+        room.childCount = validation.childCount;
+        room.bedType = validation.bedType;
+        emptySlots = room.capacity - room.usedSlots;
+        p.roomId = room.id;
+        assignedCount++;
+        sameStoreCount++;
+        if (!updatedRooms.some(r => r.id === room.id)) updatedRooms.push(room);
+      } else {
         break;
       }
+    }
 
-      const takeCount = Math.min(targetCap, leftovers.length);
+    // Vòng 2.2: Lấp bằng người khác siêu thị (nếu vẫn còn chỗ trống)
+    let crossStoreCandidates = getCandidates(false);
+    while (emptySlots > 0 && crossStoreCandidates.length > 0 && room.memberIds.length < 6) {
+      const p = crossStoreCandidates.shift()!;
+      const testMembers = [...room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean), p];
+      const validation = validateRoom(testMembers, room.capacity, 2, false);
+      if (validation.valid) {
+        room.memberIds.push(p.id);
+        room.usedSlots = validation.usedSlots;
+        room.childCount = validation.childCount;
+        room.bedType = validation.bedType;
+        emptySlots = room.capacity - room.usedSlots;
+        p.roomId = room.id;
+        assignedCount++;
+        crossStoreCount++;
+        if (!updatedRooms.some(r => r.id === room.id)) updatedRooms.push(room);
+      } else {
+        break;
+      }
+    }
+
+    room.status = (room.usedSlots || 0) >= room.capacity ? 'FULL' : 'UNDER';
+  }
+
+  // ==============================================================
+  // BƯỚC 3: GHÉP TẠO PHÒNG MỚI CHO NHÂN SỰ CÒN LẠI (Nam riêng, Nữ riêng)
+  // Ưu tiên 1: Cùng siêu thị trọn vẹn phòng
+  // Ưu tiên 2: Khác siêu thị lấp đầy các phòng 2, 3, 4, 5, 6 theo định mức
+  // ==============================================================
+  const matchGenderNewRooms = (gender: 'M' | 'F') => {
+    const unassigned = Array.from(peopleMap.values()).filter(p => !p.roomId && p.slot > 0 && p.gender === gender);
+
+    // 3.1: Nhóm theo siêu thị
+    const storeMap = new Map<string, Person[]>();
+    for (const p of unassigned) {
+      const sKey = (p.store || '').trim();
+      if (!storeMap.has(sKey)) storeMap.set(sKey, []);
+      storeMap.get(sKey)!.push(p);
+    }
+
+    // Ghép các phòng cùng siêu thị trọn vẹn (chỉ tạo phòng khi có đủ người đạt sức chứa phòng)
+    for (const [, membersInStore] of storeMap.entries()) {
+      let madeProgress = true;
+      while (madeProgress && membersInStore.length >= 2) {
+        madeProgress = false;
+        const availableCaps = getAvailableCapacities();
+        if (availableCaps.length === 0) break;
+
+        // Tìm loại phòng mà membersInStore có đủ số người để lấp đầy (ưu tiên theo availableCaps: 2 -> 3 -> 4 -> 5 -> 6)
+        let chosenCap: number | null = null;
+        for (const cap of availableCaps) {
+          if (membersInStore.length >= cap) {
+            chosenCap = cap;
+            break;
+          }
+        }
+
+        if (chosenCap !== null) {
+          const chunk = membersInStore.splice(0, chosenCap);
+          const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const roomCode = getNextRoomCode();
+          const p1 = chunk[0];
+          const newRoom: Room = {
+            id: roomId,
+            tripId,
+            code: roomCode,
+            capacity: chosenCap,
+            leaderId: p1.id,
+            memberIds: chunk.map(p => p.id),
+            usedSlots: chosenCap,
+            childCount: 0,
+            status: 'FULL',
+            bedType: chosenCap === 2 ? 'TWIN' : chosenCap === 3 ? 'TRIPLE' : 'FAMILY',
+            adminOverride: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'Ghép tự động (Cùng siêu thị)'
+          };
+          chunk.forEach(p => { p.roomId = roomId; });
+          newRooms.push(newRoom);
+          roomsMap.set(roomId, newRoom);
+          roomCounts[chosenCap] = (roomCounts[chosenCap] || 0) + 1;
+          assignedCount += chosenCap;
+          sameStoreCount += chosenCap;
+          madeProgress = true;
+        }
+      }
+    }
+
+    // 3.2: Ghép khác siêu thị (Leftovers)
+    // Sắp xếp leftovers theo store để những người cùng siêu thị đi chung
+    let leftovers = Array.from(peopleMap.values()).filter(p => !p.roomId && p.slot > 0 && p.gender === gender);
+    leftovers.sort((a, b) => (a.store || '').localeCompare(b.store || ''));
+
+    while (leftovers.length >= 2) {
+      const availableCaps = getAvailableCapacities();
+      if (availableCaps.length === 0) break;
+
+      // Ưu tiên loại phòng mà leftovers có đủ người, nếu không đủ thì lấy loại phòng nhỏ nhất còn định mức
+      let chosenCap: number | null = null;
+      for (const cap of availableCaps) {
+        if (leftovers.length >= cap) {
+          chosenCap = cap;
+          break;
+        }
+      }
+      if (chosenCap === null) {
+        chosenCap = availableCaps[0];
+      }
+
+      const takeCount = Math.min(chosenCap, leftovers.length);
+      if (takeCount < 2) break;
+
       const chunk = leftovers.splice(0, takeCount);
       const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const roomCode = getNextRoomCode();
       const p1 = chunk[0];
-
-      const isFull = chunk.length === targetCap;
+      const isFull = chunk.length >= chosenCap;
       const newRoom: Room = {
         id: roomId,
         tripId,
         code: roomCode,
-        capacity: targetCap,
+        capacity: chosenCap,
         leaderId: p1.id,
         memberIds: chunk.map(p => p.id),
         usedSlots: chunk.length,
         childCount: 0,
         status: isFull ? 'FULL' : 'UNDER',
-        bedType: targetCap === 2 ? 'TWIN' : 'DOUBLE',
+        bedType: chosenCap === 2 ? 'TWIN' : chosenCap === 3 ? 'TRIPLE' : 'FAMILY',
         adminOverride: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         updatedBy: 'Ghép tự động (Khác siêu thị)'
       };
-
       chunk.forEach(p => { p.roomId = roomId; });
       newRooms.push(newRoom);
       roomsMap.set(roomId, newRoom);
-      roomCounts[targetCap] = (roomCounts[targetCap] || 0) + 1;
+      roomCounts[chosenCap] = (roomCounts[chosenCap] || 0) + 1;
       assignedCount += chunk.length;
       crossStoreCount += chunk.length;
     }
 
-    // B.3: Nếu toàn đoàn còn lẻ đúng 1 người cuối cùng
+    // 3.3: Nếu còn đúng 1 người lẻ
     if (leftovers.length === 1) {
-      // Thử tìm phòng UNDER cùng giới tính để đưa vào
       let placed = false;
-      for (const room of roomsMap.values()) {
-        if (room.status === 'UNDER' && !room.adminOverride && room.usedSlots < room.capacity && room.memberIds.length < 6) {
-          const roomMembers = room.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
-          if (roomMembers.length > 0 && roomMembers[0].gender === gender && roomMembers[0].type !== 'RELATIVE') {
+      for (const r of roomsMap.values()) {
+        if (!r.adminOverride && (r.usedSlots || 0) < r.capacity && r.memberIds.length < 6) {
+          const currentMembers = r.memberIds.map(id => peopleMap.get(id)!).filter(Boolean);
+          const hasOpposite = currentMembers.some(m => m.gender !== gender && m.slot > 0);
+          if (!hasOpposite) {
             const p = leftovers.shift()!;
-            room.memberIds.push(p.id);
-            room.usedSlots = (room.usedSlots || 0) + 1;
-            room.status = room.usedSlots >= room.capacity ? 'FULL' : 'UNDER';
-            p.roomId = room.id;
-            assignedCount += 1;
-            crossStoreCount += 1;
-            placed = true;
-            if (!updatedRooms.some(r => r.id === room.id) && !newRooms.some(r => r.id === room.id)) {
-              updatedRooms.push(room);
+            r.memberIds.push(p.id);
+            r.usedSlots = (r.usedSlots || 0) + 1;
+            r.status = r.usedSlots >= r.capacity ? 'FULL' : 'UNDER';
+            p.roomId = r.id;
+            assignedCount++;
+            crossStoreCount++;
+            if (!updatedRooms.some(room => room.id === r.id) && !newRooms.some(room => room.id === r.id)) {
+              updatedRooms.push(r);
             }
+            placed = true;
             break;
           }
         }
       }
-
       if (!placed && leftovers.length === 1) {
-        const targetCap = getNextAvailableCapacity(2);
-        if (targetCap !== null) {
+        const availableCaps = getAvailableCapacities();
+        if (availableCaps.length > 0) {
+          const chosenCap = availableCaps[0];
           const p = leftovers.shift()!;
           const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
           const roomCode = getNextRoomCode();
-
           const newRoom: Room = {
             id: roomId,
             tripId,
             code: roomCode,
-            capacity: targetCap,
+            capacity: chosenCap,
             leaderId: p.id,
             memberIds: [p.id],
             usedSlots: 1,
             childCount: 0,
             status: 'UNDER',
-            bedType: targetCap === 2 ? 'TWIN' : 'DOUBLE',
+            bedType: chosenCap === 2 ? 'TWIN' : chosenCap === 3 ? 'TRIPLE' : 'FAMILY',
             adminOverride: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             updatedBy: 'Ghép tự động (Khác siêu thị)'
           };
-
           p.roomId = roomId;
           newRooms.push(newRoom);
           roomsMap.set(roomId, newRoom);
-          roomCounts[targetCap] = (roomCounts[targetCap] || 0) + 1;
+          roomCounts[chosenCap] = (roomCounts[chosenCap] || 0) + 1;
           assignedCount += 1;
           crossStoreCount += 1;
         }
@@ -527,8 +548,8 @@ export function autoMatchRooms(
   };
 
   // Thực hiện ghép riêng cho Nam và Nữ
-  matchGenderPool('M');
-  matchGenderPool('F');
+  matchGenderNewRooms('M');
+  matchGenderNewRooms('F');
 
   return { newRooms, updatedRooms, assignedCount, sameStoreCount, crossStoreCount };
 }
