@@ -376,13 +376,6 @@ export const App: React.FC = () => {
         setCurrentEmployee(updatedEmp);
       }
       refreshData();
-      if (res.roomCode) {
-        if (res.isNewRoom) {
-          alert(`Đã nhận người thân thành công!\n\n🎉 Hệ thống đã tự động tạo phòng ${res.roomCode} (Phòng 2 người) cho bạn và người thân.`);
-        } else {
-          alert(`Đã nhận người thân thành công!\n\nNgười thân đã được thêm vào phòng ${res.roomCode} của bạn.`);
-        }
-      }
     }
   };
 
