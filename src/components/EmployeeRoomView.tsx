@@ -381,9 +381,10 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                 {roomMembers.map(m => {
-                  const isRoomLeader = m.id === myRoom.leaderId;
-                  const isSelf = m.id === currentEmployee.id;
-                  const canRemove = !currentTrip.isLocked && !isSelf && (isLeader || m.ownerId === currentEmployee.code);
+                  const isRoomLeader = m.id === myRoom.leaderId || m.code === myRoom.leaderId;
+                  const isSelf = m.id === currentEmployee.id || m.code === currentEmployee.code;
+                  const canRemoveOther = !currentTrip.isLocked && !isSelf && (isLeader || m.ownerId === currentEmployee.code);
+                  const canLeaveSelf = !currentTrip.isLocked && isSelf;
 
                   let relLabel = m.type === 'EMPLOYEE' ? 'Đồng nghiệp' : (m.relation || 'Người thân');
                   if (m.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
@@ -445,7 +446,34 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                           <Building size={11} style={{ flexShrink: 0 }} /> {m.store}
                         </div>
 
-                        {canRemove && (
+                        {canLeaveSelf && (
+                          <button
+                            type="button"
+                            onClick={isLeader ? handleConfirmDelete : handleConfirmLeave}
+                            className="btn btn-sm"
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: 'var(--color-danger)',
+                              cursor: 'pointer',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease'
+                            }}
+                            title={isLeader ? 'Hủy / Giải tán phòng này' : 'Xóa tên ra khỏi danh sách phòng'}
+                          >
+                            {isLeader ? <Trash2 size={12} /> : <LogOut size={12} />}
+                            <span>{isLeader ? 'Hủy phòng' : 'Xóa khỏi phòng'}</span>
+                          </button>
+                        )}
+
+                        {canRemoveOther && (
                           <button
                             type="button"
                             onClick={() => setRemovingMember(m)}
@@ -468,7 +496,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                             title={`Xóa ${m.name} khỏi phòng`}
                           >
                             <Trash2 size={12} />
-                            Xóa
+                            <span>Xóa</span>
                           </button>
                         )}
                       </div>
