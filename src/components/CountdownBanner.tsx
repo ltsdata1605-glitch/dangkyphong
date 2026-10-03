@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Trip } from '../types';
+import { Trip, Room } from '../types';
 import { formatRemainingTime } from '../utils/textUtils';
 import { Clock, Lock, CheckCircle2, MapPin, Building2, CalendarDays, Bed } from 'lucide-react';
 
 interface CountdownBannerProps {
   trip: Trip;
   totalRoomsCount?: number;
+  rooms?: Room[];
   onOpenAllRooms?: () => void;
 }
 
 export const CountdownBanner: React.FC<CountdownBannerProps> = ({
   trip,
   totalRoomsCount,
+  rooms,
   onOpenAllRooms
 }) => {
   const [timeLeft, setTimeLeft] = useState(formatRemainingTime(trip.deadline));
@@ -84,6 +86,69 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
               </span>
             )}
           </div>
+
+          {/* Định mức phòng & Số lượng đã đăng ký */}
+          {trip.roomLimits && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 8,
+              fontSize: '0.78rem',
+              marginTop: 6,
+              paddingTop: 6,
+              borderTop: '1px dashed var(--border-subtle)'
+            }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Bed size={13} style={{ color: 'var(--primary-500)' }} /> Định mức phòng:
+              </span>
+              {[2, 3, 4, 5, 6].map(cap => {
+                const limit = trip.roomLimits?.[cap];
+                if (limit === undefined) return null;
+                const count = (rooms || []).filter(r => r.tripId === trip.id && r.capacity === cap).length;
+                const isFull = count >= limit;
+                const remaining = Math.max(0, limit - count);
+
+                return (
+                  <span
+                    key={cap}
+                    style={{
+                      background: isFull ? 'rgba(239, 68, 68, 0.08)' : count > 0 ? 'rgba(37, 99, 235, 0.07)' : 'var(--bg-card-solid)',
+                      border: isFull ? '1px solid rgba(239, 68, 68, 0.35)' : count > 0 ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid var(--border-subtle)',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: isFull ? 'var(--color-danger)' : 'var(--text-main)',
+                      fontWeight: 600
+                    }}
+                  >
+                    <span>Phòng {cap} người:</span>
+                    <strong style={{ color: isFull ? 'var(--color-danger)' : count > 0 ? 'var(--primary-600)' : 'var(--text-muted)' }}>
+                      {count}/{limit}
+                    </strong>
+                    {isFull ? (
+                      <span style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 800,
+                        color: '#fff',
+                        background: 'var(--color-danger)',
+                        padding: '1px 5px',
+                        borderRadius: 4
+                      }}>
+                        ĐÃ ĐỦ
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                        (Còn {remaining})
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Right Area: Nút Xem phòng & Hạn chót (Gọn gàng, vừa vặn) */}

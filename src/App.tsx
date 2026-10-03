@@ -786,6 +786,7 @@ export const App: React.FC = () => {
         <CountdownBanner
           trip={currentTrip}
           totalRoomsCount={rooms.length}
+          rooms={rooms}
           onOpenAllRooms={() => {
             if (activeRole === 'ADMIN') {
               setAdminTab('rooms');

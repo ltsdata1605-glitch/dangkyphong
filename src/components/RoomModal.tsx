@@ -284,35 +284,47 @@ export const RoomModal: React.FC<RoomModalProps> = ({
         <div style={{ padding: '20px 24px' }}>
           {/* Step 1: Select Room Capacity */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: 8 }}>
-              1. Chọn Loại Phòng (Số suất người lớn):
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 4 }}>
+              <label style={{ fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>
+                1. Chọn Loại Phòng (Số suất người lớn):
+              </label>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Số lượng: <strong style={{ color: 'var(--primary-600)' }}>Đã đăng ký / Định mức tối đa</strong>
+              </span>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
               {[2, 3, 4, 5, 6].map(cap => {
                 const maxLimit = currentTrip?.roomLimits?.[cap];
                 const count = roomCountByCap[cap] || 0;
                 const isFull = maxLimit !== undefined && count >= maxLimit && (!editingRoom || editingRoom.capacity !== cap);
                 const isSelected = capacity === cap;
+                const remaining = maxLimit !== undefined ? Math.max(0, maxLimit - count) : undefined;
 
                 return (
                   <button
                     key={cap}
                     type="button"
-                    disabled={isFull}
-                    onClick={() => setCapacity(cap)}
-                    title={isFull ? `Đã hết suất phòng ${cap} người (${count}/${maxLimit} phòng)` : undefined}
+                    onClick={() => {
+                      if (isFull) {
+                        alert(`⚠️ Loại phòng ${cap} người đã đạt đủ số lượng quy định (${count}/${maxLimit} phòng).\n\nHệ thống KHÔNG CHO PHÉP đăng ký thêm loại phòng này nữa. Vui lòng chọn loại phòng khác còn chỉ tiêu!`);
+                        return;
+                      }
+                      setCapacity(cap);
+                    }}
+                    title={isFull ? `Đã hết suất phòng ${cap} người (${count}/${maxLimit} phòng) - Không thể chọn` : maxLimit !== undefined ? `Đã đăng ký ${count}/${maxLimit} phòng (Còn ${remaining} phòng)` : undefined}
                     style={{
                       padding: '10px 4px',
                       borderRadius: 'var(--radius-md)',
                       border: isSelected
                         ? '2px solid var(--primary-500)'
                         : isFull
-                          ? '1.5px dashed var(--border-subtle)'
+                          ? '1.5px solid rgba(239, 68, 68, 0.45)'
                           : '1px solid var(--border-subtle)',
                       background: isSelected
                         ? 'var(--primary-gradient)'
                         : isFull
-                          ? 'var(--bg-muted)'
+                          ? 'rgba(239, 68, 68, 0.04)'
                           : 'var(--bg-card-solid)',
                       color: isSelected
                         ? '#fff'
@@ -322,7 +334,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                       fontFamily: 'var(--font-heading)',
                       fontWeight: 700,
                       cursor: isFull ? 'not-allowed' : 'pointer',
-                      opacity: isFull ? 0.55 : 1,
+                      opacity: isFull ? 0.65 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -332,25 +344,52 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                     }}
                   >
                     <Users size={18} style={{ opacity: isFull ? 0.4 : 1 }} />
-                    <span style={{ fontSize: '0.85rem' }}>{cap} Người</span>
+                    <span style={{ fontSize: '0.88rem' }}>{cap} Người</span>
                     {maxLimit !== undefined && (
                       <span
                         style={{
-                          fontSize: '0.68rem',
+                          fontSize: '0.72rem',
                           fontWeight: 700,
                           color: isSelected ? '#fff' : isFull ? 'var(--color-danger)' : 'var(--text-muted)',
-                          lineHeight: 1
+                          lineHeight: 1.2
                         }}
                       >
-                        {isFull ? 'Hết phòng' : `${count}/${maxLimit}p`}
+                        {count}/{maxLimit}p
                       </span>
                     )}
+                    {isFull ? (
+                      <span style={{
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        color: '#fff',
+                        background: 'var(--color-danger)',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.2px',
+                        marginTop: 1
+                      }}>
+                        ĐÃ ĐỦ
+                      </span>
+                    ) : remaining !== undefined ? (
+                      <span style={{
+                        fontSize: '0.64rem',
+                        fontWeight: 700,
+                        color: isSelected ? 'rgba(255,255,255,0.95)' : 'var(--primary-600)',
+                        background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(37,99,235,0.08)',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        marginTop: 1
+                      }}>
+                        Còn {remaining}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
             </div>
 
-            {/* Cảnh báo khi có loại phòng đã hết suất (Hình 1) */}
+            {/* Cảnh báo khi có loại phòng đã hết suất */}
             {(() => {
               const fullCaps = [2, 3, 4, 5, 6].filter(c => {
                 const max = currentTrip?.roomLimits?.[c];
@@ -374,7 +413,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                 }}>
                   <AlertTriangle size={18} style={{ flexShrink: 0 }} />
                   <span>
-                    <strong>Cảnh báo định mức:</strong> {fullCaps.map(c => `Phòng ${c} người (${roomCountByCap[c]}/${currentTrip?.roomLimits?.[c]} phòng)`).join(', ')} đã hết suất đăng ký trong chuyến đi này. Vui lòng chọn loại phòng khác còn trống!
+                    <strong>Thông báo định mức:</strong> {fullCaps.map(c => `Phòng ${c} người (${roomCountByCap[c]}/${currentTrip?.roomLimits?.[c]} phòng)`).join(', ')} đã đủ số lượng quy định và <strong>bị khóa không thể chọn</strong>. Quý nhân viên vui lòng chọn loại phòng khác còn chỗ!
                   </span>
                 </div>
               );
