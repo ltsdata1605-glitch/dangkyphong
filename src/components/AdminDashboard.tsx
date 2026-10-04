@@ -22,7 +22,10 @@ interface AdminDashboardProps {
   onAutoMatch: () => void;
   onToggleLock: () => void;
   onOpenImportModal?: () => void;
-  onNavigateTab: (tab: 'rooms' | 'people' | 'trips' | 'logs') => void;
+  onNavigateTab: (
+    tab: 'rooms' | 'people' | 'trips' | 'logs',
+    options?: { roomFilter?: 'ALL' | 'ASSIGNED' | 'UNASSIGNED' }
+  ) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -138,8 +141,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Card 1: Tổng người */}
         <div
           className="glass-card glass-card-hover"
-          onClick={() => onNavigateTab('people')}
+          onClick={() => onNavigateTab('people', { roomFilter: 'ALL' })}
           style={{ padding: '10px 14px', cursor: 'pointer' }}
+          title="Bấm để xem toàn bộ danh sách người tham gia"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
@@ -160,8 +164,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Card 2: Tiến độ xếp phòng */}
         <div
           className="glass-card glass-card-hover"
-          onClick={() => onNavigateTab('people')}
+          onClick={() => onNavigateTab('people', { roomFilter: 'ASSIGNED' })}
           style={{ padding: '10px 14px', cursor: 'pointer' }}
+          title="Bấm để xem danh sách các bạn đã có phòng"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
@@ -182,8 +187,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Card 3: Chưa có phòng */}
         <div
           className="glass-card glass-card-hover"
-          onClick={() => onNavigateTab('people')}
+          onClick={() => onNavigateTab('people', { roomFilter: 'UNASSIGNED' })}
           style={{ padding: '10px 14px', cursor: 'pointer' }}
+          title="Bấm để lọc danh sách các bạn chưa có phòng"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>

@@ -23,6 +23,8 @@ interface AdminPeopleManagerProps {
   people: Person[];
   rooms: Room[];
   currentTrip?: Trip;
+  roomFilter?: 'ALL' | 'ASSIGNED' | 'UNASSIGNED';
+  onRoomFilterChange?: (filter: 'ALL' | 'ASSIGNED' | 'UNASSIGNED') => void;
   onToggleGender: (personId: string) => void;
   onAssignRelative: (relativeId: string, employeeCode: string) => void;
   onAddMemberToRoom?: (roomId: string, personId: string) => void;
@@ -35,6 +37,8 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
   people,
   rooms,
   currentTrip,
+  roomFilter: propRoomFilter,
+  onRoomFilterChange,
   onToggleGender,
   onAssignRelative,
   onAddMemberToRoom,
@@ -44,7 +48,14 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'EMPLOYEE' | 'RELATIVE' | 'PG'>('ALL');
-  const [roomFilter, setRoomFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
+  const [internalRoomFilter, setInternalRoomFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
+
+  const roomFilter = propRoomFilter !== undefined ? propRoomFilter : internalRoomFilter;
+  const setRoomFilter = (val: 'ALL' | 'ASSIGNED' | 'UNASSIGNED') => {
+    setInternalRoomFilter(val);
+    if (onRoomFilterChange) onRoomFilterChange(val);
+  };
+
   const [selectedStore, setSelectedStore] = useState<string>('ALL');
 
   // Modal gán người thân cho nhân viên

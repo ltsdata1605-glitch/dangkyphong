@@ -74,11 +74,24 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onLogoutAdmin
 }) => {
   const [internalTab, setInternalTab] = useState<'dashboard' | 'rooms' | 'people' | 'trips' | 'logs'>('dashboard');
+  const [peopleRoomFilter, setPeopleRoomFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
+
   const activeTab = externalActiveTab ?? internalTab;
   const setActiveTab = (tab: 'dashboard' | 'rooms' | 'people' | 'trips' | 'logs') => {
     if (onTabChange) onTabChange(tab);
     setInternalTab(tab);
   };
+
+  const handleNavigateTab = (
+    tab: 'dashboard' | 'rooms' | 'people' | 'trips' | 'logs',
+    options?: { roomFilter?: 'ALL' | 'ASSIGNED' | 'UNASSIGNED' }
+  ) => {
+    if (options?.roomFilter !== undefined) {
+      setPeopleRoomFilter(options.roomFilter);
+    }
+    setActiveTab(tab);
+  };
+
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   return (
@@ -114,7 +127,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('people')}
+          onClick={() => {
+            setPeopleRoomFilter('ALL');
+            setActiveTab('people');
+          }}
           className={`btn btn-sm admin-tab-btn ${activeTab === 'people' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
@@ -157,7 +173,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             onExportExcel={onExportExcel}
             onAutoMatch={onAutoMatch}
             onToggleLock={onToggleLock}
-            onNavigateTab={setActiveTab}
+            onNavigateTab={handleNavigateTab}
           />
         ) : (
           <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -184,6 +200,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
           people={people}
           rooms={rooms}
           currentTrip={currentTrip || undefined}
+          roomFilter={peopleRoomFilter}
+          onRoomFilterChange={setPeopleRoomFilter}
           onToggleGender={onToggleGender}
           onAssignRelative={onAssignRelative}
           onAddMemberToRoom={onAddMember}
