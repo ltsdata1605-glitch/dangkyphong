@@ -372,6 +372,11 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                   const totalCapLimit = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + cap * (trip.roomLimits?.[cap] || 0), 0);
                   const totalRoomsLimit = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + (trip.roomLimits?.[cap] || 0), 0);
 
+                  const childCount = tripPeople.filter(p => p.slot === 0 || p.relation === 'CHILD_U5' || p.relation === 'CHILD_5_11').length;
+                  const adultSlotsNeeded = tripPeople.length - childCount;
+                  const capacityDiff = totalCapLimit - adultSlotsNeeded;
+                  const isShortage = tripPeople.length > 0 && totalCapLimit > 0 && capacityDiff < 0;
+
                   return (
                     <div className="admin-tour-limits" style={{
                       display: 'flex',
@@ -397,6 +402,34 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                           }}>
                             👥 Tổng sức chứa: <strong>{totalCapLimit} người</strong> ({totalRoomsLimit} phòng)
                           </span>
+                        )}
+
+                        {tripPeople.length > 0 && totalCapLimit > 0 && (
+                          isShortage ? (
+                            <span className="badge badge-danger" style={{
+                              fontSize: '0.78rem',
+                              padding: '3px 9px',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }} title={`Thiếu ${Math.abs(capacityDiff)} chỗ! Cần ${adultSlotsNeeded} suất người lớn nhưng khách sạn chỉ có ${totalCapLimit} chỗ.`}>
+                              <AlertCircle size={13} />
+                              🚨 THIẾU {Math.abs(capacityDiff)} CHỖ ({totalCapLimit}/{adultSlotsNeeded} suất)
+                            </span>
+                          ) : (
+                            <span className="badge badge-success" style={{
+                              fontSize: '0.78rem',
+                              padding: '3px 9px',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }} title={`Định mức phòng đủ cho đoàn: ${totalCapLimit} chỗ chứa ${adultSlotsNeeded} suất người lớn (dư ${capacityDiff} chỗ)`}>
+                              <CheckCircle size={13} />
+                              ✅ ĐỦ PHÒNG ({totalCapLimit}/{adultSlotsNeeded} suất • Dư {capacityDiff} chỗ)
+                            </span>
+                          )
                         )}
                       </div>
                       {[2, 3, 4, 5, 6].map(cap => {
@@ -648,6 +681,59 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                           }).join(' + ')} = {modalTotalCap} người
                         </strong>
                       </div>
+
+                      {(() => {
+                        const currentPeople = editingTrip ? getPeople(editingTrip.id) : [];
+                        if (currentPeople.length === 0) return null;
+
+                        const modalChildren = currentPeople.filter(p => p.slot === 0 || p.relation === 'CHILD_U5' || p.relation === 'CHILD_5_11').length;
+                        const modalAdultNeeded = currentPeople.length - modalChildren;
+                        const modalDiff = modalTotalCap - modalAdultNeeded;
+                        const modalIsShortage = modalDiff < 0;
+
+                        return (
+                          <div style={{
+                            marginTop: 10,
+                            padding: '10px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            background: modalIsShortage ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                            border: `1px solid ${modalIsShortage ? 'rgba(239, 68, 68, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 10,
+                            fontSize: '0.82rem'
+                          }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 7,
+                              fontWeight: 700,
+                              color: modalIsShortage ? 'var(--color-danger)' : 'var(--color-success)'
+                            }}>
+                              {modalIsShortage ? (
+                                <>
+                                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                                  <span>
+                                    CẢNH BÁO THIẾU PHÒNG: Định mức ({modalTotalCap} chỗ) không đủ cho {modalAdultNeeded} suất người lớn (Thiếu {Math.abs(modalDiff)} chỗ!).
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle size={16} style={{ flexShrink: 0 }} />
+                                  <span>
+                                    ĐỦ ĐỊNH MỨC PHÒNG: Sức chứa {modalTotalCap} chỗ đáp ứng tốt cho {modalAdultNeeded} suất người lớn (Dư {modalDiff} chỗ dự phòng).
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                              Tổng đoàn: {currentPeople.length} người ({modalChildren} trẻ em &lt;12t ở cùng không chiếm suất)
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </>
                   );
                 })()}

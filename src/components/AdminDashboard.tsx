@@ -60,8 +60,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     else underRoomsCount++;
   });
 
-  // 3. Trẻ em
-  const totalChildren = people.filter(p => p.slot === 0).length;
+  // 3. Phân tích chi tiết nhu cầu suất và cân đối định mức phòng khách sạn
+  const totalChildren = people.filter(p => (p.slot ?? 1) === 0).length;
+  const adultSlotsNeeded = people.filter(p => (p.slot ?? 1) > 0).length;
+  const employeesCount = people.filter(p => p.type === 'EMPLOYEE').length;
+  const relativesCount = people.filter(p => p.type === 'RELATIVE').length;
+  const pgsCount = people.filter(p => p.type === 'PG').length;
+
+  const roomLimits = currentTrip.roomLimits || {};
+  const totalQuotaCapacity = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + cap * (roomLimits[cap] || 0), 0);
+  const totalQuotaRooms = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + (roomLimits[cap] || 0), 0);
+
+  const capacityDiff = totalQuotaCapacity - adultSlotsNeeded;
+  const isShortage = totalQuotaCapacity > 0 && capacityDiff < 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -212,6 +223,139 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Thẻ Cảnh Báo & Cân Đối Nhu Cầu vs Định Mức Phòng Khách Sạn */}
+      {totalQuotaCapacity > 0 && (
+        <div className="glass-card" style={{
+          padding: '16px 20px',
+          borderLeft: isShortage ? '5px solid var(--color-danger)' : '5px solid var(--color-success)',
+          background: isShortage
+            ? 'linear-gradient(135deg, rgba(254, 242, 242, 0.9) 0%, rgba(254, 226, 226, 0.6) 100%)'
+            : 'linear-gradient(135deg, rgba(240, 253, 244, 0.9) 0%, rgba(220, 252, 231, 0.6) 100%)',
+          border: isShortage ? '1px solid #f87171' : '1px solid #86efac'
+        }}>
+          {/* Header: Trạng thái & Kết luận tổng quan */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className={`badge ${isShortage ? 'badge-danger badge-blinking-urgent' : 'badge-success'}`} style={{
+                fontSize: '0.84rem',
+                padding: '4px 10px',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
+              }}>
+                {isShortage ? (
+                  <>
+                    <AlertTriangle size={15} /> 🚨 CẢNH BÁO: THIẾU {Math.abs(capacityDiff)} CHỖ NGƯỜI LỚN
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={15} /> ✅ ĐỦ ĐỊNH MỨC PHÒNG (Dư {capacityDiff} chỗ dự phòng)
+                  </>
+                )}
+              </span>
+              <strong style={{ fontSize: '0.98rem', color: isShortage ? '#991b1b' : '#14532d' }}>
+                {isShortage
+                  ? `Đoàn có ${adultSlotsNeeded} suất cần phòng nhưng khách sạn chỉ đáp ứng được ${totalQuotaCapacity} chỗ!`
+                  : `Định mức các loại phòng đã khai báo hoàn toàn đáp ứng đủ số người tham gia!`}
+              </strong>
+            </div>
+
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Dựa trên <strong>{totalPeople} người</strong> ({adultSlotsNeeded} suất lớn + {totalChildren} bé 0 suất)
+            </span>
+          </div>
+
+          {/* Lưới 3 cột: Nhu cầu tham gia | Khả năng đáp ứng định mức | Đánh giá cân đối */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+            {/* Cột 1: Nhu Cầu Tham Gia */}
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-card-solid)',
+              border: '1px solid var(--border-subtle)'
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase' }}>
+                1. Nhu Cầu Cần Xếp Chỗ (Đoàn)
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {adultSlotsNeeded}
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-600)' }}>
+                  suất người lớn
+                </span>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4 }}>
+                • Tổng đoàn: <strong>{totalPeople} người</strong><br />
+                • Nhân viên: <strong>{employeesCount}</strong> | Người thân: <strong>{relativesCount}</strong> | PG: <strong>{pgsCount}</strong><br />
+                • Trẻ em &lt;12t (ngủ cùng): <strong style={{ color: '#0284c7' }}>{totalChildren} bé (0 suất)</strong>
+              </div>
+            </div>
+
+            {/* Cột 2: Sức Chứa Định Mức Khách Sạn */}
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-card-solid)',
+              border: '1px solid var(--border-subtle)'
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase' }}>
+                2. Sức Chứa Định Mức Khách Sạn
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: '1.45rem', fontWeight: 800, color: isShortage ? '#dc2626' : '#16a34a' }}>
+                  {totalQuotaCapacity}
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  chỗ tối đa ({totalQuotaRooms} phòng)
+                </span>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4 }}>
+                • P.2ng: <strong>{roomLimits[2] || 0}</strong> ({ (roomLimits[2] || 0) * 2 } chỗ)<br />
+                • P.3ng: <strong>{roomLimits[3] || 0}</strong> ({ (roomLimits[3] || 0) * 3 } chỗ) • P.4ng: <strong>{roomLimits[4] || 0}</strong> ({ (roomLimits[4] || 0) * 4 } chỗ)<br />
+                • P.5ng: <strong>{roomLimits[5] || 0}</strong> ({ (roomLimits[5] || 0) * 5 } chỗ) • P.6ng: <strong>{roomLimits[6] || 0}</strong> ({ (roomLimits[6] || 0) * 6 } chỗ)
+              </div>
+            </div>
+
+            {/* Cột 3: Đánh Giá & Khuyến Nghị */}
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: isShortage ? '#fff1f2' : '#f0fdf4',
+              border: isShortage ? '1px solid #fecdd3' : '1px solid #bbf7d0',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isShortage ? '#be123c' : '#15803d', marginBottom: 4, textTransform: 'uppercase' }}>
+                  3. Đánh Giá & Khuyến Nghị
+                </div>
+                <div style={{ fontSize: '0.82rem', lineHeight: 1.45, color: isShortage ? '#9f1239' : '#166534' }}>
+                  {isShortage ? (
+                    <>
+                      ⚠️ <strong>Đang thiếu {Math.abs(capacityDiff)} chỗ người lớn</strong> ({totalQuotaCapacity} chỗ &lt; {adultSlotsNeeded} suất).
+                      <br />
+                      Khuyến nghị: Cần tăng thêm ít nhất <strong>{Math.ceil(Math.abs(capacityDiff) / 2)} phòng</strong> (loại 2 người) hoặc nâng định mức phòng 4-6 người.
+                    </>
+                  ) : (
+                    <>
+                      🎉 <strong>Hoàn toàn đủ chỗ</strong> ({totalQuotaCapacity} chỗ &ge; {adultSlotsNeeded} suất).
+                      <br />
+                      Sau khi xếp hết {adultSlotsNeeded} suất người lớn, đoàn vẫn còn <strong>dư {capacityDiff} chỗ dự phòng</strong> để bổ sung phát sinh.
+                    </>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: isShortage ? '#be123c' : '#15803d', marginTop: 6, fontWeight: 700 }}>
+                {isShortage ? '🔴 Cần tăng thêm định mức phòng' : '🟢 Định mức phòng an toàn'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hotel Rooming Breakdown Table (Con số đặt phòng gửi khách sạn) */}
       <div className="glass-card" style={{ padding: '14px 18px' }}>
