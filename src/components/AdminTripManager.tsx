@@ -555,53 +555,102 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 background: 'var(--bg-muted)',
                 border: '1px solid var(--border-subtle)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 6 }}>
-                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', margin: 0, color: 'var(--text-main)' }}>
-                    Giới Hạn Số Lượng Phòng Tối Đa (Theo Loại Phòng):
-                  </label>
-                  <span className="badge" style={{
-                    fontSize: '0.78rem',
-                    padding: '2px 8px',
-                    fontWeight: 800,
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: 6
-                  }}>
-                    👥 Tổng sức chứa: {[2, 3, 4, 5, 6].reduce((sum, cap) => sum + cap * (formData.roomLimits?.[cap] ?? (cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 20 : 6)), 0)} người ({[2, 3, 4, 5, 6].reduce((sum, cap) => sum + (formData.roomLimits?.[cap] ?? (cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 20 : 6)), 0)} phòng)
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
-                  Hệ thống sẽ tự động khóa và hiển thị màu xám cảnh báo khi số phòng đăng ký đạt số lượng tối đa này.
-                </p>
+                {(() => {
+                  const modalTotalCap = [2, 3, 4, 5, 6].reduce((sum, cap) => {
+                    const defaultVal = cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 28 : 6;
+                    const val = formData.roomLimits?.[cap] ?? defaultVal;
+                    return sum + cap * (isNaN(val) ? 0 : val);
+                  }, 0);
+                  const modalTotalRooms = [2, 3, 4, 5, 6].reduce((sum, cap) => {
+                    const defaultVal = cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 28 : 6;
+                    const val = formData.roomLimits?.[cap] ?? defaultVal;
+                    return sum + (isNaN(val) ? 0 : val);
+                  }, 0);
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-                  {[2, 3, 4, 5, 6].map(cap => (
-                    <div key={cap} style={{ textAlign: 'center' }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>
-                        {cap} Người
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input-field"
-                        style={{ textAlign: 'center', padding: '6px 4px', fontWeight: 700, fontSize: '0.9rem' }}
-                        value={formData.roomLimits?.[cap] ?? (cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 20 : 6)}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          setFormData({
-                            ...formData,
-                            roomLimits: {
-                              ...(formData.roomLimits || { 2: 152, 3: 11, 4: 20, 5: 6, 6: 6 }),
-                              [cap]: isNaN(val) ? 0 : val
-                            }
-                          });
-                        }}
-                        placeholder="0"
-                      />
-                    </div>
-                  ))}
-                </div>
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', margin: 0, color: 'var(--text-main)' }}>
+                          Giới Hạn Số Lượng Phòng Tối Đa (Theo Loại Phòng):
+                        </label>
+                        <span className="badge" style={{
+                          fontSize: '0.82rem',
+                          padding: '3px 10px',
+                          fontWeight: 800,
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1.5px solid #93c5fd',
+                          borderRadius: 6,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}>
+                          👥 Tổng sức chứa: <strong>{modalTotalCap} người</strong> ({modalTotalRooms} phòng)
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
+                        Hệ thống sẽ tự động khóa và hiển thị màu xám cảnh báo khi số phòng đăng ký đạt số lượng tối đa này.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                        {[2, 3, 4, 5, 6].map(cap => {
+                          const defaultVal = cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 28 : 6;
+                          const currentVal = formData.roomLimits?.[cap] ?? defaultVal;
+                          return (
+                            <div key={cap} style={{ textAlign: 'center' }}>
+                              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>
+                                {cap} Người
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                className="input-field"
+                                style={{ textAlign: 'center', padding: '6px 4px', fontWeight: 700, fontSize: '0.95rem' }}
+                                value={currentVal}
+                                onChange={e => {
+                                  const val = Number(e.target.value);
+                                  setFormData({
+                                    ...formData,
+                                    roomLimits: {
+                                      ...(formData.roomLimits || { 2: 152, 3: 11, 4: 28, 5: 6, 6: 6 }),
+                                      [cap]: isNaN(val) ? 0 : val
+                                    }
+                                  });
+                                }}
+                                placeholder="0"
+                              />
+                              <div style={{ fontSize: '0.72rem', color: 'var(--primary-600)', marginTop: 4, fontWeight: 700 }}>
+                                = {currentVal * cap} chỗ
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{
+                        marginTop: 10,
+                        paddingTop: 8,
+                        borderTop: '1px dashed var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.78rem',
+                        color: 'var(--text-muted)',
+                        flexWrap: 'wrap',
+                        gap: 6
+                      }}>
+                        <span>Công thức tính sức chứa:</span>
+                        <strong style={{ color: 'var(--primary-600)' }}>
+                          {[2, 3, 4, 5, 6].map(cap => {
+                            const defaultVal = cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 28 : 6;
+                            const currentVal = formData.roomLimits?.[cap] ?? defaultVal;
+                            return `${currentVal}x${cap}=${currentVal * cap}`;
+                          }).join(' + ')} = {modalTotalCap} người
+                        </strong>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div style={{
