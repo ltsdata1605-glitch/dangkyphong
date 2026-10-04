@@ -4,6 +4,7 @@ import { EmployeeRelativeClaim } from './EmployeeRelativeClaim';
 import { RoomingProcessGuide } from './RoomingProcessGuide';
 import { RoomModal } from './RoomModal';
 import { canAddPersonToRoom } from '../services/roomingEngine';
+import { getRelationText } from '../utils/textUtils';
 import {
   Bed,
   Users,
@@ -806,7 +807,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       {rel.name}
                     </span>
                     <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25 }}>
-                      {rel.relation === 'SPOUSE' ? 'Vợ/Chồng' : (rel.relation || 'Người thân')}
+                      {getRelationText(rel.relation, rel.type, rel.slot)}
                     </span>
                     <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px', lineHeight: 1.25 }}>
                       {rel.slot === 0 ? '0s' : '1s'}

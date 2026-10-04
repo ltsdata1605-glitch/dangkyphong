@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Person, Room, Trip } from '../types';
-import { removeVietnameseTones } from '../utils/textUtils';
+import { removeVietnameseTones, getRelationText } from '../utils/textUtils';
 import { validateRoom } from '../services/roomingEngine';
 import {
   Search,
@@ -531,7 +531,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ fontSize: '0.72rem', color: m.slot === 0 ? '#0369a1' : 'var(--text-muted)', fontWeight: m.slot === 0 ? 600 : undefined }}>
-                              {m.slot === 0 ? '0 suất' : (m.type === 'EMPLOYEE' ? m.code : (m.relation || 'Người thân'))}
+                              {m.slot === 0 ? '0 suất' : (m.type === 'EMPLOYEE' ? m.code : getRelationText(m.relation, m.type, m.slot))}
                             </span>
                             <button
                               onClick={(e) => {

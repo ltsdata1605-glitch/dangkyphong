@@ -1,4 +1,4 @@
-import { Gender, RelationType } from '../types';
+import { Gender, RelationType, PersonType } from '../types';
 
 /**
  * Chuyển tiếng Việt có dấu thành không dấu chữ thường để tìm kiếm
@@ -115,3 +115,42 @@ export function formatTourDates(startDate?: string, endDate?: string): string {
 
   return `Ngày ${startDate} - ${endDate}`;
 }
+
+/**
+ * Chuyển đổi mã mối quan hệ sang tiếng Việt chuẩn
+ */
+export function getRelationText(relation?: RelationType | string | null, type?: PersonType, slot?: number): string {
+  if (type === 'EMPLOYEE') return 'Nhân viên';
+  if (type === 'PG' || relation === 'PG') return 'PG Độc lập';
+
+  if (!relation) {
+    if (slot === 0) return 'Con nhỏ (< 12 tuổi)';
+    return type === 'RELATIVE' ? 'Người thân' : '—';
+  }
+
+  const rel = relation.toString().trim().toUpperCase();
+  if (rel === 'SPOUSE' || rel === 'VO' || rel === 'CHONG' || rel === 'VỢ' || rel === 'CHỒNG' || rel === 'VỢ/CHỒNG' || rel === 'VỢ / CHỒNG') {
+    return 'Vợ / Chồng';
+  }
+  if (rel === 'PARENT' || rel === 'BA' || rel === 'ME' || rel === 'MẸ' || rel === 'BO' || rel === 'BỐ' || rel === 'BA/MẸ' || rel === 'BA / MẸ') {
+    return 'Ba / Mẹ';
+  }
+  if (rel === 'CHILD_U5' || rel === 'CON_U5' || rel.includes('< 5') || rel.includes('<5')) {
+    return 'Con (< 5 tuổi)';
+  }
+  if (rel === 'CHILD_5_11' || rel === 'CON_5_11' || rel.includes('5-11') || rel.includes('5–11')) {
+    return 'Con (5–11 tuổi)';
+  }
+  if (rel === 'CHILD_12P' || rel === 'CON_12P' || rel.includes('>= 12') || rel.includes('>=12') || rel.includes('≥ 12') || rel.includes('≥12')) {
+    return 'Con (≥ 12 tuổi)';
+  }
+  if (rel.startsWith('CHILD') || rel.startsWith('CON')) {
+    return slot === 0 ? 'Con (< 12 tuổi)' : 'Con (≥ 12 tuổi)';
+  }
+  if (rel === 'OTHER' || rel === 'KHAC' || rel === 'KHÁC') {
+    return 'Người thân';
+  }
+
+  return relation;
+}
+

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Person, Gender, Room, Trip } from '../types';
-import { removeVietnameseTones } from '../utils/textUtils';
+import { removeVietnameseTones, getRelationText } from '../utils/textUtils';
 import {
   Search,
   Filter,
@@ -226,17 +226,26 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
                     <td style={{ padding: '12px 16px' }}>
                       {p.type === 'RELATIVE' ? (
                         <div>
-                          <div>{p.relation || 'Chưa rõ'}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                            {getRelationText(p.relation, p.type, p.slot)}
+                            {p.slot === 0 && (
+                              <span style={{ fontSize: '0.74rem', color: 'var(--color-success)', marginLeft: 5, fontWeight: 700 }}>
+                                (0 suất)
+                              </span>
+                            )}
+                          </div>
                           {p.ownerId ? (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--primary-600)', fontWeight: 600 }}>
-                              NV: {p.ownerId}
+                            <div style={{ fontSize: '0.75rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: 2 }}>
+                              NV bảo trợ: {p.ownerId}
                             </div>
                           ) : (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', fontWeight: 600 }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', fontWeight: 600, marginTop: 2 }}>
                               Chưa gắn nhân viên
                             </div>
                           )}
                         </div>
+                      ) : p.type === 'PG' ? (
+                        <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>PG Độc lập</span>
                       ) : (
                         <span style={{ color: 'var(--text-dim)' }}>—</span>
                       )}
@@ -356,7 +365,9 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
             <div style={{ padding: '16px 20px' }}>
               <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-muted)', marginBottom: 14 }}>
                 <div style={{ fontWeight: 700 }}>{linkingRelative.name}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{linkingRelative.store} • {linkingRelative.relation || 'Người thân'}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {linkingRelative.store} • {getRelationText(linkingRelative.relation, linkingRelative.type, linkingRelative.slot)}
+                </div>
               </div>
 
               <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: 6 }}>
