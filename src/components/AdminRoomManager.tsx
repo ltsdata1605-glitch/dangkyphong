@@ -266,10 +266,15 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                     {room.status === 'FULL' ? 'Đủ' : (
                       <>
                         <span className="dot-blinking-urgent" />
-                        Thiếu {room.capacity - room.usedSlots}
+                        Thiếu {room.capacity - room.usedSlots} lớn
                       </>
                     )}
                   </span>
+                  {room.childCount > 0 && (
+                    <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 5px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                      +{room.childCount} bé (0 suất)
+                    </span>
+                  )}
                   <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
                     {room.capacity}ng
                   </span>
@@ -287,6 +292,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 <div className="admin-room-members" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 260 }}>
                   {members.map(m => {
                     const isLeader = m.id === room.leaderId;
+                    const isChild = (m.slot ?? 1) === 0;
                     return (
                       <div
                         key={m.id}
@@ -297,8 +303,8 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           gap: 4,
                           padding: '2px 8px',
                           borderRadius: 'var(--radius-sm)',
-                          background: 'var(--bg-muted)',
-                          border: '1px solid var(--border-subtle)',
+                          background: isChild ? '#f0f9ff' : 'var(--bg-muted)',
+                          border: isChild ? '1px solid #bae6fd' : '1px solid var(--border-subtle)',
                           fontSize: '0.78rem'
                         }}
                       >
@@ -306,7 +312,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           width: 14,
                           height: 14,
                           borderRadius: '50%',
-                          background: m.gender === 'M' ? '#2563eb' : '#db2777',
+                          background: isChild ? '#0284c7' : (m.gender === 'M' ? '#2563eb' : '#db2777'),
                           color: '#fff',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -314,10 +320,15 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           fontSize: '0.55rem',
                           fontWeight: 800
                         }}>
-                          {m.gender === 'M' ? 'N' : 'F'}
+                          {isChild ? '👶' : (m.gender === 'M' ? 'N' : 'F')}
                         </span>
-                        <strong style={{ fontSize: '0.8rem' }}>{m.name}</strong>
+                        <strong style={{ fontSize: '0.8rem', color: isChild ? '#0369a1' : undefined }}>{m.name}</strong>
                         {isLeader && <Crown size={11} style={{ color: '#f59e0b' }} />}
+                        {isChild && (
+                          <span className="badge" style={{ fontSize: '0.6rem', padding: '0 3px', background: '#0284c7', color: '#fff' }}>
+                            Bé 0 suất
+                          </span>
+                        )}
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                           {m.code}
                         </span>
@@ -423,10 +434,15 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           {room.status === 'FULL' ? 'Đủ' : (
                             <>
                               <span className="dot-blinking-urgent" />
-                              Thiếu {room.capacity - room.usedSlots}
+                              Thiếu {room.capacity - room.usedSlots} lớn
                             </>
                           )}
                         </span>
+                        {room.childCount > 0 && (
+                          <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 5px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                            +{room.childCount} bé (0 suất)
+                          </span>
+                        )}
                         {room.adminOverride && (
                           <span className="badge badge-primary" style={{ fontSize: '0.68rem' }} title={room.adminNote}>
                             <ShieldCheck size={11} /> Đặc cách
@@ -496,10 +512,16 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                            <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
-                              {m.slot === 0 ? <Baby size={11} /> : (m.gender === 'M' ? 'Nam' : 'Nữ')}
-                            </span>
-                            <span style={{ fontWeight: 600, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {m.slot === 0 ? (
+                              <span className="badge" style={{ fontSize: '0.62rem', padding: '1px 5px', background: '#0284c7', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                <Baby size={11} /> Bé 0 suất
+                              </span>
+                            ) : (
+                              <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                                {m.gender === 'M' ? 'Nam' : 'Nữ'}
+                              </span>
+                            )}
+                            <span style={{ fontWeight: 600, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: m.slot === 0 ? '#0369a1' : undefined }}>
                               {m.name}
                             </span>
                             {isRoomLeader && (
@@ -508,8 +530,8 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              {m.type === 'EMPLOYEE' ? m.code : (m.relation || 'Người thân')}
+                            <span style={{ fontSize: '0.72rem', color: m.slot === 0 ? '#0369a1' : 'var(--text-muted)', fontWeight: m.slot === 0 ? 600 : undefined }}>
+                              {m.slot === 0 ? '0 suất' : (m.type === 'EMPLOYEE' ? m.code : (m.relation || 'Người thân'))}
                             </span>
                             <button
                               onClick={(e) => {
@@ -540,7 +562,7 @@ export const AdminRoomManager: React.FC<AdminRoomManagerProps> = ({
                 {/* Bottom Add Member Button */}
                 <div style={{ paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    {room.usedSlots}/{room.capacity} suất {room.childCount > 0 && `(+${room.childCount} trẻ)`}
+                    {room.usedSlots}/{room.capacity} suất người lớn {room.childCount > 0 && `(+${room.childCount} bé 0 suất)`}
                   </span>
                   <button
                     onClick={() => {

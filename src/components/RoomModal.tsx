@@ -366,8 +366,13 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                           <span className="badge badge-gray" style={{ fontSize: '0.65rem' }}>Phòng {r.capacity}ng</span>
                           <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.65rem', padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                             <span className="dot-blinking-urgent" />
-                            Thiếu {missing}ng
+                            Thiếu {missing} lớn
                           </span>
+                          {r.childCount > 0 && (
+                            <span className="badge" style={{ fontSize: '0.62rem', padding: '1px 4px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                              +{r.childCount} bé (0 suất)
+                            </span>
+                          )}
                           {hasSameStore && <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>Cùng ST</span>}
                           <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                             {leader?.code ? `${leader.code} - ` : ''}{leader?.name} ({leader?.store})
@@ -653,7 +658,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
           {/* Step 2: Current Selected Members in Room */}
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: 8 }}>
-              2. Danh Sách Thành Viên Trong Phòng ({currentMembers.length}):
+              2. Danh Sách Thành Viên Trong Phòng ({validation.usedSlots}/{capacity} suất người lớn{validation.childCount > 0 ? `, kèm ${validation.childCount} bé 0 suất` : ''}):
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {currentMembers.map(m => {
@@ -661,9 +666,9 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                 let relLabel = m.type === 'EMPLOYEE' ? 'Nhân viên' : (m.relation || 'Người thân');
                 if (m.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
                 else if (m.relation === 'PARENT') relLabel = 'Ba / Mẹ';
-                else if (m.relation === 'CHILD_U5') relLabel = 'Con (<5 tuổi)';
-                else if (m.relation === 'CHILD_5_11') relLabel = 'Con (5-11 tuổi)';
-                else if (m.relation === 'CHILD_12P') relLabel = 'Con (>=12 tuổi)';
+                else if (m.relation === 'CHILD_U5') relLabel = 'Con (<5 tuổi - 0 suất)';
+                else if (m.relation === 'CHILD_5_11') relLabel = 'Con (5-11 tuổi - 0 suất)';
+                else if (m.relation === 'CHILD_12P') relLabel = 'Con (>=12 tuổi - 1 suất)';
                 else if (m.type === 'PG') relLabel = 'PG Độc Lập';
 
                 return (

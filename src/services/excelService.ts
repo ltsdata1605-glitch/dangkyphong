@@ -559,7 +559,10 @@ export async function parseUploadedExcel(file: File): Promise<{
         } else if (relCombined.includes('5-11') || relCombined.includes('5 - 11') || relCombined.includes('5–11')) {
           relation = 'CHILD_5_11';
           slot = 0; // Trẻ em dưới 12 tuổi: 0 suất (ở cùng người thân)
-        } else if (relCombined.includes('12') || relCombined.includes('lon hon 11')) {
+        } else if (relCombined.includes('duoi 12') || relCombined.includes('< 12') || relCombined.includes('<12') || relCombined.includes('nho hon 12')) {
+          relation = 'CHILD_5_11';
+          slot = 0; // Trẻ em dưới 12 tuổi: 0 suất (ở cùng người thân)
+        } else if (relCombined.includes('lon hon 11') || relCombined.includes('tren 11') || relCombined.includes('> 11') || relCombined.includes('12') || relCombined.includes('>= 12') || relCombined.includes('>=12')) {
           relation = 'CHILD_12P';
           slot = 1;
         } else if (relCombined.includes('con')) {

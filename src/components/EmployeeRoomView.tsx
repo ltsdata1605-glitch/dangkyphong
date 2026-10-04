@@ -191,7 +191,9 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
           <div className="suggested-rooms-grid">
             {underCapacityRooms.slice(0, showAllSuggested ? undefined : 8).map(room => {
               const members = room.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
-              const missingCount = Math.max(1, room.capacity - room.usedSlots);
+              const adultSlots = members.filter(m => (m.slot ?? 1) > 0).length;
+              const childCount = members.filter(m => (m.slot ?? 1) === 0).length;
+              const missingCount = Math.max(1, room.capacity - (room.usedSlots ?? adultSlots));
               const hasSameStore = members.some(m => m.store === currentEmployee.store);
               const leader = members.find(m => m.id === room.leaderId || m.code === room.leaderId) || members[0];
 
@@ -220,8 +222,13 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       </span>
                       <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.62rem', padding: '1px 4px', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                         <span className="dot-blinking-urgent" style={{ width: 5, height: 5 }} />
-                        Thiếu {missingCount}
+                        Thiếu {missingCount} lớn
                       </span>
+                      {childCount > 0 && (
+                        <span className="badge" style={{ fontSize: '0.6rem', padding: '1px 4px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                          +{childCount} bé (0 suất)
+                        </span>
+                      )}
                       {hasSameStore && (
                         <span className="badge badge-primary" style={{ fontSize: '0.6rem', padding: '1px 3px' }}>
                           Cùng ST
@@ -261,34 +268,43 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
                   {/* Hàng 2: Thành viên hiện tại dạng chip siêu gọn */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-                    {members.map(m => (
-                      <span
-                        key={m.id}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          padding: '1px 4px',
-                          background: 'var(--bg-muted)',
-                          borderRadius: 3,
-                          fontSize: '0.65rem',
-                          border: '1px solid var(--border-subtle)',
-                          maxWidth: '100%',
-                          lineHeight: 1.2,
-                          flexWrap: 'wrap'
-                        }}
-                        title={`${m.code ? `${m.code} - ` : ''}${m.name} - ${m.store}`}
-                      >
-                        <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.55rem', padding: '0 2px' }}>
-                          {m.gender === 'M' ? 'Nam' : 'Nữ'}
+                    {members.map(m => {
+                      const isChild = (m.slot ?? 1) === 0;
+                      return (
+                        <span
+                          key={m.id}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            padding: '1px 4px',
+                            background: isChild ? '#f0f9ff' : 'var(--bg-muted)',
+                            borderRadius: 3,
+                            fontSize: '0.65rem',
+                            border: isChild ? '1px solid #bae6fd' : '1px solid var(--border-subtle)',
+                            maxWidth: '100%',
+                            lineHeight: 1.2,
+                            flexWrap: 'wrap'
+                          }}
+                          title={`${m.code ? `${m.code} - ` : ''}${m.name}${isChild ? ' (Bé <12t ở cùng, 0 suất)' : ''} - ${m.store || ''}`}
+                        >
+                          {isChild ? (
+                            <span className="badge" style={{ fontSize: '0.55rem', padding: '0 3px', background: '#0284c7', color: '#fff', borderRadius: 2 }}>
+                              👶 Bé 0 suất
+                            </span>
+                          ) : (
+                            <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.55rem', padding: '0 2px' }}>
+                              {m.gender === 'M' ? 'Nam' : 'Nữ'}
+                            </span>
+                          )}
+                          <strong style={{ whiteSpace: 'nowrap', color: isChild ? '#0369a1' : undefined }}>
+                            {m.code ? `${m.code} - ${m.name}` : m.name}
+                          </strong>
+                          {m.store && <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem', wordBreak: 'break-word' }}>({m.store})</span>}
+                          {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={9} style={{ color: '#d97706', flexShrink: 0 }} />}
                         </span>
-                        <strong style={{ whiteSpace: 'nowrap' }}>
-                          {m.code ? `${m.code} - ${m.name}` : m.name}
-                        </strong>
-                        {m.store && <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem', wordBreak: 'break-word' }}>({m.store})</span>}
-                        {(m.id === room.leaderId || m.code === room.leaderId) && <Crown size={9} style={{ color: '#d97706', flexShrink: 0 }} />}
-                      </span>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -485,7 +501,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               marginBottom: 20
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                   <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>
                     {myRoom.code}
                   </h3>
@@ -493,10 +509,15 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                     {myRoom.status === 'FULL' ? 'Đã đủ chỗ' : (
                       <>
                         <span className="dot-blinking-urgent" />
-                        Thiếu {myRoom.capacity - myRoom.usedSlots} chỗ
+                        Thiếu {myRoom.capacity - myRoom.usedSlots} chỗ lớn
                       </>
                     )}
                   </span>
+                  {myRoom.childCount > 0 && (
+                    <span className="badge" style={{ fontSize: '0.72rem', padding: '2px 6px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                      +{myRoom.childCount} bé ở cùng (0 suất)
+                    </span>
+                  )}
                   <span className="badge badge-primary">
                     Phòng {myRoom.capacity} Người
                   </span>
@@ -507,16 +528,17 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    padding: '3px 8px',
+                    padding: '4px 10px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(239, 68, 68, 0.1)',
                     color: 'var(--color-danger)',
-                    fontSize: '0.74rem',
+                    fontSize: '0.76rem',
                     fontWeight: 700,
-                    marginBottom: 4
+                    marginBottom: 4,
+                    lineHeight: 1.4
                   }}>
                     <span className="dot-blinking-urgent" />
-                    Phòng chưa đủ người theo định mức ({myRoom.usedSlots}/{myRoom.capacity} chỗ) - Đồng nghiệp khác có thể chọn vào ghép!
+                    Phòng chưa đủ người theo định mức ({myRoom.usedSlots}/{myRoom.capacity} suất người lớn){myRoom.childCount > 0 ? ` (kèm ${myRoom.childCount} bé 0 suất)` : ''} — Vẫn CÒN TRỐNG {myRoom.capacity - myRoom.usedSlots} chỗ người lớn để đồng nghiệp khác có thể chọn vào ghép!
                   </div>
                 )}
 
@@ -570,11 +592,13 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
 
             {/* Room Members List */}
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Thành viên trong phòng ({roomMembers.length}/{myRoom.capacity} suất người lớn):</span>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  {myRoom.childCount > 0 && `(Kèm ${myRoom.childCount} trẻ em ở ghép)`}
-                </span>
+              <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                <span>Thành viên trong phòng ({roomMembers.filter(m => (m.slot ?? 1) > 0).length}/{myRoom.capacity} suất người lớn):</span>
+                {myRoom.childCount > 0 && (
+                  <span style={{ fontSize: '0.82rem', color: '#0369a1', fontWeight: 600 }}>
+                    👶 Kèm {myRoom.childCount} bé ở cùng (0 suất)
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
@@ -583,13 +607,14 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                   const isSelf = m.id === currentEmployee.id || m.code === currentEmployee.code;
                   const canRemoveOther = !currentTrip.isLocked && !isSelf && (isLeader || m.ownerId === currentEmployee.code);
                   const canLeaveSelf = !currentTrip.isLocked && isSelf;
+                  const isChild = (m.slot ?? 1) === 0;
 
                   let relLabel = m.type === 'EMPLOYEE' ? 'Đồng nghiệp' : (m.relation || 'Người thân');
                   if (m.relation === 'SPOUSE') relLabel = 'Vợ / Chồng';
                   else if (m.relation === 'PARENT') relLabel = 'Ba / Mẹ';
-                  else if (m.relation === 'CHILD_U5') relLabel = 'Con (<5 tuổi)';
-                  else if (m.relation === 'CHILD_5_11') relLabel = 'Con (5-11 tuổi)';
-                  else if (m.relation === 'CHILD_12P') relLabel = 'Con (>=12 tuổi)';
+                  else if (m.relation === 'CHILD_U5') relLabel = 'Con (<5 tuổi - 0 suất)';
+                  else if (m.relation === 'CHILD_5_11') relLabel = 'Con (5-11 tuổi - 0 suất)';
+                  else if (m.relation === 'CHILD_12P') relLabel = 'Con (>=12 tuổi - 1 suất)';
                   else if (m.type === 'PG') relLabel = 'PG Độc Lập';
 
                   return (
@@ -598,14 +623,14 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                       style={{
                         padding: '14px',
                         borderRadius: 'var(--radius-md)',
-                        background: isSelf ? 'rgba(37, 99, 235, 0.06)' : 'var(--bg-card-solid)',
-                        border: isSelf ? '1.5px solid var(--primary-500)' : '1px solid var(--border-subtle)',
+                        background: isSelf ? 'rgba(37, 99, 235, 0.06)' : isChild ? '#f0f9ff' : 'var(--bg-card-solid)',
+                        border: isSelf ? '1.5px solid var(--primary-500)' : isChild ? '1px solid #bae6fd' : '1px solid var(--border-subtle)',
                         boxShadow: 'var(--shadow-sm)'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                         <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{m.name}</span>
+                          <span style={{ color: isChild ? '#0369a1' : undefined }}>{m.name}</span>
                           {isSelf && (
                             <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>Bạn</span>
                           )}
@@ -616,15 +641,21 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                           )}
                         </div>
 
-                        <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.7rem' }}>
-                          {m.gender === 'M' ? 'Nam' : 'Nữ'}
-                        </span>
+                        {isChild ? (
+                          <span className="badge" style={{ fontSize: '0.7rem', background: '#0284c7', color: '#fff' }}>
+                            👶 Bé 0 suất
+                          </span>
+                        ) : (
+                          <span className={`badge ${m.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.7rem' }}>
+                            {m.gender === 'M' ? 'Nam' : 'Nữ'}
+                          </span>
+                        )}
                       </div>
 
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span>{relLabel}</span>
                         <span>•</span>
-                        <span>{m.slot === 0 ? '0 suất (ở ghép)' : '1 suất'}</span>
+                        <span>{isChild ? '0 suất (ở cùng)' : '1 suất'}</span>
                         <span>•</span>
                         <span>{m.code}</span>
                       </div>

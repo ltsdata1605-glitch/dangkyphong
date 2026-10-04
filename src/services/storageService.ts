@@ -577,6 +577,16 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
     peopleMap.set(p.code, p);
   });
 
+  // Đảm bảo tuyệt đối: Trẻ em <12 tuổi (CHILD_U5, CHILD_5_11) luôn có slot = 0
+  people.forEach(p => {
+    if (p.relation === 'CHILD_U5' || p.relation === 'CHILD_5_11') {
+      if (p.slot !== 0) {
+        p.slot = 0;
+        modified = true;
+      }
+    }
+  });
+
   const updatedRooms: Room[] = [];
   const assignedPersonIds = new Set<string>();
 
@@ -613,12 +623,17 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
     });
 
     const usedSlots = validMembers.reduce((sum, m) => sum + (m.slot ?? 1), 0);
-    const childCount = validMembers.filter(m => m.slot === 0).length;
+    const childCount = validMembers.filter(m => (m.slot ?? 1) === 0).length;
+    const targetStatus: RoomStatus = usedSlots >= room.capacity ? 'FULL' : 'UNDER';
 
     let leaderId = room.leaderId;
     if (!cleanMemberIds.includes(leaderId)) {
       const emp = validMembers.find(m => m.type === 'EMPLOYEE');
       leaderId = emp ? emp.id : cleanMemberIds[0];
+      modified = true;
+    }
+
+    if (room.usedSlots !== usedSlots || room.childCount !== childCount || room.status !== targetStatus) {
       modified = true;
     }
 
@@ -628,7 +643,7 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
       leaderId,
       usedSlots,
       childCount,
-      status: (usedSlots >= room.capacity ? 'FULL' : 'UNDER') as RoomStatus
+      status: targetStatus
     });
   });
 

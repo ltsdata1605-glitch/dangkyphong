@@ -500,7 +500,13 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                       ) : (
                         <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.68rem', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <span className="dot-blinking-urgent" />
-                          ⏳ Còn {room.capacity - room.usedSlots}
+                          ⏳ Còn {room.capacity - room.usedSlots} chỗ lớn
+                        </span>
+                      )}
+
+                      {room.childCount > 0 && (
+                        <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 5px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                          +{room.childCount} bé (0 suất)
                         </span>
                       )}
 
@@ -523,12 +529,13 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                       {members.map(member => {
                         const isLeader = member.id === room.leaderId;
                         const isCurrent = currentEmployee && member.id === currentEmployee.id;
+                        const isChild = (member.slot ?? 1) === 0;
 
                         let roleLabel = member.type === 'EMPLOYEE' ? '' : (member.relation || 'Người thân');
                         if (member.relation === 'SPOUSE') roleLabel = 'Vợ/Chồng';
                         else if (member.relation === 'PARENT') roleLabel = 'Ba/Mẹ';
-                        else if (member.relation === 'CHILD_U5') roleLabel = 'Con <5t';
-                        else if (member.relation === 'CHILD_5_11') roleLabel = 'Con 5-11t';
+                        else if (member.relation === 'CHILD_U5') roleLabel = 'Con <5t (0 suất)';
+                        else if (member.relation === 'CHILD_5_11') roleLabel = 'Con 5-11t (0 suất)';
                         else if (member.relation === 'CHILD_12P') roleLabel = 'Con ≥12t';
                         else if (member.type === 'PG') roleLabel = 'PG';
 
@@ -541,30 +548,47 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                               gap: 4,
                               padding: '2px 8px',
                               borderRadius: 'var(--radius-sm)',
-                              background: isCurrent ? 'rgba(37, 99, 235, 0.12)' : 'var(--bg-muted)',
-                              border: isCurrent ? '1px solid var(--primary-500)' : '1px solid var(--border-subtle)',
+                              background: isCurrent ? 'rgba(37, 99, 235, 0.12)' : isChild ? '#f0f9ff' : 'var(--bg-muted)',
+                              border: isCurrent ? '1px solid var(--primary-500)' : isChild ? '1px solid #bae6fd' : '1px solid var(--border-subtle)',
                               fontSize: '0.78rem',
                               whiteSpace: 'nowrap'
                             }}
-                            title={`${member.name} (${member.code}) - ${member.store}`}
+                            title={`${member.name} (${member.code})${isChild ? ' - Bé <12t ở cùng (0 suất)' : ''} - ${member.store}`}
                           >
-                            <span style={{
-                              width: 15,
-                              height: 15,
-                              borderRadius: '50%',
-                              background: member.gender === 'M' ? '#2563eb' : '#db2777',
-                              color: '#fff',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '0.58rem',
-                              fontWeight: 800,
-                              flexShrink: 0
-                            }}>
-                              {member.gender === 'M' ? 'N' : 'F'}
-                            </span>
+                            {isChild ? (
+                              <span style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                background: '#0284c7',
+                                color: '#fff',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.65rem',
+                                flexShrink: 0
+                              }}>
+                                👶
+                              </span>
+                            ) : (
+                              <span style={{
+                                width: 15,
+                                height: 15,
+                                borderRadius: '50%',
+                                background: member.gender === 'M' ? '#2563eb' : '#db2777',
+                                color: '#fff',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.58rem',
+                                fontWeight: 800,
+                                flexShrink: 0
+                              }}>
+                                {member.gender === 'M' ? 'N' : 'F'}
+                              </span>
+                            )}
 
-                            <strong style={{ color: isCurrent ? 'var(--primary-600)' : 'var(--text-main)', fontSize: '0.8rem' }}>
+                            <strong style={{ color: isCurrent ? 'var(--primary-600)' : isChild ? '#0369a1' : 'var(--text-main)', fontSize: '0.8rem' }}>
                               {member.name}
                             </strong>
 
@@ -575,7 +599,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                             )}
 
                             {roleLabel ? (
-                              <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0 4px', lineHeight: 1.3 }}>
+                              <span className="badge" style={{ fontSize: '0.65rem', padding: '0 4px', lineHeight: 1.3, background: isChild ? '#0284c7' : undefined, color: isChild ? '#fff' : undefined }}>
                                 {roleLabel}
                               </span>
                             ) : (
@@ -594,8 +618,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                       })}
 
                       {room.capacity > room.usedSlots && (
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontStyle: 'italic', paddingLeft: 4 }}>
-                          +{room.capacity - room.usedSlots} chỗ trống
+                        <span className="badge badge-warning" style={{ fontSize: '0.72rem', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          ⚡ Còn {room.capacity - room.usedSlots} chỗ lớn
                         </span>
                       )}
                     </div>
@@ -662,7 +686,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         {room.status === 'FULL' ? (
                           <span className="badge badge-success" style={{ fontSize: '0.74rem' }}>
                             ✓ Đủ {room.usedSlots}/{room.capacity}
@@ -670,7 +694,12 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                         ) : (
                           <span className="badge badge-warning badge-blinking-urgent" style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <span className="dot-blinking-urgent" />
-                            ⏳ Còn {room.capacity - room.usedSlots} chỗ
+                            ⏳ Còn {room.capacity - room.usedSlots} chỗ lớn
+                          </span>
+                        )}
+                        {room.childCount > 0 && (
+                          <span className="badge" style={{ fontSize: '0.7rem', padding: '1px 5px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                            +{room.childCount} bé (0 suất)
                           </span>
                         )}
                       </div>
@@ -710,13 +739,14 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                       {members.map(member => {
                         const isLeader = member.id === room.leaderId;
                         const isCurrent = currentEmployee && member.id === currentEmployee.id;
+                        const isChild = (member.slot ?? 1) === 0;
 
                         let roleLabel = member.type === 'EMPLOYEE' ? 'Nhân viên' : (member.relation || 'Người thân');
                         if (member.relation === 'SPOUSE') roleLabel = 'Vợ / Chồng';
                         else if (member.relation === 'PARENT') roleLabel = 'Ba / Mẹ';
-                        else if (member.relation === 'CHILD_U5') roleLabel = 'Con (<5 tuổi)';
-                        else if (member.relation === 'CHILD_5_11') roleLabel = 'Con (5-11 tuổi)';
-                        else if (member.relation === 'CHILD_12P') roleLabel = 'Con (>=12 tuổi)';
+                        else if (member.relation === 'CHILD_U5') roleLabel = 'Con (<5 tuổi - 0 suất)';
+                        else if (member.relation === 'CHILD_5_11') roleLabel = 'Con (5-11 tuổi - 0 suất)';
+                        else if (member.relation === 'CHILD_12P') roleLabel = 'Con (>=12 tuổi - 1 suất)';
                         else if (member.type === 'PG') roleLabel = 'PG';
 
                         return (
@@ -728,8 +758,8 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                               justifyContent: 'space-between',
                               padding: '8px 10px',
                               borderRadius: 'var(--radius-sm)',
-                              background: isCurrent ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-muted)',
-                              border: isCurrent ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid transparent',
+                              background: isCurrent ? 'rgba(37, 99, 235, 0.08)' : isChild ? '#f0f9ff' : 'var(--bg-muted)',
+                              border: isCurrent ? '1px solid rgba(37, 99, 235, 0.25)' : isChild ? '1px solid #bae6fd' : '1px solid transparent',
                               gap: 8
                             }}
                           >
@@ -739,16 +769,16 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                                 width: 28,
                                 height: 28,
                                 borderRadius: '50%',
-                                background: member.gender === 'M' ? '#2563eb' : '#db2777',
+                                background: isChild ? '#0284c7' : (member.gender === 'M' ? '#2563eb' : '#db2777'),
                                 color: '#fff',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.72rem',
+                                fontSize: isChild ? '0.9rem' : '0.72rem',
                                 fontWeight: 800,
                                 flexShrink: 0
                               }}>
-                                {member.gender === 'M' ? 'Nam' : 'Nữ'}
+                                {isChild ? '👶' : (member.gender === 'M' ? 'Nam' : 'Nữ')}
                               </div>
 
                               <div style={{ minWidth: 0 }}>
@@ -763,7 +793,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis'
                                 }}>
-                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: isChild ? '#0369a1' : undefined }}>
                                     {member.name}
                                   </span>
                                   {isLeader && (
@@ -772,6 +802,14 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                                       style={{ fontSize: '0.62rem', padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: 2 }}
                                     >
                                       <Crown size={10} /> Trưởng phòng
+                                    </span>
+                                  )}
+                                  {isChild && (
+                                    <span
+                                      className="badge"
+                                      style={{ fontSize: '0.62rem', padding: '1px 4px', background: '#0284c7', color: '#fff' }}
+                                    >
+                                      👶 Bé 0 suất
                                     </span>
                                   )}
                                 </div>
@@ -798,7 +836,7 @@ export const AllRoomsDirectoryModal: React.FC<AllRoomsDirectoryModalProps> = ({
                               <span className="badge badge-gray" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
                                 {member.code}
                               </span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                              <span style={{ fontSize: '0.7rem', color: isChild ? '#0369a1' : 'var(--text-muted)', marginTop: 2, fontWeight: isChild ? 600 : undefined }}>
                                 {roleLabel}
                               </span>
                             </div>
