@@ -114,6 +114,14 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
       });
   }, [allRooms, currentTrip.id, myRoom, allPeople, currentEmployee]);
 
+  const totalAvailableSlots = useMemo(() => {
+    return underCapacityRooms.reduce((sum, r) => {
+      const members = r.memberIds.map(id => allPeople.find(p => p.id === id || p.code === id)!).filter(Boolean);
+      const adultSlots = members.filter(m => (m.slot ?? 1) > 0).length;
+      return sum + Math.max(1, r.capacity - (r.usedSlots ?? adultSlots));
+    }, 0);
+  }, [underCapacityRooms, allPeople]);
+
   const handleOpenCreateModal = () => {
     setIsEditing(false);
     setIsModalOpen(true);
@@ -178,8 +186,22 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
                 <span className="dot-blinking-urgent" />
                 ⚡ CẦN GHÉP NGƯỜI
               </span>
-              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Gợi Ý {underCapacityRooms.length} Phòng Chưa Đủ Người Phù Hợp Với Bạn
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span>Gợi Ý {underCapacityRooms.length} Phòng Chưa Đủ Người Phù Hợp Với Bạn</span>
+                <span className="badge" style={{
+                  fontSize: '0.74rem',
+                  padding: '2px 8px',
+                  fontWeight: 800,
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 12,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}>
+                  👥 Tổng {totalAvailableSlots} người có thể ghép
+                </span>
               </h4>
             </div>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>

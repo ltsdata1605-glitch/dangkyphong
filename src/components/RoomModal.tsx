@@ -324,8 +324,11 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                     <span className="dot-blinking-urgent" />
                     ⚡ Gợi ý ghép phòng
                   </span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#991b1b' }}>
-                    Có {underCapacityRooms.length} phòng đang còn thiếu người ({underCapacityRooms.slice(0, 3).map(r => r.code).join(', ')}...)
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#991b1b', display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span>Có {underCapacityRooms.length} phòng đang còn thiếu người ({underCapacityRooms.slice(0, 3).map(r => r.code).join(', ')}...)</span>
+                    <span className="badge" style={{ fontSize: '0.72rem', padding: '1px 6px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: 10 }}>
+                      👥 Tổng {underCapacityRooms.reduce((sum, r) => sum + Math.max(1, r.capacity - r.usedSlots), 0)} người có thể ghép
+                    </span>
                   </span>
                 </div>
                 <button
