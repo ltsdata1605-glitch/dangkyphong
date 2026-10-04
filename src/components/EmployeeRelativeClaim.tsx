@@ -507,7 +507,7 @@ export const EmployeeRelativeClaim: React.FC<EmployeeRelativeClaimProps> = ({
               <Info size={16} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
               <div style={{ fontSize: '0.8rem', color: '#b45309', lineHeight: 1.5 }}>
                 <div>✨ <strong>Tự động tạo phòng:</strong> Hệ thống sẽ <strong>tự động tạo phòng 2 người</strong> với người thân này (hoặc tự thêm vào phòng hiện tại nếu bạn đã có phòng).</div>
-                <div style={{ marginTop: 4 }}>👶 <strong>Trẻ em:</strong> Riêng đối với bé &lt; 11 tuổi (dưới 5 tuổi hoặc 5–11 tuổi) sẽ ở cùng phòng người thân và <strong>không tính là 1 người</strong> (0 suất người lớn).</div>
+                <div style={{ marginTop: 4 }}>👶 <strong>Trẻ em:</strong> Riêng đối với bé &lt; 12 tuổi (dưới 5 tuổi hoặc 5–11 tuổi) sẽ ở cùng phòng người thân và <strong>không tính là 1 người</strong> (0 suất người lớn).</div>
               </div>
             </div>
 

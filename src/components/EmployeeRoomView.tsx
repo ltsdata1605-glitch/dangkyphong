@@ -350,7 +350,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
               marginBottom: 12
             }}>
               <Info size={14} style={{ flexShrink: 0 }} />
-              <span>Ghi chú: Nếu bé &lt; 11 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).</span>
+              <span>Ghi chú: Nếu bé &lt; 12 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).</span>
             </div>
 
             {isLocked ? (

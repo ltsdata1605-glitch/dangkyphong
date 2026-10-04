@@ -809,7 +809,7 @@ export function getTripImportInfo(trip: Trip): { count: number; importedAt: stri
  * Gán / Nhận người thân vào nhân viên bảo trợ (cho phép chọn mối quan hệ)
  * TỰ ĐỘNG TẠO PHÒNG VỚI NGƯỜI THÂN:
  * - Nếu là Vợ/Chồng, Con -> Mặc định tạo phòng 2 người (capacity = 2).
- *   Riêng đối với con < 11 tuổi (CHILD_U5, CHILD_5_11) thì ở cùng người thân, slot = 0 (không tính là 1 người).
+ *   Riêng đối với con < 12 tuổi (CHILD_U5, CHILD_5_11) thì ở cùng người thân, slot = 0 (không tính là 1 người).
  * - Nếu nhân viên đã có phòng: Tự động thêm người thân vào phòng hiện tại.
  */
 export async function claimRelative(
@@ -833,7 +833,7 @@ export async function claimRelative(
     relative.relation = relation;
   }
 
-  // Quy tắc: Nếu là con < 11 tuổi (CHILD_U5 hoặc CHILD_5_11) -> 0 suất (ở cùng người thân)
+  // Quy tắc: Nếu là con < 12 tuổi (CHILD_U5 hoặc CHILD_5_11) -> 0 suất (ở cùng người thân)
   if (relative.relation === 'CHILD_U5' || relative.relation === 'CHILD_5_11') {
     relative.slot = 0;
   } else {
@@ -920,7 +920,7 @@ export async function claimRelative(
     // Trường hợp B: Nhân viên chưa có phòng -> TỰ ĐỘNG TẠO PHÒNG MỚI
     isNewRoom = true;
     const isChildUnder11 = relative.slot === 0;
-    const neededSlots = 1 + (relative.slot ?? 1); // Nhân viên (1) + người thân (1 hoặc 0 nếu bé < 11 tuổi)
+    const neededSlots = 1 + (relative.slot ?? 1); // Nhân viên (1) + người thân (1 hoặc 0 nếu bé < 12 tuổi)
     const minCap = Math.max(2, neededSlots);
 
     // Tìm loại phòng khả dụng nhỏ nhất >= minCap còn định mức (2 -> 3 -> 4 -> 5 -> 6)

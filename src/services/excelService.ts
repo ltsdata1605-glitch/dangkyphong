@@ -555,10 +555,10 @@ export async function parseUploadedExcel(file: File): Promise<{
           slot = 1;
         } else if (relCombined.includes('duoi 5') || relCombined.includes('< 5') || relCombined.includes('<5')) {
           relation = 'CHILD_U5';
-          slot = 0; // Trẻ em dưới 11 tuổi: 0 suất (ở cùng người thân)
+          slot = 0; // Trẻ em dưới 12 tuổi: 0 suất (ở cùng người thân)
         } else if (relCombined.includes('5-11') || relCombined.includes('5 - 11') || relCombined.includes('5–11')) {
           relation = 'CHILD_5_11';
-          slot = 0; // Trẻ em dưới 11 tuổi: 0 suất (ở cùng người thân)
+          slot = 0; // Trẻ em dưới 12 tuổi: 0 suất (ở cùng người thân)
         } else if (relCombined.includes('12') || relCombined.includes('lon hon 11')) {
           relation = 'CHILD_12P';
           slot = 1;

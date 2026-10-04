@@ -52,7 +52,7 @@ export const RoomingProcessGuide: React.FC<RoomingProcessGuideProps> = ({
               marginLeft: 4,
               fontWeight: 600
             }}>
-              📌 Bé &lt; 11t: 0 suất (ở cùng)
+              📌 Bé &lt; 12t: 0 suất (ở cùng)
             </span>
           </div>
         </div>
@@ -133,7 +133,7 @@ export const RoomingProcessGuide: React.FC<RoomingProcessGuideProps> = ({
           </div>
 
           <div style={{ fontSize: '0.76rem', color: '#b45309', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 10px', borderRadius: 'var(--radius-sm)' }}>
-            📌 <strong>Ghi chú quan trọng:</strong> Bé &lt; 11 tuổi (dưới 5 tuổi hoặc 5–11 tuổi) ở cùng người thân, <strong>không tính vào số lượng người trong phòng</strong> (0 suất).
+            📌 <strong>Ghi chú quan trọng:</strong> Bé &lt; 12 tuổi (dưới 5 tuổi hoặc 5–11 tuổi) ở cùng người thân, <strong>không tính vào số lượng người trong phòng</strong> (0 suất).
           </div>
         </div>
       )}

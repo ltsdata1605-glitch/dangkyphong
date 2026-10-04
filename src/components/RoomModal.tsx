@@ -602,7 +602,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
             }}>
               <Info size={15} style={{ flexShrink: 0 }} />
               <span>
-                <strong>Ghi chú:</strong> Nếu bé &lt; 11 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).
+                <strong>Ghi chú:</strong> Nếu bé &lt; 12 tuổi sẽ không tính vào số lượng người trong phòng (ngủ cùng người thân).
               </span>
             </div>
           </div>
