@@ -367,50 +367,75 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 </div>
 
                 {/* 3. Định mức số lượng phòng theo loại */}
-                <div className="admin-tour-limits" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  fontSize: '0.82rem'
-                }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức phòng:</span>
-                  {[2, 3, 4, 5, 6].map(cap => {
-                    const tripRooms = (currentTrip && trip.id === currentTrip.id && rooms) ? rooms : getRooms(trip.id);
-                    const arrangedCount = tripRooms.filter(r => r.capacity === cap && r.memberIds && r.memberIds.length > 0).length;
-                    const limit = trip.roomLimits?.[cap];
-                    const isExceeded = limit !== undefined && arrangedCount > limit;
-                    return (
-                      <span
-                        key={cap}
-                        style={{
-                          background: arrangedCount > 0 ? 'rgba(37, 99, 235, 0.06)' : 'var(--bg-card-solid)',
-                          padding: '4px 10px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: isExceeded
-                            ? '1px solid var(--color-danger)'
-                            : arrangedCount > 0
-                              ? '1px solid rgba(37, 99, 235, 0.3)'
-                              : '1px solid var(--border-subtle)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5
-                        }}
-                      >
-                        Phòng {cap} người:{' '}
-                        <strong style={{
-                          color: isExceeded
-                            ? 'var(--color-danger)'
-                            : arrangedCount > 0
-                              ? 'var(--primary-600)'
-                              : 'var(--text-muted)'
-                        }}>
-                          {limit !== undefined ? `${arrangedCount}/${limit}` : arrangedCount} phòng
-                        </strong>
-                      </span>
-                    );
-                  })}
-                </div>
+                {(() => {
+                  const tripRooms = (currentTrip && trip.id === currentTrip.id && rooms) ? rooms : getRooms(trip.id);
+                  const totalCapLimit = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + cap * (trip.roomLimits?.[cap] || 0), 0);
+                  const totalRoomsLimit = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + (trip.roomLimits?.[cap] || 0), 0);
+
+                  return (
+                    <div className="admin-tour-limits" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      fontSize: '0.82rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Định mức phòng:</span>
+                        {totalCapLimit > 0 && (
+                          <span className="badge" style={{
+                            fontSize: '0.78rem',
+                            padding: '3px 9px',
+                            fontWeight: 800,
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}>
+                            👥 Tổng sức chứa: <strong>{totalCapLimit} người</strong> ({totalRoomsLimit} phòng)
+                          </span>
+                        )}
+                      </div>
+                      {[2, 3, 4, 5, 6].map(cap => {
+                        const arrangedCount = tripRooms.filter(r => r.capacity === cap && r.memberIds && r.memberIds.length > 0).length;
+                        const limit = trip.roomLimits?.[cap];
+                        const isExceeded = limit !== undefined && arrangedCount > limit;
+                        return (
+                          <span
+                            key={cap}
+                            style={{
+                              background: arrangedCount > 0 ? 'rgba(37, 99, 235, 0.06)' : 'var(--bg-card-solid)',
+                              padding: '4px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: isExceeded
+                                ? '1px solid var(--color-danger)'
+                                : arrangedCount > 0
+                                  ? '1px solid rgba(37, 99, 235, 0.3)'
+                                  : '1px solid var(--border-subtle)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            Phòng {cap} người:{' '}
+                            <strong style={{
+                              color: isExceeded
+                                ? 'var(--color-danger)'
+                                : arrangedCount > 0
+                                  ? 'var(--primary-600)'
+                                  : 'var(--text-muted)'
+                            }}>
+                              {limit !== undefined ? `${arrangedCount}/${limit}` : arrangedCount} phòng
+                            </strong>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })
@@ -530,9 +555,22 @@ export const AdminTripManager: React.FC<AdminTripManagerProps> = ({
                 background: 'var(--bg-muted)',
                 border: '1px solid var(--border-subtle)'
               }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', marginBottom: 4, color: 'var(--text-main)' }}>
-                  Giới Hạn Số Lượng Phòng Tối Đa (Theo Loại Phòng):
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 6 }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem', margin: 0, color: 'var(--text-main)' }}>
+                    Giới Hạn Số Lượng Phòng Tối Đa (Theo Loại Phòng):
+                  </label>
+                  <span className="badge" style={{
+                    fontSize: '0.78rem',
+                    padding: '2px 8px',
+                    fontWeight: 800,
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 6
+                  }}>
+                    👥 Tổng sức chứa: {[2, 3, 4, 5, 6].reduce((sum, cap) => sum + cap * (formData.roomLimits?.[cap] ?? (cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 20 : 6)), 0)} người ({[2, 3, 4, 5, 6].reduce((sum, cap) => sum + (formData.roomLimits?.[cap] ?? (cap === 2 ? 152 : cap === 3 ? 11 : cap === 4 ? 20 : 6)), 0)} phòng)
+                  </span>
+                </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
                   Hệ thống sẽ tự động khóa và hiển thị màu xám cảnh báo khi số phòng đăng ký đạt số lượng tối đa này.
                 </p>

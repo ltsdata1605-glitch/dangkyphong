@@ -123,11 +123,32 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
           </div>
 
           {/* Định mức phòng & Số lượng đã đăng ký */}
-          {trip.roomLimits && (
-            <div className="countdown-room-limits">
-              <span className="room-limit-heading" style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Bed size={13} style={{ color: 'var(--primary-500)' }} /> Định mức:
-              </span>
+          {trip.roomLimits && (() => {
+            const totalCapacityLimit = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + cap * (trip.roomLimits?.[cap] || 0), 0);
+            const totalRoomsLimit = [2, 3, 4, 5, 6].reduce((sum, cap) => sum + (trip.roomLimits?.[cap] || 0), 0);
+
+            return (
+              <div className="countdown-room-limits">
+                <span className="room-limit-heading" style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Bed size={13} style={{ color: 'var(--primary-500)' }} /> Định mức:
+                </span>
+                {totalCapacityLimit > 0 && (
+                  <span className="badge" style={{
+                    fontSize: '0.72rem',
+                    padding: '2px 7px',
+                    fontWeight: 800,
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 4,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    whiteSpace: 'nowrap'
+                  }}>
+                    👥 Sức chứa: {totalCapacityLimit} người ({totalRoomsLimit} phòng)
+                  </span>
+                )}
               {[2, 3, 4, 5, 6].map(cap => {
                 const limit = trip.roomLimits?.[cap];
                 if (limit === undefined) return null;
@@ -158,7 +179,8 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Right Area: Nút Xem phòng & Hạn chót (Gọn gàng, vừa vặn) */}
