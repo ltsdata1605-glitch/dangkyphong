@@ -164,7 +164,7 @@ export function setupFirestoreListeners(tripId: string): void {
 /**
  * Đẩy dữ liệu nhân sự lên Firebase (merge an toàn với Firestore để tránh ghi đè dữ liệu người khác)
  */
-export async function syncPeopleToFirebase(tripId: string, people: Person[]): Promise<void> {
+export async function syncPeopleToFirebase(tripId: string, people: Person[]): Promise<boolean> {
   try {
     const peopleDocRef = doc(db, 'trips', tripId, 'data', 'people');
     let finalPeople = people;
@@ -200,8 +200,10 @@ export async function syncPeopleToFirebase(tripId: string, people: Person[]): Pr
       people: finalPeople,
       updatedAt: new Date().toISOString()
     });
+    return true;
   } catch (err) {
     console.warn('[Firebase] Ghi dữ liệu nhân sự lỗi:', err);
+    return false;
   }
 }
 
@@ -516,10 +518,10 @@ export function getPeople(tripId: string): Person[] {
   }
 }
 
-export async function savePeople(tripId: string, people: Person[]): Promise<void> {
+export async function savePeople(tripId: string, people: Person[]): Promise<boolean> {
   localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(people));
   notifyStateChange();
-  await syncPeopleToFirebase(tripId, people);
+  return syncPeopleToFirebase(tripId, people);
 }
 
 /**

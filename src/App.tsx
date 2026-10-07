@@ -594,8 +594,9 @@ export const App: React.FC = () => {
     const tripId = targetTripId || currentTrip?.id;
     if (!tripId) return;
     let finalCount = 0;
+    let synced = true;
     if (mode === 'OVERWRITE') {
-      await savePeople(tripId, newPeople);
+      synced = await savePeople(tripId, newPeople);
       await saveRooms(tripId, []);
       finalCount = newPeople.length;
     } else {
@@ -615,8 +616,14 @@ export const App: React.FC = () => {
           merged.push(np);
         }
       });
-      await savePeople(tripId, merged);
+      synced = await savePeople(tripId, merged);
       finalCount = merged.length;
+    }
+
+    if (!synced) {
+      alert('Lưu danh sách lên máy chủ thất bại! Nhân viên sẽ không tìm thấy tên. Vui lòng kiểm tra mạng và nhập lại file Excel.');
+      refreshData();
+      return;
     }
 
     const importTime = new Date().toISOString();
