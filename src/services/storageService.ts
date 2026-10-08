@@ -630,7 +630,7 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
 
     let leaderId = room.leaderId;
     if (!cleanMemberIds.includes(leaderId)) {
-      const emp = validMembers.find(m => m.type === 'EMPLOYEE');
+      const emp = validMembers.find(m => m.type === 'EMPLOYEE' || m.type === 'PG');
       leaderId = emp ? emp.id : cleanMemberIds[0];
       modified = true;
     }
@@ -837,7 +837,7 @@ export async function claimRelative(
   relation?: RelationType
 ): Promise<{ success: boolean; roomCode?: string; isNewRoom?: boolean; message?: string }> {
   const people = getPeople(tripId);
-  const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
+  const employee = people.find(p => p.code === employeeCode && (p.type === 'EMPLOYEE' || p.type === 'PG'));
   const relative = people.find(p => p.id === relativeId || p.code === relativeId);
 
   if (!employee || !relative) {
@@ -1111,7 +1111,7 @@ export async function unclaimRelative(
  */
 export async function assignRelativeAdmin(tripId: string, employeeCode: string, relativeId: string): Promise<boolean> {
   const people = getPeople(tripId);
-  const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
+  const employee = people.find(p => p.code === employeeCode && (p.type === 'EMPLOYEE' || p.type === 'PG'));
   const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
 
   if (!employee || !relative) return false;
@@ -1228,8 +1228,8 @@ export async function leaveRoom(
     .map(id => people.find(p => p.id === id || p.code === id)!)
     .filter(Boolean);
 
-  // Kiểm tra xem còn nhân viên nào trong phòng không
-  const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE');
+  // Kiểm tra xem còn nhân viên / PG nào trong phòng không
+  const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE' || m.type === 'PG');
   if (!nextEmployee) {
     // Không còn nhân viên nào (chỉ còn trẻ em/người thân), giải tán toàn bộ phòng
     rooms.splice(roomIndex, 1);

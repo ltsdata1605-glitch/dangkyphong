@@ -101,7 +101,7 @@ export const AdminPeopleManager: React.FC<AdminPeopleManagerProps> = ({
   // Danh sách nhân viên trong cùng siêu thị của người thân đang chọn
   const candidateEmployeesForLinking = useMemo(() => {
     if (!linkingRelative) return [];
-    return people.filter(p => p.type === 'EMPLOYEE' && p.store === linkingRelative.store);
+    return people.filter(p => (p.type === 'EMPLOYEE' || p.type === 'PG') && p.store === linkingRelative.store);
   }, [people, linkingRelative]);
 
   const handleConfirmLink = () => {

@@ -67,9 +67,18 @@ export function validateRoom(
   const femaleAdults = adults.filter(a => a.gender === 'F');
   const isMixedGender = maleAdults.length > 0 && femaleAdults.length > 0;
 
-  // Tìm danh sách nhân viên chính trong phòng
-  const employeesInRoom = members.filter(m => m.type === 'EMPLOYEE');
+  // Tìm danh sách nhân viên chính trong phòng (PG cũng có thể bảo trợ người thân như nhân viên)
+  const employeesInRoom = members.filter(m => m.type === 'EMPLOYEE' || m.type === 'PG');
   const employeeCodes = new Set(employeesInRoom.map(e => e.code));
+
+  // Phòng chỉ gồm đúng 1 nhân viên/PG và người thân do chính người đó bảo trợ
+  let isStrictSingleFamily = false;
+  if (employeesInRoom.length === 1) {
+    const primaryEmployee = employeesInRoom[0];
+    isStrictSingleFamily = members
+      .filter(m => m.id !== primaryEmployee.id)
+      .every(m => m.type === 'RELATIVE' && (m.ownerId === primaryEmployee.code || !m.ownerId));
+  }
 
   // R5: Trẻ em < 12 tuổi phải ở cùng phòng với nhân viên (cha/mẹ) bảo trợ của mình
   for (const child of children) {
@@ -79,10 +88,10 @@ export function validateRoom(
     }
   }
 
-  // R9: PG theo quy tắc cùng giới, không được hưởng ngoại lệ gia đình.
-  // Ngoại lệ: phòng chỉ có 2 PG khác giới và đã xác nhận là vợ chồng.
+  // R9: PG theo quy tắc cùng giới.
+  // Ngoại lệ: PG ở cùng người thân do chính mình bảo trợ, hoặc phòng chỉ có 2 PG khác giới đã xác nhận vợ chồng.
   const pgMembers = members.filter(m => m.type === 'PG');
-  if (pgMembers.length > 0 && isMixedGender) {
+  if (pgMembers.length > 0 && isMixedGender && !isStrictSingleFamily) {
     if (needsSpouseConfirmation(members)) {
       if (!spouseConfirmed) {
         errors.push('2 PG khác giới chỉ được ở chung phòng khi là vợ chồng. Vui lòng tích xác nhận quan hệ vợ chồng.');
@@ -98,20 +107,6 @@ export function validateRoom(
     // Điều kiện A: Tất cả thành viên trong phòng phải thuộc đúng 1 gia đình duy nhất
     // (tức là chỉ có tối đa 1 nhân viên, và tất cả người thân đều có ownerId là nhân viên đó).
     // Điều kiện B: Hoặc cả 2 người lớn là 2 nhân viên là vợ chồng (Admin đánh dấu override).
-
-    let isStrictSingleFamily = false;
-
-    if (employeesInRoom.length === 1) {
-      const primaryEmployee = employeesInRoom[0];
-      const nonPrimaryMembers = members.filter(m => m.id !== primaryEmployee.id);
-      const allRelativesOfThisEmployee = nonPrimaryMembers.every(
-        m => m.type === 'RELATIVE' && (m.ownerId === primaryEmployee.code || !m.ownerId)
-      );
-
-      if (allRelativesOfThisEmployee) {
-        isStrictSingleFamily = true;
-      }
-    }
 
     if (!isStrictSingleFamily && !isAdminOverride) {
       warnings.push(

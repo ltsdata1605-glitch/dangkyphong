@@ -172,13 +172,11 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
       />
 
       {/* 1. Relative Claim Alert (Hỗ trợ người thân cùng siêu thị & tìm ở siêu thị khác) */}
-      {currentEmployee.type !== 'PG' && (
-        <EmployeeRelativeClaim
-          currentEmployee={currentEmployee}
-          allPeople={allPeople}
-          onClaimRelative={onClaimRelative}
-        />
-      )}
+      <EmployeeRelativeClaim
+        currentEmployee={currentEmployee}
+        allPeople={allPeople}
+        onClaimRelative={onClaimRelative}
+      />
 
       {/* 1.5. Gợi Ý Các Phòng Đang Thiếu Người (Hiệu ứng nhấp nháy thu hút - Thiết kế siêu gọn) */}
       {!myRoom && underCapacityRooms.length > 0 && !isLocked && (
