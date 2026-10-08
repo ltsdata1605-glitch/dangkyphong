@@ -164,7 +164,7 @@ export function setupFirestoreListeners(tripId: string): void {
 /**
  * Đẩy dữ liệu nhân sự lên Firebase (merge an toàn với Firestore để tránh ghi đè dữ liệu người khác)
  */
-export async function syncPeopleToFirebase(tripId: string, people: Person[]): Promise<void> {
+export async function syncPeopleToFirebase(tripId: string, people: Person[]): Promise<boolean> {
   try {
     const peopleDocRef = doc(db, 'trips', tripId, 'data', 'people');
     let finalPeople = people;
@@ -200,8 +200,10 @@ export async function syncPeopleToFirebase(tripId: string, people: Person[]): Pr
       people: finalPeople,
       updatedAt: new Date().toISOString()
     });
+    return true;
   } catch (err) {
     console.warn('[Firebase] Ghi dữ liệu nhân sự lỗi:', err);
+    return false;
   }
 }
 
@@ -516,10 +518,10 @@ export function getPeople(tripId: string): Person[] {
   }
 }
 
-export async function savePeople(tripId: string, people: Person[]): Promise<void> {
+export async function savePeople(tripId: string, people: Person[]): Promise<boolean> {
   localStorage.setItem(`${STORAGE_KEYS.PEOPLE_PREFIX}${tripId}`, JSON.stringify(people));
   notifyStateChange();
-  await syncPeopleToFirebase(tripId, people);
+  return syncPeopleToFirebase(tripId, people);
 }
 
 /**
@@ -628,7 +630,7 @@ export function reconcileRoomsAndPeople(tripId: string, rooms: Room[], people: P
 
     let leaderId = room.leaderId;
     if (!cleanMemberIds.includes(leaderId)) {
-      const emp = validMembers.find(m => m.type === 'EMPLOYEE');
+      const emp = validMembers.find(m => m.type === 'EMPLOYEE' || m.type === 'PG');
       leaderId = emp ? emp.id : cleanMemberIds[0];
       modified = true;
     }
@@ -729,7 +731,7 @@ export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[], 
       }
 
       if (roomModified) {
-        const validation = validateRoom(members, capacity, 2, room.adminOverride);
+        const validation = validateRoom(members, capacity, 2, room.adminOverride, room.spouseConfirmed);
         return {
           ...room,
           memberIds,
@@ -835,7 +837,7 @@ export async function claimRelative(
   relation?: RelationType
 ): Promise<{ success: boolean; roomCode?: string; isNewRoom?: boolean; message?: string }> {
   const people = getPeople(tripId);
-  const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
+  const employee = people.find(p => p.code === employeeCode && (p.type === 'EMPLOYEE' || p.type === 'PG'));
   const relative = people.find(p => p.id === relativeId || p.code === relativeId);
 
   if (!employee || !relative) {
@@ -1109,7 +1111,7 @@ export async function unclaimRelative(
  */
 export async function assignRelativeAdmin(tripId: string, employeeCode: string, relativeId: string): Promise<boolean> {
   const people = getPeople(tripId);
-  const employee = people.find(p => p.code === employeeCode && p.type === 'EMPLOYEE');
+  const employee = people.find(p => p.code === employeeCode && (p.type === 'EMPLOYEE' || p.type === 'PG'));
   const relative = people.find(p => p.id === relativeId && p.type === 'RELATIVE');
 
   if (!employee || !relative) return false;
@@ -1226,8 +1228,8 @@ export async function leaveRoom(
     .map(id => people.find(p => p.id === id || p.code === id)!)
     .filter(Boolean);
 
-  // Kiểm tra xem còn nhân viên nào trong phòng không
-  const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE');
+  // Kiểm tra xem còn nhân viên / PG nào trong phòng không
+  const nextEmployee = remainingMembers.find(m => m.type === 'EMPLOYEE' || m.type === 'PG');
   if (!nextEmployee) {
     // Không còn nhân viên nào (chỉ còn trẻ em/người thân), giải tán toàn bộ phòng
     rooms.splice(roomIndex, 1);

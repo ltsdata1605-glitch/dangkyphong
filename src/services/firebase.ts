@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAloEjmYgge4qMEcC5nSEpCKKujXNKCUn4",
@@ -12,4 +12,6 @@ export const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, 'dang-ky-phong');
+// ignoreUndefinedProperties: Firestore từ chối ghi cả tài liệu nếu có field = undefined
+// (vd: phone: undefined khi file Excel không có SĐT) -> danh sách nhân sự không được lưu.
+export const db = initializeFirestore(app, { ignoreUndefinedProperties: true }, 'dang-ky-phong');

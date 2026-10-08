@@ -198,7 +198,7 @@ export const App: React.FC = () => {
   };
 
   // Tạo hoặc Sửa phòng
-  const handleSaveRoom = async (capacity: number, memberIds: string[], editingRoomId?: string) => {
+  const handleSaveRoom = async (capacity: number, memberIds: string[], editingRoomId?: string, spouseConfirmed = false) => {
     if (!currentEmployee || !currentTrip) return;
 
     const currentPeople = getPeople(currentTrip.id);
@@ -227,7 +227,7 @@ export const App: React.FC = () => {
       }
     }
 
-    const validation = validateRoom(members, actualCapacity, currentTrip.maxChildrenPerRoom, false);
+    const validation = validateRoom(members, actualCapacity, currentTrip.maxChildrenPerRoom, false, spouseConfirmed);
     if (!validation.valid) {
       alert(validation.errors.join('\n'));
       return;
@@ -272,6 +272,7 @@ export const App: React.FC = () => {
       status: validation.usedSlots === actualCapacity ? 'FULL' : 'UNDER',
       bedType: validation.bedType,
       adminOverride: false,
+      ...(spouseConfirmed ? { spouseConfirmed: true } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       updatedBy: currentEmployee.name
@@ -297,7 +298,7 @@ export const App: React.FC = () => {
       action: editingRoomId ? 'UPDATE_ROOM' : 'CREATE_ROOM',
       actor: currentEmployee.code,
       actorName: currentEmployee.name,
-      details: `${currentEmployee.name} đã ${editingRoomId ? 'cập nhật' : 'tạo'} phòng ${room.code} (${capacity} người - ${memberIds.length} thành viên)`,
+      details: `${currentEmployee.name} đã ${editingRoomId ? 'cập nhật' : 'tạo'} phòng ${room.code} (${capacity} người - ${memberIds.length} thành viên)${spouseConfirmed ? ' - xác nhận 2 PG là vợ chồng' : ''}`,
       timestamp: new Date().toISOString()
     });
 
@@ -332,7 +333,7 @@ export const App: React.FC = () => {
     person.roomId = room.id;
 
     const updatedMembers = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
-    const validation = validateRoom(updatedMembers, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride);
+    const validation = validateRoom(updatedMembers, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride, room.spouseConfirmed);
 
     room.usedSlots = validation.usedSlots;
     room.childCount = validation.childCount;
@@ -594,8 +595,9 @@ export const App: React.FC = () => {
     const tripId = targetTripId || currentTrip?.id;
     if (!tripId) return;
     let finalCount = 0;
+    let synced = true;
     if (mode === 'OVERWRITE') {
-      await savePeople(tripId, newPeople);
+      synced = await savePeople(tripId, newPeople);
       await saveRooms(tripId, []);
       finalCount = newPeople.length;
     } else {
@@ -615,8 +617,14 @@ export const App: React.FC = () => {
           merged.push(np);
         }
       });
-      await savePeople(tripId, merged);
+      synced = await savePeople(tripId, merged);
       finalCount = merged.length;
+    }
+
+    if (!synced) {
+      alert('Lưu danh sách lên máy chủ thất bại! Nhân viên sẽ không tìm thấy tên. Vui lòng kiểm tra mạng và nhập lại file Excel.');
+      refreshData();
+      return;
     }
 
     const importTime = new Date().toISOString();
@@ -718,7 +726,7 @@ export const App: React.FC = () => {
     person.roomId = room.id;
 
     const updatedMembers = room.memberIds.map(id => currentPeople.find(p => p.id === id)!).filter(Boolean);
-    const validation = validateRoom(updatedMembers, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride);
+    const validation = validateRoom(updatedMembers, room.capacity, currentTrip.maxChildrenPerRoom, room.adminOverride, room.spouseConfirmed);
 
     room.usedSlots = validation.usedSlots;
     room.childCount = validation.childCount;
