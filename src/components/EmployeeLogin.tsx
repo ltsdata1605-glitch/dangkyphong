@@ -12,9 +12,9 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
-  // Lọc chỉ lấy NHÂN VIÊN
+  // Lọc NHÂN VIÊN và PG (PG tự đăng ký phòng cho mình)
   const employees = useMemo(() => {
-    return people.filter(p => p.type === 'EMPLOYEE');
+    return people.filter(p => p.type === 'EMPLOYEE' || p.type === 'PG');
   }, [people]);
 
   // Tìm kiếm theo tên không dấu hoặc mã nhân viên
@@ -112,7 +112,7 @@ export const EmployeeLogin: React.FC<EmployeeLoginProps> = ({ people, onLogin })
                         <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <span>{emp.name}</span>
                           <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
-                            {emp.code}
+                            {emp.type === 'PG' ? 'PG' : emp.code}
                           </span>
                           <span className={`badge ${emp.gender === 'M' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.65rem' }}>
                             {emp.gender === 'M' ? 'Nam' : 'Nữ'}

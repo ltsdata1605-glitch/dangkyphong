@@ -28,7 +28,7 @@ interface EmployeeRoomViewProps {
   currentTrip: Trip;
   allPeople: Person[];
   allRooms: Room[];
-  onSaveRoom: (capacity: number, memberIds: string[], editingRoomId?: string) => void;
+  onSaveRoom: (capacity: number, memberIds: string[], editingRoomId?: string, spouseConfirmed?: boolean) => void;
   onLeaveRoom: (personId: string) => void;
   onDeleteRoom: (roomId: string) => void;
   onClaimRelative: (relativeId: string, relation?: RelationType) => void;
@@ -172,11 +172,13 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
       />
 
       {/* 1. Relative Claim Alert (Hỗ trợ người thân cùng siêu thị & tìm ở siêu thị khác) */}
-      <EmployeeRelativeClaim
-        currentEmployee={currentEmployee}
-        allPeople={allPeople}
-        onClaimRelative={onClaimRelative}
-      />
+      {currentEmployee.type !== 'PG' && (
+        <EmployeeRelativeClaim
+          currentEmployee={currentEmployee}
+          allPeople={allPeople}
+          onClaimRelative={onClaimRelative}
+        />
+      )}
 
       {/* 1.5. Gợi Ý Các Phòng Đang Thiếu Người (Hiệu ứng nhấp nháy thu hút - Thiết kế siêu gọn) */}
       {!myRoom && underCapacityRooms.length > 0 && !isLocked && (
@@ -859,7 +861,7 @@ export const EmployeeRoomView: React.FC<EmployeeRoomViewProps> = ({
         <RoomModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSaveRoom={(cap, memberIds) => onSaveRoom(cap, memberIds, isEditing && myRoom ? myRoom.id : undefined)}
+          onSaveRoom={(cap, memberIds, spouseConfirmed) => onSaveRoom(cap, memberIds, isEditing && myRoom ? myRoom.id : undefined, spouseConfirmed)}
           currentEmployee={currentEmployee}
           allPeople={allPeople}
           editingRoom={isEditing ? myRoom : null}

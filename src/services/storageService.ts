@@ -731,7 +731,7 @@ export function normalizeRoomCapacitiesAndLimits(tripId: string, rooms: Room[], 
       }
 
       if (roomModified) {
-        const validation = validateRoom(members, capacity, 2, room.adminOverride);
+        const validation = validateRoom(members, capacity, 2, room.adminOverride, room.spouseConfirmed);
         return {
           ...room,
           memberIds,

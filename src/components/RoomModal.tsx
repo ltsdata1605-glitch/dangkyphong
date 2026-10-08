@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Person, Room, Trip, BedType } from '../types';
-import { validateRoom, canAddPersonToRoom } from '../services/roomingEngine';
+import { validateRoom, canAddPersonToRoom, needsSpouseConfirmation } from '../services/roomingEngine';
 import { removeVietnameseTones } from '../utils/textUtils';
 import confetti from 'canvas-confetti';
 import {
@@ -21,7 +21,7 @@ import {
 interface RoomModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveRoom: (capacity: number, memberIds: string[]) => void;
+  onSaveRoom: (capacity: number, memberIds: string[], spouseConfirmed?: boolean) => void;
   currentEmployee: Person;
   allPeople: Person[];
   editingRoom?: Room | null;
@@ -142,10 +142,14 @@ export const RoomModal: React.FC<RoomModalProps> = ({
       .filter(Boolean);
   }, [selectedMemberIds, allPeople]);
 
+  // 2 PG khác giới: phải xác nhận là vợ chồng
+  const [spouseConfirmed, setSpouseConfirmed] = useState<boolean>(!!editingRoom?.spouseConfirmed);
+  const needsConfirm = useMemo(() => needsSpouseConfirmation(currentMembers), [currentMembers]);
+
   // Kiểm tra tính hợp lệ của phòng theo các quy tắc
   const validation = useMemo(() => {
-    return validateRoom(currentMembers, capacity, maxChildrenPerRoom, false);
-  }, [currentMembers, capacity, maxChildrenPerRoom]);
+    return validateRoom(currentMembers, capacity, maxChildrenPerRoom, false, needsConfirm && spouseConfirmed);
+  }, [currentMembers, capacity, maxChildrenPerRoom, needsConfirm, spouseConfirmed]);
 
   const [filterType, setFilterType] = useState<'ALL' | 'SAME_STORE' | 'AVAILABLE' | 'EMPLOYEES_ONLY'>('ALL');
   const [filterGender, setFilterGender] = useState<'ALL' | 'M' | 'F'>('ALL');
@@ -263,7 +267,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
       // Ignored if confetti fails
     }
 
-    onSaveRoom(finalCapacity, selectedMemberIds);
+    onSaveRoom(finalCapacity, selectedMemberIds, needsConfirm && spouseConfirmed);
     onClose();
   };
 
@@ -637,6 +641,31 @@ export const RoomModal: React.FC<RoomModalProps> = ({
             </div>
           )}
 
+          {needsConfirm && (
+            <label style={{
+              marginBottom: 16,
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              fontSize: '0.84rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={spouseConfirmed}
+                onChange={(e) => setSpouseConfirmed(e.target.checked)}
+                style={{ marginTop: 3 }}
+              />
+              <span>
+                <strong>Tôi xác nhận 2 PG trong phòng là VỢ CHỒNG.</strong> Tôi hoàn toàn chịu trách nhiệm kỷ luật nếu khai báo không trung thực.
+              </span>
+            </label>
+          )}
+
           {validation.warnings.length > 0 && validation.errors.length === 0 && (
             <div style={{
               marginBottom: 16,
@@ -835,7 +864,7 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                 </div>
               ) : (
                 availableCandidates.map(person => {
-                  const checkAdd = canAddPersonToRoom(person, currentMembers, capacity, editingRoom ? editingRoom.id : null);
+                  const checkAdd = canAddPersonToRoom(person, currentMembers, capacity, editingRoom ? editingRoom.id : null, true);
                   const canAdd = checkAdd.allowed;
 
                   return (

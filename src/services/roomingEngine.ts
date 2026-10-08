@@ -1,13 +1,23 @@
 import { Person, Room, RuleValidationResult, BedType, Gender } from '../types';
 
 /**
+ * Phòng chỉ gồm đúng 2 PG khác giới: được ở chung nếu xác nhận là vợ chồng
+ */
+export function needsSpouseConfirmation(members: Person[]): boolean {
+  return members.length === 2
+    && members.every(m => m.type === 'PG' && m.slot > 0)
+    && members[0].gender !== members[1].gender;
+}
+
+/**
  * Kiểm tra tính hợp lệ của một phòng theo tất cả các Business Rules (R1 -> R9)
  */
 export function validateRoom(
   members: Person[],
   capacity: number,
   maxChildrenPerRoom = 2,
-  isAdminOverride = false
+  isAdminOverride = false,
+  spouseConfirmed = false
 ): RuleValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -69,10 +79,17 @@ export function validateRoom(
     }
   }
 
-  // R9: PG theo quy tắc cùng giới, không được hưởng ngoại lệ gia đình
+  // R9: PG theo quy tắc cùng giới, không được hưởng ngoại lệ gia đình.
+  // Ngoại lệ: phòng chỉ có 2 PG khác giới và đã xác nhận là vợ chồng.
   const pgMembers = members.filter(m => m.type === 'PG');
   if (pgMembers.length > 0 && isMixedGender) {
-    errors.push('PG tham gia độc lập phải tuân thủ quy tắc cùng giới tính (không áp dụng ngoại lệ gia đình).');
+    if (needsSpouseConfirmation(members)) {
+      if (!spouseConfirmed) {
+        errors.push('2 PG khác giới chỉ được ở chung phòng khi là vợ chồng. Vui lòng tích xác nhận quan hệ vợ chồng.');
+      }
+    } else {
+      errors.push('PG tham gia độc lập phải tuân thủ quy tắc cùng giới tính (không áp dụng ngoại lệ gia đình).');
+    }
   }
 
   // R1 & R2: Quy tắc Nam/Nữ và Ngoại lệ Gia đình
@@ -140,7 +157,8 @@ export function canAddPersonToRoom(
   targetPerson: Person,
   currentMembers: Person[],
   capacity: number,
-  currentRoomId: string | null
+  currentRoomId: string | null,
+  allowSpouseConfirm = false
 ): { allowed: boolean; reason?: string; warning?: string } {
   // R4: Đã ở phòng khác
   if (targetPerson.roomId && targetPerson.roomId !== currentRoomId) {
@@ -163,10 +181,16 @@ export function canAddPersonToRoom(
   // Sức chứa dự kiến tự động đổi nếu vượt quá sức chứa ban đầu, tối đa 6
   const effectiveCapacity = Math.min(6, Math.max(capacity, newAdultSlots));
 
-  const validation = validateRoom(updatedMembers, effectiveCapacity, 2, false);
+  // allowSpouseConfirm: cho phép thêm 2 PG khác giới, người tạo phòng sẽ phải xác nhận vợ chồng khi lưu
+  const pendingSpouseConfirm = allowSpouseConfirm && needsSpouseConfirmation(updatedMembers);
+  const validation = validateRoom(updatedMembers, effectiveCapacity, 2, false, pendingSpouseConfirm);
 
   if (!validation.valid) {
     return { allowed: false, reason: validation.errors[0] };
+  }
+
+  if (pendingSpouseConfirm) {
+    return { allowed: true, warning: 'PG khác giới: chỉ được ở chung nếu là vợ chồng (cần xác nhận khi lưu phòng).' };
   }
 
   if (validation.warnings.length > 0) {

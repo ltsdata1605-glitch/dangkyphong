@@ -45,6 +45,7 @@ export interface Room {
   bedType: BedType;
   adminOverride: boolean;  // Có phải Admin bỏ qua quy tắc không
   adminNote?: string;      // Ghi chú lý do Admin bỏ qua quy tắc
+  spouseConfirmed?: boolean; // 2 PG khác giới đã xác nhận là vợ chồng
   createdAt: string;
   updatedAt: string;
   updatedBy: string;
